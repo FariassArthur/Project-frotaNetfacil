@@ -100,6 +100,19 @@ export default function App() {
           )}
         </main>
       </div>
+      <footer className="app-footer">
+        <span>
+          © 2026 <strong>Arthur Farias</strong> — Todos os direitos reservados
+        </span>
+        <a
+          href="https://github.com/FariassArthur/Project-frotaNetfacil"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
+          GitHub
+        </a>
+      </footer>
     </div>
   );
 }

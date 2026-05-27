@@ -57,6 +57,17 @@ export default function LoginForm({ onLoginSuccess }) {
           </button>
         </form>
       </div>
+      <div className="login-footer">
+        © 2026 <strong>Arthur Farias</strong> —{' '}
+        <a
+          href="https://github.com/FariassArthur/Project-frotaNetfacil"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
+          GitHub
+        </a>
+      </div>
     </div>
   );
 }
