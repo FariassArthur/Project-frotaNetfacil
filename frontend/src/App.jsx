@@ -3,6 +3,7 @@ import LoginForm from './components/LoginForm';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import GenericModule from './components/GenericModule';
+import VeiculosPage from './components/VeiculosPage';
 import VersionPage from './components/VersionPage';
 import ConfiguracoesPage from './components/ConfiguracoesPage';
 import Dashboard from './components/Dashboard';
@@ -91,6 +92,12 @@ export default function App() {
             <LogsAuditoria token={token} user={user} />
           ) : currentKey === 'configuracoes' ? (
             <ConfiguracoesPage token={token} user={user} />
+          ) : currentKey === 'veiculos' ? (
+            <VeiculosPage
+              moduleConfig={currentModule}
+              token={token}
+              vehicles={vehicles}
+            />
           ) : (
             <GenericModule
               moduleConfig={currentModule}

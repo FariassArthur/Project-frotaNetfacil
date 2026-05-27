@@ -2230,3 +2230,152 @@ body {
     padding: 4px 8px;
   }
 }
+
+/* ===== SUB-TABS ===== */
+.sub-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.sub-tab-btn {
+  padding: 8px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.sub-tab-btn:hover {
+  color: var(--orange);
+}
+
+.sub-tab-btn.active {
+  color: var(--orange);
+  border-bottom-color: var(--orange);
+}
+
+/* ===== GASTOS (Vehicle expenses) ===== */
+.gastos-container {
+  padding: 0;
+}
+
+.gastos-filters {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.gastos-filters .form-group {
+  margin-bottom: 0;
+}
+
+.gastos-resultados {
+  margin-top: 16px;
+}
+
+.gastos-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--orange-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+}
+
+.gastos-veiculo {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.gastos-periodo {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.gastos-total {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--orange);
+  margin-left: auto;
+}
+
+.gastos-chart-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.gastos-pie-wrapper {
+  flex: 1;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.gastos-tabela-wrapper {
+  flex: 1;
+  min-width: 250px;
+}
+
+.gastos-tabela-wrapper table {
+  font-size: 0.85rem;
+}
+
+.gastos-total-row td {
+  border-top: 2px solid var(--orange);
+  color: var(--orange);
+}
+
+.gastos-sem-dados {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 40px;
+}
+
+.gastos-detalhes {
+  margin-top: 16px;
+}
+
+.gastos-detalhes h4 {
+  margin: 0 0 12px;
+  color: var(--text-primary);
+}
+
+.gastos-detail-section {
+  margin-bottom: 12px;
+}
+
+.gastos-detail-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  transition: background 0.2s;
+}
+
+.gastos-detail-section summary:hover {
+  background: var(--orange-bg);
+}
+
+.gastos-detail-section table {
+  margin-top: 8px;
+  font-size: 0.82rem;
+}
