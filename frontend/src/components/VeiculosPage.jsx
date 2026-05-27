@@ -1,39 +1,83 @@
 import React, { useState } from 'react';
 import GenericModule from './GenericModule';
 import VeiculoGastos from './VeiculoGastos';
+import { getByKey } from '../modules/config';
 
-const TABS = [
+const SUB_TABS = [
   { key: 'cadastro', label: 'Cadastro' },
   { key: 'gastos', label: 'Gastos' },
+  { key: 'cnhs', label: 'CNHs' },
+  { key: 'manutencoes', label: 'Manutenções' },
+  { key: 'multas', label: 'Multas' },
+  { key: 'documentos', label: 'Pag. Documentos' },
 ];
+
+const MODULE_KEY_MAP = {
+  cnhs: 'cnhs',
+  manutencoes: 'manutencoes',
+  multas: 'multas',
+  documentos: 'pagamento-documentos',
+};
 
 export default function VeiculosPage({ moduleConfig, token, vehicles }) {
   const [activeTab, setActiveTab] = useState('cadastro');
+  const [selectedVehicle, setSelectedVehicle] = useState('');
 
-  if (activeTab === 'gastos') {
-    return (
-      <div className="module-container">
-        <h2>{moduleConfig.label}</h2>
-        <div className="sub-tabs">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              className={`sub-tab-btn${activeTab === tab.key ? ' active' : ''}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
+  const needsVehicle = !['cadastro', 'gastos'].includes(activeTab);
+
+  const renderContent = () => {
+    if (activeTab === 'cadastro') {
+      return <GenericModule moduleConfig={moduleConfig} token={token} vehicles={vehicles} />;
+    }
+    if (activeTab === 'gastos') {
+      return (
+        <div className="module-container">
+          <VeiculoGastos token={token} />
         </div>
-        <VeiculoGastos token={token} />
-      </div>
+      );
+    }
+    if (!selectedVehicle) {
+      return (
+        <div className="module-container">
+          <p className="gastos-sem-dados">Selecione um veículo para ver os registros.</p>
+        </div>
+      );
+    }
+    const modKey = MODULE_KEY_MAP[activeTab];
+    const cfg = getByKey(modKey);
+    if (!cfg) return null;
+    return (
+      <GenericModule
+        moduleConfig={cfg}
+        token={token}
+        vehicles={vehicles}
+        filterParams={{ veiculo_id: selectedVehicle }}
+      />
     );
-  }
+  };
 
   return (
-    <>
-      <div className="sub-tabs" style={{ padding: '16px 24px 0', background: 'var(--bg-secondary, #fafafa)' }}>
-        {TABS.map((tab) => (
+    <div>
+      <div className="veiculo-page-bar">
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Veículo</label>
+          <select
+            className="form-input"
+            value={selectedVehicle}
+            onChange={(e) => setSelectedVehicle(e.target.value)}
+          >
+            <option value="">Selecione um veículo</option>
+            {vehicles.map((v) => (
+              <option key={v.placa} value={v.placa}>
+                {v.placa} — {v.fipe_modelo || v.tipo || ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="sub-tabs">
+        {SUB_TABS.map((tab) => (
           <button
             key={tab.key}
             className={`sub-tab-btn${activeTab === tab.key ? ' active' : ''}`}
@@ -43,7 +87,8 @@ export default function VeiculosPage({ moduleConfig, token, vehicles }) {
           </button>
         ))}
       </div>
-      <GenericModule moduleConfig={moduleConfig} token={token} vehicles={vehicles} />
-    </>
+
+      {renderContent()}
+    </div>
   );
 }

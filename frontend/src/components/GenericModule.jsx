@@ -3,22 +3,24 @@ import { fetchList, createItem, updateItem, deleteItem } from '../api/client';
 import EntityForm from './EntityForm';
 import EntityTable from './EntityTable';
 
-export default function GenericModule({ moduleConfig, token, vehicles }) {
+export default function GenericModule({ moduleConfig, token, vehicles, filterParams }) {
   const [items, setItems] = useState([]);
   const [formData, setFormData] = useState({});
   const [selectedItem, setSelectedItem] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [formOpen, setFormOpen] = useState(true);
 
   useEffect(() => {
     loadItems();
-  }, [moduleConfig.key]);
+  }, [moduleConfig.key, filterParams]);
 
   const loadItems = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await fetchList(moduleConfig.endpoint, token);
+      const params = filterParams ? '?' + new URLSearchParams(filterParams).toString() : '';
+      const data = await fetchList(moduleConfig.endpoint + params, token);
       setItems(Array.isArray(data) ? data : []);
       setFormData({});
       setSelectedItem(null);
@@ -80,9 +82,17 @@ export default function GenericModule({ moduleConfig, token, vehicles }) {
       <h2>{moduleConfig.label}</h2>
       {error && <div className="module-error">{error}</div>}
 
-      <div className="module-content">
-        <div className="module-form-section">
-          <h3>{selectedItem ? 'Editar' : 'Novo'}</h3>
+      <div className="module-content" style={{ gridTemplateColumns: formOpen ? '1fr 1fr' : '1fr' }}>
+        <div className="module-form-section" style={{ display: formOpen ? undefined : 'none' }}>
+          <button
+            type="button"
+            className="form-collapse-btn"
+            onClick={() => setFormOpen(false)}
+            title="Recolher formulário"
+          >
+            <span className="form-collapse-label">{selectedItem ? 'Editar' : 'Novo'}</span>
+            <span className="form-collapse-arrow open">▾</span>
+          </button>
           <EntityForm
             fields={moduleConfig.fields}
             formData={formData}
@@ -95,7 +105,14 @@ export default function GenericModule({ moduleConfig, token, vehicles }) {
         </div>
 
         <div className="module-table-section">
-          <h3>Registros</h3>
+          <div className="module-table-header">
+            <h3>Registros</h3>
+            {!formOpen && (
+              <button type="button" className="form-expand-btn" onClick={() => setFormOpen(true)}>
+                + Novo
+              </button>
+            )}
+          </div>
           {loading ? (
             <p style={{ color: '#888' }}>Carregando...</p>
           ) : (

@@ -19,7 +19,7 @@ function canViewModule(moduleKey, user) {
 }
 
 export default function Sidebar({ currentKey, onModuleSelect, user, mobileOpen, onToggleMobile }) {
-  const visibleModules = MODULES.filter((m) => canViewModule(m.key, user));
+  const visibleModules = MODULES.filter((m) => !m.sidebarHidden && canViewModule(m.key, user));
   return (
     <>
       {mobileOpen && <div className="sidebar-overlay" onClick={onToggleMobile} />}

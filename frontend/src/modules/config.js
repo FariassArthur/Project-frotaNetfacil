@@ -46,6 +46,7 @@ export const MODULES = [
   {
     key: 'cnhs',
     label: 'CNHs',
+    sidebarHidden: true,
     endpoint: '/api/cnhs',
     keyField: 'numero_registro',
     fields: [
@@ -93,6 +94,7 @@ export const MODULES = [
   {
     key: 'manutencoes',
     label: 'Manutenções',
+    sidebarHidden: true,
     endpoint: '/api/manutencoes',
     keyField: 'id',
     fields: [
@@ -111,6 +113,7 @@ export const MODULES = [
   {
     key: 'multas',
     label: 'Multas',
+    sidebarHidden: true,
     endpoint: '/api/multas',
     keyField: 'id',
     fields: [
@@ -186,6 +189,7 @@ export const MODULES = [
   {
     key: 'pagamento-documentos',
     label: 'Pagamentos Documento',
+    sidebarHidden: true,
     endpoint: '/api/pagamento-documentos',
     keyField: 'id',
     fields: [
