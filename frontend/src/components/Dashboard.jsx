@@ -1,0 +1,465 @@
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { fetchList } from '../api/client';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
+const MODULE_ORDER = [
+  'veiculos', 'cnhs', 'manutencoes', 'multas', 'abastecimentos',
+  'contratos_seguro', 'pagamentos_seguro', 'pagamento_documentos',
+  'mecanicas', 'seguradoras', 'combustiveis', 'tipo_manutencao'
+];
+
+const SENSITIVE_PREFIXES = ['password', 'path_'];
+
+function formatCellValue(val) {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'boolean') return val ? 'Sim' : 'Não';
+  const s = String(val);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = new Date(s + 'T00:00:00');
+    if (!isNaN(d)) return d.toLocaleDateString('pt-BR');
+  }
+  return s;
+}
+
+function rawDate(val) {
+  if (!val) return null;
+  const s = String(val);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  return null;
+}
+
+function sanitizeRows(rows) {
+  return rows.map((r) => {
+    const copy = { ...r };
+    for (const key of Object.keys(copy)) {
+      if (SENSITIVE_PREFIXES.some((p) => key === p || key.startsWith(p))) {
+        delete copy[key];
+      }
+    }
+    return copy;
+  });
+}
+
+function formatHeader(key) {
+  return key
+    .replace(/^id$/i, 'ID')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (l) => l.toUpperCase())
+    .replace(/\bId\b/g, 'ID')
+    .replace(/\bPdf\b/g, 'PDF')
+    .replace(/\bCpf\b/g, 'CPF')
+    .replace(/\bCnpj\b/g, 'CNPJ')
+    .replace(/\bKm\b/g, 'KM')
+    .replace(/\bCep\b/g, 'CEP')
+    .replace(/\bUf\b/g, 'UF')
+    .replace(/\bIpva\b/g, 'IPVA');
+}
+
+function isDateColumn(col, rows) {
+  if (/data|vencimento|validade|emissao|nascimento|aquisicao|pagamento|ocorrencia|inicial|final/.test(col)) {
+    const sample = rows[0]?.[col];
+    return sample != null && /^\d{4}-\d{2}-\d{2}/.test(String(sample));
+  }
+  return false;
+}
+
+function isNumColumn(col, rows) {
+  const sample = rows[0]?.[col];
+  if (sample == null) return false;
+  if (['km', 'valor', 'quantidade', 'capacidade', 'potencia', 'combustivel'].includes(col)) return true;
+  return typeof sample === 'number' || (!isNaN(Number(sample)) && String(sample).trim() !== '');
+}
+
+function getSortValue(row, col, dateCol) {
+  const v = row[col];
+  if (v == null) return -Infinity;
+  if (dateCol) return rawDate(v) || v;
+  if (typeof v === 'number') return v;
+  if (typeof v === 'boolean') return v ? 1 : 0;
+  const n = Number(v);
+  return isNaN(n) ? String(v).toLowerCase() : n;
+}
+
+function FilterDropdown({ col, rows, filter, onFilterChange, onClose, anchorRect }) {
+  const [valueSearch, setValueSearch] = useState('');
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const uniqueValues = useMemo(() => {
+    const set = new Set();
+    for (const r of rows) {
+      const v = r[col];
+      set.add(v != null ? String(v) : '');
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rows, col]);
+
+  const filteredValues = valueSearch
+    ? uniqueValues.filter((v) => v.toLowerCase().includes(valueSearch.toLowerCase()))
+    : uniqueValues;
+
+  const hidden = filter.hidden || new Set();
+
+  const toggleValue = (v) => {
+    const next = new Set(hidden);
+    if (next.has(v)) next.delete(v); else next.add(v);
+    onFilterChange({ ...filter, hidden: next.size === 0 ? null : next });
+  };
+
+  const showAll = () => onFilterChange({ ...filter, hidden: null });
+  const hideAll = () => onFilterChange({ ...filter, hidden: new Set(uniqueValues) });
+
+  const style = anchorRect ? {
+    position: 'fixed',
+    top: anchorRect.bottom + 4,
+    left: Math.min(anchorRect.left, window.innerWidth - 320),
+  } : {};
+
+  return (
+    <div className="filter-dropdown" ref={dropdownRef} onClick={(e) => e.stopPropagation()} style={style}>
+      <div className="filter-dropdown-section">
+        <label className="filter-label">Ordenar</label>
+        <div className="filter-sort-buttons">
+          <button
+            className={`filter-sort-btn${filter.sort === 'asc' ? ' active' : ''}`}
+            onClick={() => onFilterChange({ ...filter, sort: filter.sort === 'asc' ? null : 'asc' })}
+          >⬆ A-Z</button>
+          <button
+            className={`filter-sort-btn${filter.sort === 'desc' ? ' active' : ''}`}
+            onClick={() => onFilterChange({ ...filter, sort: filter.sort === 'desc' ? null : 'desc' })}
+          >⬇ Z-A</button>
+        </div>
+      </div>
+      <div className="filter-dropdown-section">
+        <label className="filter-label">Filtrar valores</label>
+        <input
+          className="filter-value-search"
+          placeholder="Buscar..."
+          value={valueSearch}
+          onChange={(e) => setValueSearch(e.target.value)}
+        />
+        <div className="filter-value-actions">
+          <button onClick={showAll}>Selecionar todos</button>
+          <button onClick={hideAll}>Limpar</button>
+        </div>
+        <div className="filter-value-list">
+          {filteredValues.map((v) => (
+            <label key={v} className="filter-value-item">
+              <input
+                type="checkbox"
+                checked={!hidden.has(v)}
+                onChange={() => toggleValue(v)}
+              />
+              <span>{v || '(vazio)'}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard({ token }) {
+  const [data, setData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState(null);
+  const [search, setSearch] = useState('');
+  const [columnFilters, setColumnFilters] = useState({});
+  const [openFilter, setOpenFilter] = useState(null);
+  const [filterAnchor, setFilterAnchor] = useState(null);
+  const filterBtnRefs = useRef({});
+
+  const openFilterMenu = (col, e) => {
+    if (openFilter === col) {
+      setOpenFilter(null);
+      setFilterAnchor(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setFilterAnchor(rect);
+    setOpenFilter(col);
+  };
+
+  const tabs = useMemo(() => {
+    return MODULE_ORDER
+      .filter((k) => data[k] && data[k].columns && data[k].columns.length > 0)
+      .map((k) => ({ key: k, ...data[k] }));
+  }, [data]);
+
+  useEffect(() => {
+    if (tabs.length > 0 && !activeTab) setActiveTab(tabs[0].key);
+  }, [tabs]);
+
+  useEffect(() => { loadAll(); }, []);
+
+  useEffect(() => {
+    setColumnFilters({});
+    setOpenFilter(null);
+    setSearch('');
+  }, [activeTab]);
+
+  const loadAll = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await fetchList('/api/dashboard', token);
+      setData(result);
+    } catch (err) {
+      setError('Erro ao carregar dados');
+      console.error(err);
+    } finally { setLoading(false); }
+  };
+
+  const handleFilterChange = useCallback((col, filter) => {
+    setColumnFilters((prev) => {
+      const next = { ...prev };
+      const hasFilter = filter.sort || (filter.hidden && filter.hidden.size > 0);
+      if (hasFilter) next[col] = filter;
+      else delete next[col];
+      return next;
+    });
+  }, []);
+
+  const activeSection = tabs.find((t) => t.key === activeTab);
+  const displayCols = useMemo(() => {
+    if (!activeSection) return [];
+    return activeSection.columns.filter((c) => !SENSITIVE_PREFIXES.some((p) => c === p || c.startsWith(p)));
+  }, [activeSection]);
+
+  const dateCols = useMemo(() => {
+    if (!activeSection) return {};
+    const m = {};
+    for (const c of displayCols) m[c] = isDateColumn(c, activeSection.rows);
+    return m;
+  }, [activeSection, displayCols]);
+
+  const numCols = useMemo(() => {
+    if (!activeSection) return {};
+    const m = {};
+    for (const c of displayCols) m[c] = isNumColumn(c, activeSection.rows);
+    return m;
+  }, [activeSection, displayCols]);
+
+  const processedRows = useMemo(() => {
+    if (!activeSection) return [];
+    let rows = activeSection.rows;
+
+    // Column-level value filters
+    const activeFilters = Object.entries(columnFilters).filter(([, f]) => f.hidden && f.hidden.size > 0);
+    if (activeFilters.length > 0) {
+      rows = rows.filter((row) =>
+        activeFilters.every(([col, f]) => {
+          const v = String(row[col] ?? '');
+          return !f.hidden.has(v);
+        })
+      );
+    }
+
+    // Global search
+    if (search) {
+      const q = search.toLowerCase();
+      rows = rows.filter((row) =>
+        displayCols.some((col) => String(row[col] ?? '').toLowerCase().includes(q))
+      );
+    }
+
+    // Sorting
+    const sortEntry = Object.entries(columnFilters).find(([, f]) => f.sort);
+    if (sortEntry) {
+      const [sortCol, { sort: dir }] = sortEntry;
+      const isDate = dateCols[sortCol];
+      rows = [...rows].sort((a, b) => {
+        const va = getSortValue(a, sortCol, isDate);
+        const vb = getSortValue(b, sortCol, isDate);
+        if (va === -Infinity) return 1;
+        if (vb === -Infinity) return -1;
+        if (typeof va === 'string' && typeof vb === 'string') {
+          return dir === 'desc' ? vb.localeCompare(va) : va.localeCompare(vb);
+        }
+        return dir === 'desc' ? vb - va : va - vb;
+      });
+    }
+
+    return rows;
+  }, [activeSection, columnFilters, search, displayCols, dateCols]);
+
+  const hasActiveFilters = Object.keys(columnFilters).length > 0 || search;
+
+  const exportExcel = () => {
+    const wb = XLSX.utils.book_new();
+    for (const tab of tabs) {
+      const rows = sanitizeRows(tab.rows);
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const colWidths = (tab.columns || []).map((c) => {
+        const maxLen = Math.max(c.length, ...rows.map((r) => String(r[c] ?? '').length));
+        return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
+      });
+      ws['!cols'] = colWidths;
+      XLSX.utils.book_append_sheet(wb, ws, tab.label || tab.key);
+    }
+    XLSX.writeFile(wb, 'gestao_frota_completo.xlsx');
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    let first = true;
+    for (const tab of tabs) {
+      const rows = sanitizeRows(tab.rows);
+      const cols = tab.columns.filter((c) => !SENSITIVE_PREFIXES.some((p) => c === p || c.startsWith(p)));
+      const headers = cols.map(formatHeader);
+      const body = rows.map((r) => cols.map((c) => formatCellValue(r[c])));
+      if (!first) doc.addPage();
+      doc.setFontSize(16);
+      doc.setTextColor(255, 127, 30);
+      doc.text(tab.label || tab.key, 14, 18);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(8);
+      doc.text(`Total: ${tab.count} registro(s)`, 14, 23);
+      doc.autoTable({
+        head: [headers],
+        body,
+        startY: 27,
+        styles: { fontSize: 6.5, cellPadding: 1.2 },
+        headStyles: { fillColor: [255, 127, 30], fontSize: 7, halign: 'center' },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        margin: { top: 30, left: 10, right: 10 },
+        tableWidth: 'auto',
+      });
+      first = false;
+    }
+    doc.save('gestao_frota_completo.pdf');
+  };
+
+  const clearFilters = () => {
+    setColumnFilters({});
+    setSearch('');
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-header"><h2>Dashboard</h2></div>
+        <p className="dashboard-loading">Carregando dados...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dashboard">
+      <div className="dashboard-header">
+        <h2>Dashboard — Planilha Geral</h2>
+        <div className="dashboard-export-buttons">
+          <button className="btn btn-primary" onClick={exportExcel}>⬇ Excel (.xlsx)</button>
+          <button className="btn btn-primary" onClick={exportPDF}>⬇ PDF</button>
+        </div>
+      </div>
+
+      {error && <div className="module-error">{error}</div>}
+
+      <div className="stats-grid">
+        {tabs.map((t) => (
+          <div key={t.key} className="stat-card">
+            <h3>{t.count}</h3>
+            <p>{t.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="spreadsheet-container">
+        <div className="sheet-tabs">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              className={`sheet-tab${activeTab === t.key ? ' active' : ''}`}
+              onClick={() => setActiveTab(t.key)}
+            >
+              {t.label}
+              <span className="sheet-tab-count">{t.count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="sheet-toolbar">
+          <input
+            className="sheet-search"
+            type="text"
+            placeholder="Pesquisar em toda planilha..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <span className="sheet-info">
+            {processedRows.length} de {activeSection?.count || 0} registro(s)
+            {hasActiveFilters && (
+              <button className="clear-filters-btn" onClick={clearFilters}>
+                Limpar filtros
+              </button>
+            )}
+          </span>
+        </div>
+
+        {activeSection && (
+          <div className="sheet-table-wrapper">
+            <table className="sheet-table">
+              <thead>
+                <tr>
+                  <th className="row-num">#</th>
+                  {displayCols.map((col) => {
+                    const colFilter = columnFilters[col];
+                    const isActive = !!colFilter;
+                    const sortDir = colFilter?.sort;
+                    return (
+                      <th
+                        key={col}
+                        className={`col-header${isActive ? ' col-filter-active' : ''}`}
+                        onClick={(e) => openFilterMenu(col, e)}
+                      >
+                        <span className="col-header-text">{formatHeader(col)}</span>
+                        <span className="col-header-icons">
+                          {sortDir === 'asc' && <span className="sort-indicator">⬆</span>}
+                          {sortDir === 'desc' && <span className="sort-indicator">⬇</span>}
+                          <span className={`filter-icon${isActive ? ' active' : ''}`}>▼</span>
+                        </span>
+                        {openFilter === col && (
+                          <FilterDropdown
+                            col={col}
+                            rows={activeSection.rows}
+                            filter={colFilter || {}}
+                            onFilterChange={(f) => handleFilterChange(col, f)}
+                            onClose={() => { setOpenFilter(null); setFilterAnchor(null); }}
+                            anchorRect={filterAnchor}
+                          />
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {processedRows.length === 0 ? (
+                  <tr><td colSpan={displayCols.length + 1} className="sheet-empty">Nenhum registro encontrado</td></tr>
+                ) : processedRows.map((row, i) => (
+                  <tr key={i}>
+                    <td className="row-num">{i + 1}</td>
+                    {displayCols.map((col) => (
+                      <td key={col}>{formatCellValue(row[col])}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

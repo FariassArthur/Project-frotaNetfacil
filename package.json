@@ -1,0 +1,24 @@
+{
+  "name": "gestaofrotajs",
+  "private": true,
+  "version": "1.0.0",
+  "description": "API REST + Web UI para Gestão de Frota (migração do WinForms .NET para Node/React/SQLite)",
+  "scripts": {
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "electron": "npm run build && electron .",
+    "electron:dev": "npm --prefix frontend run dev & electron .",
+    "start": "npm run dev",
+    "lint": "echo \"no lint configured\""
+  },
+  "main": "electron/main.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^26.0.0"
+  }
+}
