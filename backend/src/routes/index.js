@@ -3,6 +3,7 @@ const { registerVeiculosRoutes } = require('./veiculos');
 const { registerUsuariosRoutes } = require('./usuarios');
 const { registerDashboardRoutes } = require('./dashboard');
 const { registerLookupRoutes } = require('./lookup');
+const { registerLogsRoutes } = require('./logs');
 const { createRoutesFor } = require('./entityRoutes');
 
 function registerRoutes(app) {
@@ -11,6 +12,7 @@ function registerRoutes(app) {
   registerUsuariosRoutes(app);
   registerDashboardRoutes(app);
   registerLookupRoutes(app);
+  registerLogsRoutes(app);
 
   // Generic CRUD entities
   createRoutesFor(app, {

@@ -104,6 +104,23 @@ export async function deleteUser(id, token) {
   return response.json();
 }
 
+export async function logout(token) {
+  const response = await fetch(`${apiBase}/api/logout`, {
+    method: 'POST',
+    headers: getHeaders(token)
+  });
+  return response.json();
+}
+
+export async function changePassword(currentPassword, newPassword, token) {
+  const response = await fetch(`${apiBase}/api/usuarios/alterar-senha`, {
+    method: 'PUT',
+    headers: getHeaders(token),
+    body: JSON.stringify({ currentPassword, newPassword })
+  });
+  return response.json();
+}
+
 export async function fetchHealth(token) {
   const response = await fetch(`${apiBase}/api/health`, { headers: getHeaders(token) });
   return response.json();

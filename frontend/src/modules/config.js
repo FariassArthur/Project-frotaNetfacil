@@ -215,6 +215,15 @@ export const MODULES = [
     endpoint: '/api/versao',
     keyField: null,
     fields: []
+  },
+  {
+    key: 'logs-auditoria',
+    label: 'Logs de Auditoria',
+    description: 'Registro de todas as alterações realizadas no sistema.',
+    endpoint: '/api/logs',
+    keyField: 'id',
+    adminOnly: true,
+    fields: []
   }
 ];
 

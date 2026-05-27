@@ -1921,3 +1921,260 @@ body {
     max-width: 200px;
   }
 }
+
+/* ===== LOGS DE AUDITORIA ===== */
+.logs-filters {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.logs-filters .form-group {
+  margin-bottom: 0;
+}
+
+.logs-table-wrapper {
+  overflow-x: auto;
+}
+
+.log-row {
+  cursor: pointer;
+}
+
+.log-row:hover {
+  background: var(--table-row-hover);
+}
+
+.log-details-row td {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+}
+
+.log-details {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.log-diff {
+  flex: 1;
+  min-width: 200px;
+}
+
+.log-diff h4 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.log-json {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  max-height: 300px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+
+.log-ip {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 8px 0 0;
+}
+
+.log-no-data {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.log-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.log-badge-criou {
+  background: #d4edda;
+  color: #155724;
+}
+
+.log-badge-atualizou {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.log-badge-excluiu {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.log-badge-login {
+  background: #e2e3f3;
+  color: #383d6b;
+}
+
+.log-badge-alterou-senha {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* ===== CHANGE PASSWORD MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+  margin: 0 0 16px;
+  color: var(--text-primary);
+}
+
+.modal-content .form-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-change-password {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.3);
+  color: var(--header-text);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background 0.2s;
+}
+
+.btn-change-password:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* ===== LOGS PAGINATION ===== */
+.logs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.logs-pagination-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.logs-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.logs-pagination-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  min-width: 32px;
+}
+
+/* ===== LOGS DIFF TABLE ===== */
+.log-diff-section {
+  width: 100%;
+}
+
+.log-diff-section h4 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.log-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.log-diff-table th,
+.log-diff-table td {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+  vertical-align: top;
+}
+
+.log-diff-table th {
+  background: var(--table-header-bg);
+  font-weight: 600;
+}
+
+.log-diff-field {
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-primary);
+  width: 140px;
+}
+
+.log-diff-old {
+  background: rgba(248, 215, 218, 0.3);
+  color: #721c24;
+  word-break: break-word;
+}
+
+.log-diff-new {
+  background: rgba(212, 237, 218, 0.3);
+  color: #155724;
+  word-break: break-word;
+}
+
+.log-json-inline {
+  margin: 0;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow: auto;
+}
+
+.log-null {
+  color: var(--text-muted);
+  font-style: italic;
+}

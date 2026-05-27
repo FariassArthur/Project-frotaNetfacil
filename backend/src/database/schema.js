@@ -280,6 +280,22 @@ async function initDb() {
     'BR', 'pt-BR', 'pt-BR'
   ]);
 
+  await run(db, `
+    CREATE TABLE IF NOT EXISTS logs_auditoria (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      username TEXT NOT NULL,
+      acao TEXT NOT NULL,
+      entidade TEXT NOT NULL,
+      entidade_id TEXT,
+      descricao TEXT,
+      dados_antigos TEXT,
+      dados_novos TEXT,
+      ip TEXT,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
   try {
     const adminPassHash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin', 10);
     await run(db, `INSERT OR IGNORE INTO usuarios (id, username, password, role, ativo) VALUES (1, ?, ?, ?, 1)`, [

@@ -6,8 +6,9 @@ import GenericModule from './components/GenericModule';
 import VersionPage from './components/VersionPage';
 import ConfiguracoesPage from './components/ConfiguracoesPage';
 import Dashboard from './components/Dashboard';
+import LogsAuditoria from './components/LogsAuditoria';
 import { MODULES, getByKey } from './modules/config';
-import { fetchList } from './api/client';
+import { fetchList, logout } from './api/client';
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -47,6 +48,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    logout(token).catch(() => {});
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
@@ -85,6 +87,8 @@ export default function App() {
             <Dashboard token={token} />
           ) : currentKey === 'versao' ? (
             <VersionPage />
+          ) : currentKey === 'logs-auditoria' ? (
+            <LogsAuditoria token={token} user={user} />
           ) : currentKey === 'configuracoes' ? (
             <ConfiguracoesPage token={token} user={user} />
           ) : (

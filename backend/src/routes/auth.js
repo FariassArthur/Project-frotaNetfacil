@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config');
 const { openDb, get } = require('../database/connection');
+const { logAudit } = require('../services/auditLog');
 
 function registerAuthRoutes(app) {
   app.post('/api/login', async (req, res) => {
@@ -23,6 +24,16 @@ function registerAuthRoutes(app) {
 
       const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
       res.json({ ok: true, token, user: { id: user.id, username: user.username, role: user.role, permissoes: user.permissoes } });
+
+      logAudit({
+        user_id: user.id,
+        username: user.username,
+        acao: 'login',
+        entidade: 'Sistema',
+        entidade_id: String(user.id),
+        descricao: `Usuário ${user.username} fez login`,
+        ip: req.ip,
+      }).catch(() => {});
     } catch (error) {
       res.status(500).json({ error: String(error.message || error) });
     } finally {

@@ -2,7 +2,12 @@ import React from 'react';
 import { MODULES } from '../modules/config';
 
 function canViewModule(moduleKey, user) {
-  if (!user || user.role === 'root') return true;
+  if (!user) return false;
+  const mod = MODULES.find((m) => m.key === moduleKey);
+  if (mod?.adminOnly) {
+    return user.role === 'root' || user.role === 'admin';
+  }
+  if (user.role === 'root') return true;
   if (!user.permissoes) return true;
   if (user.permissoes === 'all') return true;
   try {

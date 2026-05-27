@@ -1,5 +1,31 @@
 const { openDb, run, all, get, parseBoolean, parseInteger } = require('../database/connection');
 const { filePathFor } = require('../middleware/upload');
+const { logAudit } = require('../services/auditLog');
+
+const SENSITIVE_FIELDS = ['password'];
+
+function cleanData(data) {
+  if (!data) return null;
+  const cleaned = { ...data };
+  SENSITIVE_FIELDS.forEach((f) => delete cleaned[f]);
+  return cleaned;
+}
+
+function getEntityLabel(name) {
+  const labels = {
+    'cnhs': 'CNH',
+    'mecanicas': 'Mecânica',
+    'tipo-manutencao': 'Tipo de Manutenção',
+    'manutencoes': 'Manutenção',
+    'multas': 'Multa',
+    'seguradoras': 'Seguradora',
+    'contratos-seguro': 'Contrato de Seguro',
+    'pagamentos-seguro': 'Pagamento de Seguro',
+    'pagamento-documentos': 'Pagamento de Documento',
+    'abastecimentos': 'Abastecimento',
+  };
+  return labels[name] || name;
+}
 
 function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = [] }) {
   app.get(`/api/${name}`, async (req, res) => {
@@ -41,12 +67,24 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
     });
 
     try {
-      await run(
+      const result = await run(
         db,
         `INSERT INTO ${tableName} (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,
         values
       );
+      const insertedId = keyField === 'id' ? String(result.lastID) : (body[keyField] || values[0]);
       res.status(201).json({ ok: true });
+
+      logAudit({
+        user_id: req.user?.id,
+        username: req.user?.username,
+        acao: 'criou',
+        entidade: getEntityLabel(name),
+        entidade_id: String(insertedId),
+        descricao: `${getEntityLabel(name)} criado`,
+        dados_novos: cleanData(body),
+        ip: req.ip,
+      }).catch(() => {});
     } catch (error) {
       res.status(500).json({ error: String(error.message || error) });
     } finally {
@@ -83,6 +121,18 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         [...values, req.params[keyField]]
       );
       res.json({ ok: true });
+
+      logAudit({
+        user_id: req.user?.id,
+        username: req.user?.username,
+        acao: 'atualizou',
+        entidade: getEntityLabel(name),
+        entidade_id: String(req.params[keyField]),
+        descricao: `${getEntityLabel(name)} atualizado`,
+        dados_antigos: cleanData(existing),
+        dados_novos: cleanData(body),
+        ip: req.ip,
+      }).catch(() => {});
     } catch (error) {
       res.status(500).json({ error: String(error.message || error) });
     } finally {
@@ -92,9 +142,25 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
 
   app.delete(`/api/${name}/:${keyField}`, async (req, res) => {
     const db = openDb();
+    const existing = await get(db, `SELECT * FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
+    if (!existing) {
+      db.close();
+      return res.status(404).json({ error: `${name} não encontrado` });
+    }
     try {
       await run(db, `DELETE FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
       res.json({ ok: true });
+
+      logAudit({
+        user_id: req.user?.id,
+        username: req.user?.username,
+        acao: 'excluiu',
+        entidade: getEntityLabel(name),
+        entidade_id: String(req.params[keyField]),
+        descricao: `${getEntityLabel(name)} excluído`,
+        dados_antigos: cleanData(existing),
+        ip: req.ip,
+      }).catch(() => {});
     } catch (error) {
       res.status(500).json({ error: String(error.message || error) });
     } finally {

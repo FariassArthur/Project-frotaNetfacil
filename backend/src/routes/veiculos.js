@@ -1,5 +1,15 @@
 const { openDb, run, all, get, parseBoolean, parseInteger } = require('../database/connection');
 const { filePathFor } = require('../middleware/upload');
+const { logAudit } = require('../services/auditLog');
+
+const SENSITIVE_FIELDS = ['password'];
+
+function cleanData(data) {
+  if (!data) return null;
+  const cleaned = { ...data };
+  SENSITIVE_FIELDS.forEach((f) => delete cleaned[f]);
+  return cleaned;
+}
 
 // Accept camelCase or snake_case from body
 function val(body, camel, snake) {
@@ -76,6 +86,17 @@ function registerVeiculosRoutes(app) {
         params
       );
       res.status(201).json({ ok: true });
+
+      logAudit({
+        user_id: req.user?.id,
+        username: req.user?.username,
+        acao: 'criou',
+        entidade: 'Veículo',
+        entidade_id: placa,
+        descricao: `Veículo ${placa} criado`,
+        dados_novos: cleanData(body),
+        ip: req.ip,
+      }).catch(() => {});
     } catch (error) {
       res.status(500).json({ error: String(error.message || error) });
     } finally {
@@ -90,7 +111,7 @@ function registerVeiculosRoutes(app) {
     try {
       const placa = req.params.placa;
       if (!placa) return res.status(400).json({ error: 'placa inválida' });
-      const exists = await get(db, 'SELECT placa FROM veiculos WHERE placa = ?', [placa]);
+      const exists = await get(db, 'SELECT * FROM veiculos WHERE placa = ?', [placa]);
       if (!exists) return res.status(404).json({ error: 'Veículo não encontrado' });
       await run(
         db,
@@ -126,6 +147,18 @@ function registerVeiculosRoutes(app) {
         ]
       );
       res.json({ ok: true });
+
+      logAudit({
+        user_id: req.user?.id,
+        username: req.user?.username,
+        acao: 'atualizou',
+        entidade: 'Veículo',
+        entidade_id: placa,
+        descricao: `Veículo ${placa} atualizado`,
+        dados_antigos: cleanData(exists),
+        dados_novos: cleanData(body),
+        ip: req.ip,
+      }).catch(() => {});
     } catch (error) {
       res.status(500).json({ error: String(error.message || error) });
     } finally {
@@ -135,9 +168,26 @@ function registerVeiculosRoutes(app) {
 
   app.delete('/api/veiculos/:placa', async (req, res) => {
     const db = openDb();
+    const placa = req.params.placa;
+    const exists = await get(db, 'SELECT * FROM veiculos WHERE placa = ?', [placa]);
+    if (!exists) {
+      db.close();
+      return res.status(404).json({ error: 'Veículo não encontrado' });
+    }
     try {
-      await run(db, 'DELETE FROM veiculos WHERE placa = ?', [req.params.placa]);
+      await run(db, 'DELETE FROM veiculos WHERE placa = ?', [placa]);
       res.json({ ok: true });
+
+      logAudit({
+        user_id: req.user?.id,
+        username: req.user?.username,
+        acao: 'excluiu',
+        entidade: 'Veículo',
+        entidade_id: placa,
+        descricao: `Veículo ${placa} excluído`,
+        dados_antigos: cleanData(exists),
+        ip: req.ip,
+      }).catch(() => {});
     } catch (error) {
       res.status(500).json({ error: String(error.message || error) });
     } finally {
