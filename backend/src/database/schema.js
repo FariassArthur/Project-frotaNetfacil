@@ -66,8 +66,12 @@ async function initDb() {
     if (!hasVeiculo) {
       await run(db, `ALTER TABLE cnhs ADD COLUMN veiculo_id TEXT`);
     }
+    const hasFoto = cols.some((c) => c.name === 'path_foto');
+    if (!hasFoto) {
+      await run(db, `ALTER TABLE cnhs ADD COLUMN path_foto TEXT`);
+    }
   } catch (err) {
-    console.warn('Could not ensure cnhs.veiculo_id column', err.message || err);
+    console.warn('Could not ensure cnhs columns', err.message || err);
   }
 
   await run(db, `

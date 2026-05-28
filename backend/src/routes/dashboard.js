@@ -36,6 +36,65 @@ function registerDashboardRoutes(app) {
       db.close();
     }
   });
+
+  app.get('/api/dashboard/pagamentos', async (req, res) => {
+    const db = openDb();
+    try {
+      const hoje = new Date().toISOString().slice(0, 10);
+
+      const multas = await all(db, `
+        SELECT id, 'Multa' AS tipo, veiculo_id, local_ocorrencia AS descricao,
+               valor, data_vencimento, pagamento_realizado
+        FROM multas WHERE data_vencimento IS NOT NULL
+      `);
+
+      const documentos = await all(db, `
+        SELECT id, 'Documento' AS tipo, veiculo_id, descricao,
+               valor, data_vencimento, data_pagamento
+        FROM pagamento_documentos WHERE data_vencimento IS NOT NULL
+      `);
+
+      const noPrazo = { multas: 0, documentos: 0 };
+      const emAtraso = { multas: 0, documentos: 0 };
+      const atrasados = [];
+      const noPrazoList = [];
+
+      const classify = (item, pago) => {
+        const venc = item.data_vencimento;
+        if (!venc) return;
+        if (pago) {
+          noPrazo[item.tipo === 'Multa' ? 'multas' : 'documentos']++;
+          noPrazoList.push({ ...item, situacao: 'Pago', data_vencimento: venc });
+          return;
+        }
+        if (venc < hoje) {
+          emAtraso[item.tipo === 'Multa' ? 'multas' : 'documentos']++;
+          const dias = Math.floor((new Date(hoje) - new Date(venc)) / (1000 * 60 * 60 * 24));
+          atrasados.push({ ...item, dias_atraso: dias, data_vencimento: venc });
+        } else {
+          noPrazo[item.tipo === 'Multa' ? 'multas' : 'documentos']++;
+          noPrazoList.push({ ...item, situacao: 'A vencer', data_vencimento: venc });
+        }
+      };
+
+      for (const m of multas) classify(m, m.pagamento_realizado == 1);
+      for (const d of documentos) classify(d, d.data_pagamento != null);
+
+      const totalNoPrazo = noPrazo.multas + noPrazo.documentos;
+      const totalEmAtraso = emAtraso.multas + emAtraso.documentos;
+
+      res.json({
+        noPrazo: { total: totalNoPrazo, ...noPrazo },
+        emAtraso: { total: totalEmAtraso, ...emAtraso },
+        atrasados,
+        noPrazoList,
+      });
+    } catch (error) {
+      res.status(500).json({ error: String(error.message || error) });
+    } finally {
+      db.close();
+    }
+  });
 }
 
 module.exports = { registerDashboardRoutes };

@@ -1,51 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GenericModule from './GenericModule';
-import VeiculoGastos from './VeiculoGastos';
+import { fetchList } from '../api/client';
 import { getByKey } from '../modules/config';
 
 const SUB_TABS = [
   { key: 'cadastro', label: 'Cadastro' },
-  { key: 'gastos', label: 'Gastos' },
-  { key: 'cnhs', label: 'Motoristas' },
-  { key: 'manutencoes', label: 'Manutenções' },
-  { key: 'multas', label: 'Multas' },
-  { key: 'contratos-seguro', label: 'Contratos Seguro' },
-  { key: 'pagamentos-seguro', label: 'Pag. Seguro' },
-  { key: 'documentos', label: 'Pag. Documentos' },
+  { key: 'contratos', label: 'Contratos' },
+  { key: 'pagamentos', label: 'Pagamentos' },
 ];
 
 const MODULE_KEY_MAP = {
-  cnhs: 'cnhs',
-  manutencoes: 'manutencoes',
-  multas: 'multas',
-  'contratos-seguro': 'contratos-seguro',
-  'pagamentos-seguro': 'pagamentos-seguro',
-  documentos: 'pagamento-documentos',
+  contratos: 'contratos-seguro',
+  pagamentos: 'pagamentos-seguro',
 };
 
-export default function VeiculosPage({ moduleConfig, token, vehicles }) {
+export default function SeguradorasPage({ moduleConfig, token, vehicles }) {
   const [activeTab, setActiveTab] = useState('cadastro');
+  const [selectedSeguradora, setSelectedSeguradora] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
+  const [seguradoras, setSeguradoras] = useState([]);
 
-  const needsVehicle = !['cadastro', 'gastos'].includes(activeTab);
+  useEffect(() => {
+    fetchList('/api/seguradoras', token).then((list) => {
+      if (Array.isArray(list)) setSeguradoras(list);
+    }).catch(() => {});
+  }, []);
+
+  const getFilterParams = () => {
+    const params = {};
+    if (selectedSeguradora && activeTab !== 'cadastro') {
+      params.seguradora_id = selectedSeguradora;
+    }
+    if (selectedVehicle) {
+      if (activeTab === 'contratos' || activeTab === 'pagamentos') {
+        params.veiculo_id = selectedVehicle;
+      }
+    }
+    return Object.keys(params).length > 0 ? params : null;
+  };
 
   const renderContent = () => {
     if (activeTab === 'cadastro') {
       return <GenericModule moduleConfig={moduleConfig} token={token} vehicles={vehicles} />;
-    }
-    if (activeTab === 'gastos') {
-      return (
-        <div className="module-container">
-          <VeiculoGastos token={token} />
-        </div>
-      );
-    }
-    if (!selectedVehicle) {
-      return (
-        <div className="module-container">
-          <p className="gastos-sem-dados">Selecione um veículo para ver os registros.</p>
-        </div>
-      );
     }
     const modKey = MODULE_KEY_MAP[activeTab];
     const cfg = getByKey(modKey);
@@ -55,7 +51,7 @@ export default function VeiculosPage({ moduleConfig, token, vehicles }) {
         moduleConfig={cfg}
         token={token}
         vehicles={vehicles}
-        filterParams={{ veiculo_id: selectedVehicle }}
+        filterParams={getFilterParams()}
       />
     );
   };
@@ -64,13 +60,28 @@ export default function VeiculosPage({ moduleConfig, token, vehicles }) {
     <div>
       <div className="veiculo-page-bar">
         <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Seguradora</label>
+          <select
+            className="form-input"
+            value={selectedSeguradora}
+            onChange={(e) => setSelectedSeguradora(e.target.value)}
+          >
+            <option value="">Todas as seguradoras</option>
+            {seguradoras.map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {s.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">Veículo</label>
           <select
             className="form-input"
             value={selectedVehicle}
             onChange={(e) => setSelectedVehicle(e.target.value)}
           >
-            <option value="">Selecione um veículo</option>
+            <option value="">Todos os veículos</option>
             {vehicles.map((v) => (
               <option key={v.placa} value={v.placa}>
                 {v.placa} — {v.fipe_modelo || v.tipo || ''}

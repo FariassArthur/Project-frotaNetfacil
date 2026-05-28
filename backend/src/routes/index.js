@@ -21,8 +21,8 @@ function registerRoutes(app) {
     name: 'cnhs',
     tableName: 'cnhs',
     keyField: 'numero_registro',
-    fields: ['numero_registro', 'nome', 'nascimento', 'categoria', 'cpf', 'filiacao', 'primeira_habilitacao', 'emissao', 'validade', 'local', 'path_documento_pdf', 'aivo', 'veiculo_id'],
-    fileFields: ['path_documento_pdf']
+    fields: ['numero_registro', 'nome', 'nascimento', 'categoria', 'cpf', 'filiacao', 'primeira_habilitacao', 'emissao', 'validade', 'local', 'path_foto', 'path_documento_pdf', 'aivo', 'veiculo_id'],
+    fileFields: ['path_foto', 'path_documento_pdf']
   });
 
   createRoutesFor(app, {

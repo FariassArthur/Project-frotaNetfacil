@@ -1,6 +1,11 @@
 // API client with authentication support
 export const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
 
+let onUnauthorized = null;
+export function setOnUnauthorized(cb) {
+  onUnauthorized = cb;
+}
+
 export const getHeaders = (token) => {
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
@@ -31,6 +36,14 @@ export const buildRequest = (formData, token) => {
   return { body: JSON.stringify(formData), headers: getHeaders(token) };
 };
 
+async function handleResponse(response) {
+  if (response.status === 401) {
+    if (onUnauthorized) onUnauthorized();
+    return { error: 'Sessão expirada. Faça login novamente.' };
+  }
+  return response.json();
+}
+
 // Auth endpoints
 export async function login(username, password) {
   const response = await fetch(`${apiBase}/api/login`, {
@@ -44,24 +57,24 @@ export async function login(username, password) {
 // Generic CRUD operations
 export async function fetchList(endpoint, token) {
   const response = await fetch(`${apiBase}${endpoint}`, { headers: getHeaders(token) });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function fetchOne(endpoint, id, token) {
   const response = await fetch(`${apiBase}${endpoint}/${id}`, { headers: getHeaders(token) });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function createItem(endpoint, data, token) {
   const { body, headers } = buildRequest(data, token);
   const response = await fetch(`${apiBase}${endpoint}`, { method: 'POST', body, headers });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function updateItem(endpoint, id, data, token) {
   const { body, headers } = buildRequest(data, token);
   const response = await fetch(`${apiBase}${endpoint}/${id}`, { method: 'PUT', body, headers });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function deleteItem(endpoint, id, token) {
@@ -69,13 +82,13 @@ export async function deleteItem(endpoint, id, token) {
     method: 'DELETE',
     headers: getHeaders(token)
   });
-  return response.json();
+  return handleResponse(response);
 }
 
 // User management
 export async function fetchUsers(token) {
   const response = await fetch(`${apiBase}/api/usuarios`, { headers: getHeaders(token) });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function createUser(data, token) {
@@ -84,7 +97,7 @@ export async function createUser(data, token) {
     headers: getHeaders(token),
     body: JSON.stringify(data)
   });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function updateUser(id, data, token) {
@@ -93,7 +106,7 @@ export async function updateUser(id, data, token) {
     headers: getHeaders(token),
     body: JSON.stringify(data)
   });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function deleteUser(id, token) {
@@ -101,7 +114,7 @@ export async function deleteUser(id, token) {
     method: 'DELETE',
     headers: getHeaders(token)
   });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function logout(token) {
@@ -109,7 +122,7 @@ export async function logout(token) {
     method: 'POST',
     headers: getHeaders(token)
   });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function changePassword(currentPassword, newPassword, token) {
@@ -118,12 +131,12 @@ export async function changePassword(currentPassword, newPassword, token) {
     headers: getHeaders(token),
     body: JSON.stringify({ currentPassword, newPassword })
   });
-  return response.json();
+  return handleResponse(response);
 }
 
 export async function fetchHealth(token) {
   const response = await fetch(`${apiBase}/api/health`, { headers: getHeaders(token) });
-  return response.json();
+  return handleResponse(response);
 }
 
 // Try camelCase first, then snake_case (API returns snake_case for some modules)

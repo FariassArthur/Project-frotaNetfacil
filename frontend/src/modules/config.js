@@ -45,7 +45,7 @@ export const MODULES = [
   },
   {
     key: 'cnhs',
-    label: 'CNHs',
+    label: 'Motoristas',
     sidebarHidden: true,
     endpoint: '/api/cnhs',
     keyField: 'numero_registro',
@@ -60,6 +60,7 @@ export const MODULES = [
       { name: 'emissao', label: 'Emissão', type: 'date' },
       { name: 'validade', label: 'Validade', type: 'date' },
       { name: 'local', label: 'Local' },
+      { name: 'path_foto', label: 'Foto', type: 'file' },
       { name: 'path_documento_pdf', label: 'Arquivo CNH', type: 'file' },
       { name: 'aivo', label: 'Ativo', type: 'checkbox' },
       { name: 'veiculo_id', label: 'Placa Veículo' }
@@ -159,6 +160,7 @@ export const MODULES = [
   {
     key: 'contratos-seguro',
     label: 'Contratos Seguro',
+    sidebarHidden: true,
     endpoint: '/api/contratos-seguro',
     keyField: 'id',
     fields: [
@@ -176,6 +178,7 @@ export const MODULES = [
   {
     key: 'pagamentos-seguro',
     label: 'Pagamentos Seguro',
+    sidebarHidden: true,
     endpoint: '/api/pagamentos-seguro',
     keyField: 'id',
     fields: [

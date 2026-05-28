@@ -4,12 +4,13 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import GenericModule from './components/GenericModule';
 import VeiculosPage from './components/VeiculosPage';
+import SeguradorasPage from './components/SeguradorasPage';
 import VersionPage from './components/VersionPage';
 import ConfiguracoesPage from './components/ConfiguracoesPage';
 import Dashboard from './components/Dashboard';
 import LogsAuditoria from './components/LogsAuditoria';
 import { MODULES, getByKey } from './modules/config';
-import { fetchList, logout } from './api/client';
+import { fetchList, logout, setOnUnauthorized } from './api/client';
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -29,6 +30,13 @@ export default function App() {
 
   useEffect(() => {
     if (token) loadVehicles();
+    setOnUnauthorized(() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+      setCurrentKey('dashboard');
+    });
   }, [token]);
 
   const loadVehicles = async () => {
@@ -94,6 +102,12 @@ export default function App() {
             <ConfiguracoesPage token={token} user={user} />
           ) : currentKey === 'veiculos' ? (
             <VeiculosPage
+              moduleConfig={currentModule}
+              token={token}
+              vehicles={vehicles}
+            />
+          ) : currentKey === 'seguradoras' ? (
+            <SeguradorasPage
               moduleConfig={currentModule}
               token={token}
               vehicles={vehicles}

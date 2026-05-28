@@ -13,7 +13,7 @@ function cleanData(data) {
 
 function getEntityLabel(name) {
   const labels = {
-    'cnhs': 'CNH',
+    'cnhs': 'Motorista',
     'mecanicas': 'Mecânica',
     'tipo-manutencao': 'Tipo de Manutenção',
     'manutencoes': 'Manutenção',
@@ -31,7 +31,22 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
   app.get(`/api/${name}`, async (req, res) => {
     const db = openDb();
     try {
-      const rows = await all(db, `SELECT * FROM ${tableName} ORDER BY ${keyField}`);
+      const filters = [];
+      const params = [];
+      if (req.query.veiculo_id) {
+        filters.push('veiculo_id = ?');
+        params.push(req.query.veiculo_id);
+      }
+      if (req.query.seguradora_id) {
+        filters.push('seguradora_id = ?');
+        params.push(req.query.seguradora_id);
+      }
+      if (req.query.contrato_seguro_id) {
+        filters.push('contrato_seguro_id = ?');
+        params.push(req.query.contrato_seguro_id);
+      }
+      const where = filters.length ? 'WHERE ' + filters.join(' AND ') : '';
+      const rows = await all(db, `SELECT * FROM ${tableName} ${where} ORDER BY ${keyField}`, params);
       res.json(rows);
     } catch (error) {
       res.status(500).json({ error: String(error.message || error) });

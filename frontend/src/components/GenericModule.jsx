@@ -9,7 +9,7 @@ export default function GenericModule({ moduleConfig, token, vehicles, filterPar
   const [selectedItem, setSelectedItem] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [formOpen, setFormOpen] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
     loadItems();

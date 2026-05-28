@@ -57,6 +57,21 @@ function formatHeader(key) {
     .replace(/\bIpva\b/g, 'IPVA');
 }
 
+function downloadCSV(filename, headers, rows) {
+  const bom = '\uFEFF';
+  const esc = (v) => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const blob = new Blob([bom + [headers.join(','), ...rows.map(r => r.map(esc).join(','))].join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function isDateColumn(col, rows) {
   if (/data|vencimento|validade|emissao|nascimento|aquisicao|pagamento|ocorrencia|inicial|final/.test(col)) {
     const sample = rows[0]?.[col];
@@ -177,6 +192,8 @@ export default function Dashboard({ token }) {
   const [columnFilters, setColumnFilters] = useState({});
   const [openFilter, setOpenFilter] = useState(null);
   const [filterAnchor, setFilterAnchor] = useState(null);
+  const [pagamentos, setPagamentos] = useState(null);
+  const [showPagamentoModal, setShowPagamentoModal] = useState(null); // 'atrasados' | 'noPrazo' | null
   const filterBtnRefs = useRef({});
 
   const openFilterMenu = (col, e) => {
@@ -201,6 +218,12 @@ export default function Dashboard({ token }) {
   }, [tabs]);
 
   useEffect(() => { loadAll(); }, []);
+
+  useEffect(() => {
+    fetchList('/api/dashboard/pagamentos', token).then((r) => {
+      if (r && !r.error) setPagamentos(r);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setColumnFilters({});
@@ -365,6 +388,127 @@ export default function Dashboard({ token }) {
       </div>
 
       {error && <div className="module-error">{error}</div>}
+
+      {pagamentos && (
+        <div className="pagamento-stats">
+          <button className="pagamento-card pagamento-card-verde" onClick={() => setShowPagamentoModal('noPrazo')}>
+            <span className="pagamento-card-num">{pagamentos.noPrazo.total}</span>
+            <span className="pagamento-card-label">No prazo</span>
+          </button>
+          <button className="pagamento-card pagamento-card-vermelho" onClick={() => setShowPagamentoModal('atrasados')}>
+            <span className="pagamento-card-num">{pagamentos.emAtraso.total}</span>
+            <span className="pagamento-card-label">Em atraso</span>
+          </button>
+        </div>
+      )}
+
+      {showPagamentoModal === 'atrasados' && pagamentos?.atrasados?.length > 0 && (
+        <div className="atrasados-overlay" onClick={() => setShowPagamentoModal(null)}>
+          <div className="atrasados-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="atrasados-header">
+              <h3>Pagamentos em Atraso</h3>
+              <div>
+                <button className="btn btn-primary btn-sm" onClick={() => {
+                  const headers = ['Tipo', 'Veículo', 'Descrição', 'Valor', 'Vencimento', 'Dias Atraso'];
+                  const rows = pagamentos.atrasados.map(i => [
+                    i.tipo,
+                    i.veiculo_id,
+                    i.descricao || '',
+                    `R$ ${(i.valor || 0).toFixed(2).replace('.', ',')}`,
+                    i.data_vencimento ? i.data_vencimento.split('-').reverse().join('/') : '',
+                    `${i.dias_atraso} dia(s)`,
+                  ]);
+                  downloadCSV('pagamentos_em_atraso.csv', headers, rows);
+                }}>⬇ CSV</button>
+                <button className="atrasados-close" onClick={() => setShowPagamentoModal(null)}>✕</button>
+              </div>
+            </div>
+            <div className="atrasados-table-wrapper">
+              <table className="atrasados-table">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Veículo</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Vencimento</th>
+                    <th>Dias</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagamentos.atrasados.map((item, i) => (
+                    <tr key={`${item.tipo}-${item.id}`}>
+                      <td><span className={`atrasado-badge ${item.tipo === 'Multa' ? 'badge-multa' : 'badge-documento'}`}>{item.tipo}</span></td>
+                      <td>{item.veiculo_id}</td>
+                      <td>{item.descricao || '-'}</td>
+                      <td className="gastos-valor">
+                        R$ {(item.valor || 0).toFixed(2).replace('.', ',')}
+                      </td>
+                      <td>{item.data_vencimento ? item.data_vencimento.split('-').reverse().join('/') : '-'}</td>
+                      <td className="atrasado-dias">{item.dias_atraso} dia(s)</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPagamentoModal === 'noPrazo' && pagamentos?.noPrazoList?.length > 0 && (
+        <div className="atrasados-overlay" onClick={() => setShowPagamentoModal(null)}>
+          <div className="atrasados-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="atrasados-header">
+              <h3>Pagamentos em Dia</h3>
+              <div>
+                <button className="btn btn-primary btn-sm" onClick={() => {
+                  const headers = ['Tipo', 'Veículo', 'Descrição', 'Valor', 'Vencimento', 'Situação'];
+                  const rows = pagamentos.noPrazoList.map(i => [
+                    i.tipo,
+                    i.veiculo_id,
+                    i.descricao || '',
+                    `R$ ${(i.valor || 0).toFixed(2).replace('.', ',')}`,
+                    i.data_vencimento ? i.data_vencimento.split('-').reverse().join('/') : '',
+                    i.situacao,
+                  ]);
+                  downloadCSV('pagamentos_no_prazo.csv', headers, rows);
+                }}>⬇ CSV</button>
+                <button className="atrasados-close" onClick={() => setShowPagamentoModal(null)}>✕</button>
+              </div>
+            </div>
+            <div className="atrasados-table-wrapper">
+              <table className="atrasados-table">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Veículo</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Vencimento</th>
+                    <th>Situação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagamentos.noPrazoList.map((item, i) => (
+                    <tr key={`${item.tipo}-${item.id}`}>
+                      <td><span className={`atrasado-badge ${item.tipo === 'Multa' ? 'badge-multa' : 'badge-documento'}`}>{item.tipo}</span></td>
+                      <td>{item.veiculo_id}</td>
+                      <td>{item.descricao || '-'}</td>
+                      <td className="gastos-valor">
+                        R$ {(item.valor || 0).toFixed(2).replace('.', ',')}
+                      </td>
+                      <td>{item.data_vencimento ? item.data_vencimento.split('-').reverse().join('/') : '-'}</td>
+                      <td className={item.situacao === 'Pago' ? 'atrasado-dias' : ''}>
+                        {item.situacao === 'Pago' ? '✅ Pago' : '📅 A vencer'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="stats-grid">
         {tabs.map((t) => (
