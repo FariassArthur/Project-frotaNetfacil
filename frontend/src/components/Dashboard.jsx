@@ -3,11 +3,12 @@ import { fetchList } from '../api/client';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { formatHeader, FilterDropdown } from '../utils/tableUtils.jsx';
 
 const MODULE_ORDER = [
   'veiculos', 'cnhs', 'manutencoes', 'multas', 'abastecimentos',
-  'contratos_seguro', 'pagamentos_seguro', 'pagamento_documentos',
-  'mecanicas', 'seguradoras', 'combustiveis', 'tipo_manutencao'
+  'contratos_seguro', 'pagamentos_seguro', 'pagamento_documentos', 'higienizacao',
+  'mecanicas', 'seguradoras', 'cidades', 'combustiveis', 'tipo_manutencao'
 ];
 
 const SENSITIVE_PREFIXES = ['password', 'path_'];
@@ -40,21 +41,6 @@ function sanitizeRows(rows) {
     }
     return copy;
   });
-}
-
-function formatHeader(key) {
-  return key
-    .replace(/^id$/i, 'ID')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (l) => l.toUpperCase())
-    .replace(/\bId\b/g, 'ID')
-    .replace(/\bPdf\b/g, 'PDF')
-    .replace(/\bCpf\b/g, 'CPF')
-    .replace(/\bCnpj\b/g, 'CNPJ')
-    .replace(/\bKm\b/g, 'KM')
-    .replace(/\bCep\b/g, 'CEP')
-    .replace(/\bUf\b/g, 'UF')
-    .replace(/\bIpva\b/g, 'IPVA');
 }
 
 function downloadCSV(filename, headers, rows) {
@@ -95,92 +81,6 @@ function getSortValue(row, col, dateCol) {
   if (typeof v === 'boolean') return v ? 1 : 0;
   const n = Number(v);
   return isNaN(n) ? String(v).toLowerCase() : n;
-}
-
-function FilterDropdown({ col, rows, filter, onFilterChange, onClose, anchorRect }) {
-  const [valueSearch, setValueSearch] = useState('');
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) onClose();
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const uniqueValues = useMemo(() => {
-    const set = new Set();
-    for (const r of rows) {
-      const v = r[col];
-      set.add(v != null ? String(v) : '');
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [rows, col]);
-
-  const filteredValues = valueSearch
-    ? uniqueValues.filter((v) => v.toLowerCase().includes(valueSearch.toLowerCase()))
-    : uniqueValues;
-
-  const hidden = filter.hidden || new Set();
-
-  const toggleValue = (v) => {
-    const next = new Set(hidden);
-    if (next.has(v)) next.delete(v); else next.add(v);
-    onFilterChange({ ...filter, hidden: next.size === 0 ? null : next });
-  };
-
-  const showAll = () => onFilterChange({ ...filter, hidden: null });
-  const hideAll = () => onFilterChange({ ...filter, hidden: new Set(uniqueValues) });
-
-  const style = anchorRect ? {
-    position: 'fixed',
-    top: anchorRect.bottom + 4,
-    left: Math.min(anchorRect.left, window.innerWidth - 320),
-  } : {};
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef} onClick={(e) => e.stopPropagation()} style={style}>
-      <div className="filter-dropdown-section">
-        <label className="filter-label">Ordenar</label>
-        <div className="filter-sort-buttons">
-          <button
-            className={`filter-sort-btn${filter.sort === 'asc' ? ' active' : ''}`}
-            onClick={() => onFilterChange({ ...filter, sort: filter.sort === 'asc' ? null : 'asc' })}
-          >⬆ A-Z</button>
-          <button
-            className={`filter-sort-btn${filter.sort === 'desc' ? ' active' : ''}`}
-            onClick={() => onFilterChange({ ...filter, sort: filter.sort === 'desc' ? null : 'desc' })}
-          >⬇ Z-A</button>
-        </div>
-      </div>
-      <div className="filter-dropdown-section">
-        <label className="filter-label">Filtrar valores</label>
-        <input
-          className="filter-value-search"
-          placeholder="Buscar..."
-          value={valueSearch}
-          onChange={(e) => setValueSearch(e.target.value)}
-        />
-        <div className="filter-value-actions">
-          <button onClick={showAll}>Selecionar todos</button>
-          <button onClick={hideAll}>Limpar</button>
-        </div>
-        <div className="filter-value-list">
-          {filteredValues.map((v) => (
-            <label key={v} className="filter-value-item">
-              <input
-                type="checkbox"
-                checked={!hidden.has(v)}
-                onChange={() => toggleValue(v)}
-              />
-              <span>{v || '(vazio)'}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function Dashboard({ token }) {
@@ -372,7 +272,7 @@ export default function Dashboard({ token }) {
     return (
       <div className="dashboard">
         <div className="dashboard-header"><h2>Dashboard</h2></div>
-        <p className="dashboard-loading">Carregando dados...</p>
+        <div className="loading-spinner">Carregando dados...</div>
       </div>
     );
   }
@@ -575,8 +475,8 @@ export default function Dashboard({ token }) {
                         </span>
                         {openFilter === col && (
                           <FilterDropdown
-                            col={col}
-                            rows={activeSection.rows}
+                            items={activeSection.rows}
+                            getValue={(row) => row[col]}
                             filter={colFilter || {}}
                             onFilterChange={(f) => handleFilterChange(col, f)}
                             onClose={() => { setOpenFilter(null); setFilterAnchor(null); }}

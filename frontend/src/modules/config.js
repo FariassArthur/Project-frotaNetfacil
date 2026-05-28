@@ -15,6 +15,7 @@ export const MODULES = [
     keyField: 'placa',
     fields: [
       { name: 'placa', label: 'Placa', type: 'text', required: true },
+      { name: 'numero', label: 'Número' },
       { name: 'tipo', label: 'Tipo' },
       { name: 'pathDocumentoPDF', label: 'Documento', type: 'file' },
       { name: 'fipeNameMarca', label: 'Marca FIPE' },
@@ -27,7 +28,7 @@ export const MODULES = [
       { name: 'anoModelo', label: 'Ano Modelo' },
       { name: 'capacidade', label: 'Capacidade' },
       { name: 'cor', label: 'Cor' },
-      { name: 'cidade', label: 'Cidade' },
+      { name: 'cidade_id', label: 'Cidade' },
       { name: 'uf', label: 'UF' },
       { name: 'cpfcnpj', label: 'CPF/CNPJ' },
       { name: 'categoria', label: 'Categoria' },
@@ -158,6 +159,18 @@ export const MODULES = [
     ]
   },
   {
+    key: 'cidades',
+    label: 'Cidades',
+    endpoint: '/api/cidades',
+    keyField: 'id',
+    fields: [
+      { name: 'nome', label: 'Nome', required: true },
+      { name: 'uf', label: 'UF' },
+      { name: 'veiculos', label: 'Veículos', tableOnly: true },
+      { name: 'motoristas', label: 'Motoristas', tableOnly: true }
+    ]
+  },
+  {
     key: 'contratos-seguro',
     label: 'Contratos Seguro',
     sidebarHidden: true,
@@ -202,6 +215,39 @@ export const MODULES = [
       { name: 'data_vencimento_s', label: 'Data Vencimento Texto' },
       { name: 'valor', label: 'Valor', type: 'number' },
       { name: 'descricao', label: 'Descrição', type: 'textarea' },
+      { name: 'path_boleto_pdf', label: 'Boleto PDF', type: 'file' },
+      { name: 'path_comprovante_pdf', label: 'Comprovante PDF', type: 'file' },
+      { name: 'veiculo_id', label: 'Placa do Veículo' }
+    ]
+  },
+  {
+    key: 'abastecimentos',
+    label: 'Abastecimentos',
+    sidebarHidden: true,
+    endpoint: '/api/abastecimentos',
+    keyField: 'id',
+    fields: [
+      { name: 'data', label: 'Data', type: 'date' },
+      { name: 'data_s', label: 'Data Texto' },
+      { name: 'quantidade', label: 'Quantidade (L)', type: 'number' },
+      { name: 'valor', label: 'Valor', type: 'number' },
+      { name: 'km', label: 'KM', type: 'number' },
+      { name: 'path_comprovante_pdf', label: 'Comprovante PDF', type: 'file' },
+      { name: 'combustivel_id', label: 'ID Combustível', type: 'number' },
+      { name: 'veiculo_id', label: 'Placa do Veículo' }
+    ]
+  },
+  {
+    key: 'higienizacao',
+    label: 'Higienização',
+    sidebarHidden: true,
+    endpoint: '/api/higienizacao',
+    keyField: 'id',
+    fields: [
+      { name: 'data', label: 'Data', type: 'date' },
+      { name: 'local', label: 'Local' },
+      { name: 'valor', label: 'Valor', type: 'number' },
+      { name: 'path_comprovante_pdf', label: 'Comprovante PDF', type: 'file' },
       { name: 'veiculo_id', label: 'Placa do Veículo' }
     ]
   },

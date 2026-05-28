@@ -1,6 +1,8 @@
-const { openDb, run, all, get, parseBoolean, parseInteger } = require('../database/connection');
+const { run, all, get, parseBoolean, parseInteger } = require('../database/connection');
 const { filePathFor } = require('../middleware/upload');
 const { logAudit } = require('../services/auditLog');
+const { handleError } = require('../services/errorHandler');
+const { requireRole } = require('../middleware/auth');
 
 const SENSITIVE_FIELDS = ['password'];
 
@@ -11,39 +13,31 @@ function cleanData(data) {
   return cleaned;
 }
 
-// Accept camelCase or snake_case from body
 function val(body, camel, snake) {
   return body[camel] !== undefined ? body[camel] : body[snake];
 }
 
 function registerVeiculosRoutes(app) {
   app.get('/api/veiculos', async (req, res) => {
-    const db = openDb();
     try {
-      const rows = await all(db, 'SELECT * FROM veiculos ORDER BY placa');
+      const rows = await all('SELECT * FROM veiculos ORDER BY placa');
       res.json(rows);
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'veiculos');
     }
   });
 
   app.get('/api/veiculos/:placa', async (req, res) => {
-    const db = openDb();
     try {
-      const row = await get(db, 'SELECT * FROM veiculos WHERE placa = ?', [req.params.placa]);
+      const row = await get('SELECT * FROM veiculos WHERE placa = ?', [req.params.placa]);
       if (!row) return res.status(404).json({ error: 'Veículo não encontrado' });
       res.json(row);
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'veiculos');
     }
   });
 
   app.post('/api/veiculos', async (req, res) => {
-    const db = openDb();
     const body = req.body || {};
     const placa = val(body, 'placa', 'placa');
     const pathDocumentoPDF = filePathFor('pathDocumentoPDF', req) || val(body, 'pathDocumentoPDF', 'path_documento_pdf') || null;
@@ -51,6 +45,7 @@ function registerVeiculosRoutes(app) {
       if (!placa) return res.status(400).json({ error: 'placa é obrigatória' });
       const params = [
         placa,
+        val(body, 'numero', 'numero') || null,
         val(body, 'tipo', 'tipo') || null,
         val(body, 'fipeNameMarca', 'fipe_name_marca') || null,
         val(body, 'fipeModelo', 'fipe_modelo') || null,
@@ -63,6 +58,7 @@ function registerVeiculosRoutes(app) {
         val(body, 'capacidade', 'capacidade') || null,
         val(body, 'cor', 'cor') || null,
         val(body, 'cidade', 'cidade') || null,
+        parseInteger(val(body, 'cidadeId', 'cidade_id')),
         val(body, 'uf', 'uf') || null,
         val(body, 'cpfcnpj', 'cpfcnpj') || null,
         val(body, 'categoria', 'categoria') || null,
@@ -79,10 +75,9 @@ function registerVeiculosRoutes(app) {
         parseBoolean(val(body, 'ativo', 'ativo')) ? 1 : 0
       ];
       await run(
-        db,
         `INSERT INTO veiculos
-        (placa, tipo, fipe_name_marca, fipe_modelo, fipe_name_ano, renavam, chassi, combustivel, ano_fab, ano_modelo, capacidade, cor, cidade, uf, cpfcnpj, categoria, km, nome_endereco, data_aquisicao, observacao, potencia, culture_info, medidas_pneus, codigo_postal, path_documento_pdf, data_vencimento_ipva, ativo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (placa, numero, tipo, fipe_name_marca, fipe_modelo, fipe_name_ano, renavam, chassi, combustivel, ano_fab, ano_modelo, capacidade, cor, cidade, cidade_id, uf, cpfcnpj, categoria, km, nome_endereco, data_aquisicao, observacao, potencia, culture_info, medidas_pneus, codigo_postal, path_documento_pdf, data_vencimento_ipva, ativo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         params
       );
       res.status(201).json({ ok: true });
@@ -98,25 +93,22 @@ function registerVeiculosRoutes(app) {
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'veiculos');
     }
   });
 
   app.put('/api/veiculos/:placa', async (req, res) => {
-    const db = openDb();
     const body = req.body || {};
     const pathDocumentoPDF = filePathFor('pathDocumentoPDF', req) || val(body, 'pathDocumentoPDF', 'path_documento_pdf') || null;
     try {
       const placa = req.params.placa;
       if (!placa) return res.status(400).json({ error: 'placa inválida' });
-      const exists = await get(db, 'SELECT * FROM veiculos WHERE placa = ?', [placa]);
+      const exists = await get('SELECT * FROM veiculos WHERE placa = ?', [placa]);
       if (!exists) return res.status(404).json({ error: 'Veículo não encontrado' });
       await run(
-        db,
-        `UPDATE veiculos SET tipo = ?, fipe_name_marca = ?, fipe_modelo = ?, fipe_name_ano = ?, renavam = ?, chassi = ?, combustivel = ?, ano_fab = ?, ano_modelo = ?, capacidade = ?, cor = ?, cidade = ?, uf = ?, cpfcnpj = ?, categoria = ?, km = ?, nome_endereco = ?, data_aquisicao = ?, observacao = ?, potencia = ?, culture_info = ?, medidas_pneus = ?, codigo_postal = ?, path_documento_pdf = ?, data_vencimento_ipva = ?, ativo = ? WHERE placa = ?`,
+        `UPDATE veiculos SET numero = ?, tipo = ?, fipe_name_marca = ?, fipe_modelo = ?, fipe_name_ano = ?, renavam = ?, chassi = ?, combustivel = ?, ano_fab = ?, ano_modelo = ?, capacidade = ?, cor = ?, cidade = ?, cidade_id = ?, uf = ?, cpfcnpj = ?, categoria = ?, km = ?, nome_endereco = ?, data_aquisicao = ?, observacao = ?, potencia = ?, culture_info = ?, medidas_pneus = ?, codigo_postal = ?, path_documento_pdf = ?, data_vencimento_ipva = ?, ativo = ? WHERE placa = ?`,
         [
+          val(body, 'numero', 'numero') || null,
           val(body, 'tipo', 'tipo') || null,
           val(body, 'fipeNameMarca', 'fipe_name_marca') || null,
           val(body, 'fipeModelo', 'fipe_modelo') || null,
@@ -129,6 +121,7 @@ function registerVeiculosRoutes(app) {
           val(body, 'capacidade', 'capacidade') || null,
           val(body, 'cor', 'cor') || null,
           val(body, 'cidade', 'cidade') || null,
+          parseInteger(val(body, 'cidadeId', 'cidade_id')),
           val(body, 'uf', 'uf') || null,
           val(body, 'cpfcnpj', 'cpfcnpj') || null,
           val(body, 'categoria', 'categoria') || null,
@@ -160,22 +153,18 @@ function registerVeiculosRoutes(app) {
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'veiculos');
     }
   });
 
-  app.delete('/api/veiculos/:placa', async (req, res) => {
-    const db = openDb();
+  app.delete('/api/veiculos/:placa', requireRole('admin', 'root'), async (req, res) => {
     const placa = req.params.placa;
-    const exists = await get(db, 'SELECT * FROM veiculos WHERE placa = ?', [placa]);
-    if (!exists) {
-      db.close();
-      return res.status(404).json({ error: 'Veículo não encontrado' });
-    }
     try {
-      await run(db, 'DELETE FROM veiculos WHERE placa = ?', [placa]);
+      const exists = await get('SELECT * FROM veiculos WHERE placa = ?', [placa]);
+      if (!exists) {
+        return res.status(404).json({ error: 'Veículo não encontrado' });
+      }
+      await run('DELETE FROM veiculos WHERE placa = ?', [placa]);
       res.json({ ok: true });
 
       logAudit({
@@ -189,9 +178,7 @@ function registerVeiculosRoutes(app) {
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'veiculos');
     }
   });
 }

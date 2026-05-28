@@ -3,21 +3,42 @@ const fs = require('fs');
 const multer = require('multer');
 const { UPLOADS_BASE } = require('../config');
 
+const ALLOWED_MODULES = ['uploads', 'veiculos', 'cnhs', 'manutencoes', 'multas', 'contratos-seguro', 'pagamentos-seguro', 'pagamento-documentos', 'higienizacao', 'abastecimentos', 'cidades'];
+
+const ALLOWED_MIMETYPES = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+
+function sanitizeModuleName(name) {
+  const safe = String(name || 'uploads').replace(/[^a-z0-9_-]/gi, '');
+  return ALLOWED_MODULES.includes(safe) ? safe : 'uploads';
+}
+
+const fileFilter = (req, file, cb) => {
+  if (ALLOWED_MIMETYPES.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Tipo de arquivo não permitido: ${file.mimetype}. Permitidos apenas: ${ALLOWED_MIMETYPES.join(', ')}`));
+  }
+};
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const moduleName = req.body?.module ? String(req.body.module) : 'uploads';
+    const moduleName = sanitizeModuleName(req.body?.module);
     const dest = path.join(UPLOADS_BASE, moduleName);
     fs.mkdirSync(dest, { recursive: true });
     cb(null, dest);
   },
   filename: (req, file, cb) => {
-    const original = file.originalname.replace(/[^a-z0-9\.\-_]/gi, '_');
-    const ts = new Date().toISOString().replace(/[:]/g, '-');
-    cb(null, `${ts}_${original}`);
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = file.originalname
+      .replace(/[^a-z0-9_-]/gi, '_')
+      .replace(/\.[^.]+$/, '')
+      .substring(0, 60);
+    const ts = Date.now();
+    cb(null, `${ts}_${safeName}${ext}`);
   }
 });
 
-const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 }, fileFilter });
 
 const parseUpload = upload.any();
 

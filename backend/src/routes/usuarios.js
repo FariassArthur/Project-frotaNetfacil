@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
-const { openDb, run, get, all } = require('../database/connection');
+const { run, get, all } = require('../database/connection');
 const { logAudit } = require('../services/auditLog');
+const { handleError } = require('../services/errorHandler');
 
 const SENSITIVE_FIELDS = ['password'];
 
@@ -13,65 +14,54 @@ function cleanData(data) {
 
 function registerUsuariosRoutes(app) {
   app.get('/api/usuarios', async (req, res) => {
-    const db = openDb();
     try {
-      const rows = await all(db, 'SELECT id, username, role, ativo, permissoes FROM usuarios ORDER BY username');
+      const rows = await all('SELECT id, username, role, ativo, permissoes FROM usuarios ORDER BY username');
       res.json(rows);
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'usuarios');
     }
   });
 
   app.get('/api/usuarios/:id', async (req, res) => {
-    const db = openDb();
     try {
-      const row = await get(db, 'SELECT id, username, role, ativo, permissoes FROM usuarios WHERE id = ?', [req.params.id]);
+      const row = await get('SELECT id, username, role, ativo, permissoes FROM usuarios WHERE id = ?', [req.params.id]);
       if (!row) return res.status(404).json({ error: 'Usuário não encontrado' });
       res.json(row);
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'usuarios');
     }
   });
 
   app.post('/api/usuarios', async (req, res) => {
-    const db = openDb();
     const { username, password, role, ativo, permissoes } = req.body || {};
     try {
       if (!username || !password) return res.status(400).json({ error: 'username e password são obrigatórios' });
       const hash = await bcrypt.hash(password, 10);
       const result = await run(
-        db,
-        'INSERT INTO usuarios (username, password, role, ativo, permissoes) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO usuarios (username, password, role, ativo, permissoes) VALUES (?, ?, ?, ?, ?) RETURNING id',
         [username, hash, role || 'user', ativo !== false ? 1 : 0, permissoes || 'all']
       );
-      res.status(201).json({ ok: true, id: result.lastID });
+      res.status(201).json({ ok: true, id: result.rows[0].id });
 
       logAudit({
         user_id: req.user?.id,
         username: req.user?.username,
         acao: 'criou',
         entidade: 'Usuário',
-        entidade_id: String(result.lastID),
+        entidade_id: String(result.rows[0].id),
         descricao: `Usuário ${username} criado`,
         dados_novos: cleanData(req.body),
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      if (error.message && error.message.includes('UNIQUE')) {
+      if (error.message && error.message.includes('unique')) {
         return res.status(409).json({ error: 'Username já existe' });
       }
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'usuarios');
     }
   });
 
   app.put('/api/usuarios/alterar-senha', async (req, res) => {
-    const db = openDb();
     const { currentPassword, newPassword } = req.body || {};
     try {
       if (!currentPassword || !newPassword) {
@@ -80,14 +70,14 @@ function registerUsuariosRoutes(app) {
       if (newPassword.length < 3) {
         return res.status(400).json({ error: 'A nova senha deve ter pelo menos 3 caracteres' });
       }
-      const user = await get(db, 'SELECT * FROM usuarios WHERE id = ?', [req.user.id]);
+      const user = await get('SELECT * FROM usuarios WHERE id = ?', [req.user.id]);
       if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
 
       const match = await bcrypt.compare(currentPassword, user.password);
       if (!match) return res.status(401).json({ error: 'Senha atual incorreta' });
 
       const hash = await bcrypt.hash(newPassword, 10);
-      await run(db, 'UPDATE usuarios SET password = ? WHERE id = ?', [hash, req.user.id]);
+      await run('UPDATE usuarios SET password = ? WHERE id = ?', [hash, req.user.id]);
       res.json({ ok: true });
 
       logAudit({
@@ -100,17 +90,14 @@ function registerUsuariosRoutes(app) {
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'usuarios');
     }
   });
 
   app.put('/api/usuarios/:id', async (req, res) => {
-    const db = openDb();
     const { username, password, role, ativo, permissoes } = req.body || {};
     try {
-      const exists = await get(db, 'SELECT * FROM usuarios WHERE id = ?', [req.params.id]);
+      const exists = await get('SELECT * FROM usuarios WHERE id = ?', [req.params.id]);
       if (!exists) return res.status(404).json({ error: 'Usuário não encontrado' });
 
       const updates = [];
@@ -129,7 +116,7 @@ function registerUsuariosRoutes(app) {
       if (updates.length === 0) return res.status(400).json({ error: 'Nenhum campo para atualizar' });
 
       params.push(req.params.id);
-      await run(db, `UPDATE usuarios SET ${updates.join(', ')} WHERE id = ?`, params);
+      await run(`UPDATE usuarios SET ${updates.join(', ')} WHERE id = ?`, params);
       res.json({ ok: true });
 
       logAudit({
@@ -144,22 +131,19 @@ function registerUsuariosRoutes(app) {
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      if (error.message && error.message.includes('UNIQUE')) {
+      if (error.message && error.message.includes('unique')) {
         return res.status(409).json({ error: 'Username já existe' });
       }
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'usuarios');
     }
   });
 
   app.delete('/api/usuarios/:id', async (req, res) => {
-    const db = openDb();
     try {
-      const user = await get(db, 'SELECT * FROM usuarios WHERE id = ?', [req.params.id]);
+      const user = await get('SELECT * FROM usuarios WHERE id = ?', [req.params.id]);
       if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
       if (user.role === 'root') return res.status(403).json({ error: 'Não é possível excluir o usuário root' });
-      await run(db, 'DELETE FROM usuarios WHERE id = ?', [req.params.id]);
+      await run('DELETE FROM usuarios WHERE id = ?', [req.params.id]);
       res.json({ ok: true });
 
       logAudit({
@@ -173,9 +157,7 @@ function registerUsuariosRoutes(app) {
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'usuarios');
     }
   });
 }

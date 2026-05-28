@@ -1,39 +1,46 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const { JWT_SECRET } = require('../config');
-const { openDb, get } = require('../database/connection');
+
+function getTokenFromCookie(req) {
+  const raw = req.headers.cookie || '';
+  const match = raw.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 const verifyAuth = async (req, res, next) => {
-  const authHeader = req.headers['authorization'] || '';
-  if (!authHeader) {
+  let token = getTokenFromCookie(req);
+
+  if (!token) {
+    const authHeader = req.headers['authorization'] || '';
+    token = authHeader.replace('Bearer ', '').trim();
+  }
+
+  if (!token) {
     return res.status(401).json({ error: 'Autorização requerida' });
   }
-  const token = authHeader.replace('Bearer ', '').trim();
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     req.user = payload;
     return next();
   } catch (err) {
-    // fallback to legacy base64 username:password
-  }
-
-  try {
-    const decoded = Buffer.from(token, 'base64').toString();
-    const [username, password] = decoded.split(':');
-    if (!username || !password) return res.status(401).json({ error: 'Token inválido' });
-    const db = openDb();
-    const user = await get(db, 'SELECT id, username, role, ativo, password FROM usuarios WHERE username = ?', [username]);
-    db.close();
-    if (!user) return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-    if (!user.ativo) return res.status(403).json({ error: 'Usuário inativo' });
-    req.user = { id: user.id, username: user.username, role: user.role };
-    return next();
-  } catch (error) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expirado' });
+    }
     return res.status(401).json({ error: 'Token inválido' });
   }
 };
 
-module.exports = { verifyAuth };
+const requireRole = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Autorização requerida' });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Acesso restrito' });
+    }
+    next();
+  };
+};
+
+module.exports = { verifyAuth, requireRole };

@@ -1,8 +1,39 @@
-const { openDb, run, all, get, parseBoolean, parseInteger } = require('../database/connection');
+const { run, all, get, parseBoolean, parseInteger } = require('../database/connection');
 const { filePathFor } = require('../middleware/upload');
 const { logAudit } = require('../services/auditLog');
+const { handleError } = require('../services/errorHandler');
+const { requireRole } = require('../middleware/auth');
 
 const SENSITIVE_FIELDS = ['password'];
+
+const ALLOWED_TABLES = {
+  'veiculos': true,
+  'cnhs': true,
+  'mecanicas': true,
+  'tipo_manutencao': true,
+  'manutencoes': true,
+  'multas': true,
+  'seguradoras': true,
+  'contratos_seguro': true,
+  'pagamentos_seguro': true,
+  'pagamento_documentos': true,
+  'higienizacao': true,
+  'abastecimentos': true,
+  'cidades': true,
+};
+
+const ALLOWED_KEY_FIELDS = {
+  'placa': true,
+  'numero_registro': true,
+  'id': true,
+};
+
+function validateTable(name) {
+  if (!ALLOWED_TABLES[name]) throw new Error(`Tabela não permitida: ${name}`);
+}
+function validateKeyField(name) {
+  if (!ALLOWED_KEY_FIELDS[name]) throw new Error(`Chave não permitida: ${name}`);
+}
 
 function cleanData(data) {
   if (!data) return null;
@@ -27,9 +58,14 @@ function getEntityLabel(name) {
   return labels[name] || name;
 }
 
-function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = [] }) {
+function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = [], adminOnly = false }) {
+  validateTable(tableName);
+  validateKeyField(keyField);
+
   app.get(`/api/${name}`, async (req, res) => {
-    const db = openDb();
+    if (adminOnly && req.user?.role !== 'root' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso restrito a administradores' });
+    }
     try {
       const filters = [];
       const params = [];
@@ -46,30 +82,30 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         params.push(req.query.contrato_seguro_id);
       }
       const where = filters.length ? 'WHERE ' + filters.join(' AND ') : '';
-      const rows = await all(db, `SELECT * FROM ${tableName} ${where} ORDER BY ${keyField}`, params);
+      const rows = await all(`SELECT * FROM ${tableName} ${where} ORDER BY ${keyField}`, params);
       res.json(rows);
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, name);
     }
   });
 
   app.get(`/api/${name}/:${keyField}`, async (req, res) => {
-    const db = openDb();
+    if (adminOnly && req.user?.role !== 'root' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso restrito a administradores' });
+    }
     try {
-      const row = await get(db, `SELECT * FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
+      const row = await get(`SELECT * FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
       if (!row) return res.status(404).json({ error: `${name} não encontrado` });
       res.json(row);
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, name);
     }
   });
 
   app.post(`/api/${name}`, async (req, res) => {
-    const db = openDb();
+    if (adminOnly && req.user?.role !== 'root' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso restrito a administradores' });
+    }
     const body = req.body || {};
     const values = fields.map((field) => {
       if (fileFields.includes(field)) {
@@ -83,11 +119,10 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
 
     try {
       const result = await run(
-        db,
-        `INSERT INTO ${tableName} (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,
+        `INSERT INTO ${tableName} (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')}) RETURNING ${keyField}`,
         values
       );
-      const insertedId = keyField === 'id' ? String(result.lastID) : (body[keyField] || values[0]);
+      const insertedId = keyField === 'id' ? String(result.rows[0][keyField]) : (body[keyField] || values[0]);
       res.status(201).json({ ok: true });
 
       logAudit({
@@ -101,19 +136,23 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, name);
     }
   });
 
   app.put(`/api/${name}/:${keyField}`, async (req, res) => {
-    const db = openDb();
+    if (adminOnly && req.user?.role !== 'root' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso restrito a administradores' });
+    }
     const body = req.body || {};
-    const existing = await get(db, `SELECT * FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
-    if (!existing) {
-      db.close();
-      return res.status(404).json({ error: `${name} não encontrado` });
+    let existing;
+    try {
+      existing = await get(`SELECT * FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
+      if (!existing) {
+        return res.status(404).json({ error: `${name} não encontrado` });
+      }
+    } catch (error) {
+      return handleError(res, error, name);
     }
 
     const values = fields.map((field) => {
@@ -131,7 +170,6 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
 
     try {
       await run(
-        db,
         `UPDATE ${tableName} SET ${fields.map((field) => `${field} = ?`).join(', ')} WHERE ${keyField} = ?`,
         [...values, req.params[keyField]]
       );
@@ -149,21 +187,22 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, name);
     }
   });
 
-  app.delete(`/api/${name}/:${keyField}`, async (req, res) => {
-    const db = openDb();
-    const existing = await get(db, `SELECT * FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
-    if (!existing) {
-      db.close();
-      return res.status(404).json({ error: `${name} não encontrado` });
+  app.delete(`/api/${name}/:${keyField}`, requireRole('admin', 'root'), async (req, res) => {
+    let existing;
+    try {
+      existing = await get(`SELECT * FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
+      if (!existing) {
+        return res.status(404).json({ error: `${name} não encontrado` });
+      }
+    } catch (error) {
+      return handleError(res, error, name);
     }
     try {
-      await run(db, `DELETE FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
+      await run(`DELETE FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);
       res.json({ ok: true });
 
       logAudit({
@@ -177,9 +216,7 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         ip: req.ip,
       }).catch(() => {});
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, name);
     }
   });
 }

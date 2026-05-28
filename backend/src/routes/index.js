@@ -5,6 +5,7 @@ const { registerDashboardRoutes } = require('./dashboard');
 const { registerLookupRoutes } = require('./lookup');
 const { registerLogsRoutes } = require('./logs');
 const { registerGastosRoutes } = require('./gastos');
+const { registerCidadesRoutes } = require('./cidades');
 const { createRoutesFor } = require('./entityRoutes');
 
 function registerRoutes(app) {
@@ -82,7 +83,25 @@ function registerRoutes(app) {
     name: 'pagamento-documentos',
     tableName: 'pagamento_documentos',
     keyField: 'id',
-    fields: ['data_pagamento', 'data_pagamento_s', 'data_vencimento', 'data_vencimento_s', 'valor', 'descricao', 'veiculo_id']
+    fields: ['data_pagamento', 'data_pagamento_s', 'data_vencimento', 'data_vencimento_s', 'valor', 'descricao', 'path_boleto_pdf', 'path_comprovante_pdf', 'veiculo_id'],
+    fileFields: ['path_boleto_pdf', 'path_comprovante_pdf']
+  });
+
+  createRoutesFor(app, {
+    name: 'higienizacao',
+    tableName: 'higienizacao',
+    keyField: 'id',
+    fields: ['data', 'local', 'valor', 'path_comprovante_pdf', 'veiculo_id'],
+    fileFields: ['path_comprovante_pdf']
+  });
+
+  registerCidadesRoutes(app);
+
+  createRoutesFor(app, {
+    name: 'cidades',
+    tableName: 'cidades',
+    keyField: 'id',
+    fields: ['nome', 'uf']
   });
 
   createRoutesFor(app, {

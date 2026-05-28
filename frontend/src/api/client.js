@@ -1,4 +1,3 @@
-// API client with authentication support
 export const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
 
 let onUnauthorized = null;
@@ -12,6 +11,14 @@ export const getHeaders = (token) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
+};
+
+const fetchOptions = (token, extra = {}) => {
+  const options = { credentials: 'include', ...extra };
+  if (token) {
+    options.headers = { ...options.headers, ...getHeaders(token) };
+  }
+  return options;
 };
 
 export const buildRequest = (formData, token) => {
@@ -30,7 +37,9 @@ export const buildRequest = (formData, token) => {
   });
 
   if (hasFile) {
-    return { body: form, headers: { 'Authorization': `Bearer ${token}` } };
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return { body: form, headers };
   }
 
   return { body: JSON.stringify(formData), headers: getHeaders(token) };
@@ -39,55 +48,67 @@ export const buildRequest = (formData, token) => {
 async function handleResponse(response) {
   if (response.status === 401) {
     if (onUnauthorized) onUnauthorized();
-    return { error: 'Sessão expirada. Faça login novamente.' };
+    const text = await response.text().catch(() => '');
+    try { return JSON.parse(text); }
+    catch { return { error: 'Sessão expirada. Faça login novamente.' }; }
   }
-  return response.json();
+  const text = await response.text().catch(() => '');
+  try { return JSON.parse(text); }
+  catch { return { error: 'Erro inesperado do servidor' }; }
 }
 
-// Auth endpoints
 export async function login(username, password) {
   const response = await fetch(`${apiBase}/api/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
+    credentials: 'include',
+    body: JSON.stringify({ username, password }),
   });
-  return response.json();
+  return handleResponse(response);
 }
 
-// Generic CRUD operations
 export async function fetchList(endpoint, token) {
-  const response = await fetch(`${apiBase}${endpoint}`, { headers: getHeaders(token) });
+  const response = await fetch(`${apiBase}${endpoint}`, fetchOptions(token));
   return handleResponse(response);
 }
 
 export async function fetchOne(endpoint, id, token) {
-  const response = await fetch(`${apiBase}${endpoint}/${id}`, { headers: getHeaders(token) });
+  const response = await fetch(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, fetchOptions(token));
   return handleResponse(response);
 }
 
 export async function createItem(endpoint, data, token) {
   const { body, headers } = buildRequest(data, token);
-  const response = await fetch(`${apiBase}${endpoint}`, { method: 'POST', body, headers });
+  const response = await fetch(`${apiBase}${endpoint}`, {
+    method: 'POST',
+    body,
+    headers,
+    credentials: 'include',
+  });
   return handleResponse(response);
 }
 
 export async function updateItem(endpoint, id, data, token) {
   const { body, headers } = buildRequest(data, token);
-  const response = await fetch(`${apiBase}${endpoint}/${id}`, { method: 'PUT', body, headers });
-  return handleResponse(response);
-}
-
-export async function deleteItem(endpoint, id, token) {
-  const response = await fetch(`${apiBase}${endpoint}/${id}`, {
-    method: 'DELETE',
-    headers: getHeaders(token)
+  const response = await fetch(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body,
+    headers,
+    credentials: 'include',
   });
   return handleResponse(response);
 }
 
-// User management
+export async function deleteItem(endpoint, id, token) {
+  const response = await fetch(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    ...fetchOptions(token),
+  });
+  return handleResponse(response);
+}
+
 export async function fetchUsers(token) {
-  const response = await fetch(`${apiBase}/api/usuarios`, { headers: getHeaders(token) });
+  const response = await fetch(`${apiBase}/api/usuarios`, fetchOptions(token));
   return handleResponse(response);
 }
 
@@ -95,7 +116,8 @@ export async function createUser(data, token) {
   const response = await fetch(`${apiBase}/api/usuarios`, {
     method: 'POST',
     headers: getHeaders(token),
-    body: JSON.stringify(data)
+    credentials: 'include',
+    body: JSON.stringify(data),
   });
   return handleResponse(response);
 }
@@ -104,7 +126,8 @@ export async function updateUser(id, data, token) {
   const response = await fetch(`${apiBase}/api/usuarios/${id}`, {
     method: 'PUT',
     headers: getHeaders(token),
-    body: JSON.stringify(data)
+    credentials: 'include',
+    body: JSON.stringify(data),
   });
   return handleResponse(response);
 }
@@ -112,7 +135,7 @@ export async function updateUser(id, data, token) {
 export async function deleteUser(id, token) {
   const response = await fetch(`${apiBase}/api/usuarios/${id}`, {
     method: 'DELETE',
-    headers: getHeaders(token)
+    ...fetchOptions(token),
   });
   return handleResponse(response);
 }
@@ -120,7 +143,7 @@ export async function deleteUser(id, token) {
 export async function logout(token) {
   const response = await fetch(`${apiBase}/api/logout`, {
     method: 'POST',
-    headers: getHeaders(token)
+    ...fetchOptions(token),
   });
   return handleResponse(response);
 }
@@ -129,17 +152,22 @@ export async function changePassword(currentPassword, newPassword, token) {
   const response = await fetch(`${apiBase}/api/usuarios/alterar-senha`, {
     method: 'PUT',
     headers: getHeaders(token),
-    body: JSON.stringify({ currentPassword, newPassword })
+    credentials: 'include',
+    body: JSON.stringify({ currentPassword, newPassword }),
   });
   return handleResponse(response);
 }
 
 export async function fetchHealth(token) {
-  const response = await fetch(`${apiBase}/api/health`, { headers: getHeaders(token) });
+  const response = await fetch(`${apiBase}/api/health`, fetchOptions(token));
   return handleResponse(response);
 }
 
-// Try camelCase first, then snake_case (API returns snake_case for some modules)
+export async function fetchMe() {
+  const response = await fetch(`${apiBase}/api/me`, { credentials: 'include' });
+  return handleResponse(response);
+}
+
 export function getItemValue(item, fieldName) {
   if (item == null) return undefined;
   if (item[fieldName] !== undefined && item[fieldName] !== null) return item[fieldName];
@@ -149,8 +177,6 @@ export function getItemValue(item, fieldName) {
 
 export function getFileUrl(filePath) {
   if (!filePath || typeof filePath !== 'string') return null;
-  // stored paths are like "public/uploads/module/filename.pdf"
-  // strip the "public/" prefix to get the URL path
   const cleaned = filePath.replace(/^public[\\/]/, '');
-  return `${apiBase}/files/${cleaned}`;
+  return `${apiBase}/api/files/${cleaned}`;
 }

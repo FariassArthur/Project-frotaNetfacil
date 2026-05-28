@@ -3,7 +3,7 @@ import { fetchList, createItem, updateItem, deleteItem } from '../api/client';
 import EntityForm from './EntityForm';
 import EntityTable from './EntityTable';
 
-export default function GenericModule({ moduleConfig, token, vehicles, filterParams }) {
+export default function GenericModule({ moduleConfig, token, vehicles, cidades, filterParams, onItemSelect }) {
   const [items, setItems] = useState([]);
   const [formData, setFormData] = useState({});
   const [selectedItem, setSelectedItem] = useState(null);
@@ -39,6 +39,8 @@ export default function GenericModule({ moduleConfig, token, vehicles, filterPar
   const handleSelectItem = (item) => {
     setSelectedItem(item);
     setFormData(item);
+    setFormOpen(true);
+    if (onItemSelect) onItemSelect(item);
   };
 
   const handleSubmit = async (e) => {
@@ -80,7 +82,7 @@ export default function GenericModule({ moduleConfig, token, vehicles, filterPar
   return (
     <div className="module-container">
       <h2>{moduleConfig.label}</h2>
-      {error && <div className="module-error">{error}</div>}
+      {error && <div className="module-error">{error} <button className="error-dismiss" onClick={() => setError('')}>✕</button></div>}
 
       <div className="module-content" style={{ gridTemplateColumns: formOpen ? '1fr 1fr' : '1fr' }}>
         <div className="module-form-section" style={{ display: formOpen ? undefined : 'none' }}>
@@ -99,6 +101,7 @@ export default function GenericModule({ moduleConfig, token, vehicles, filterPar
             onChange={handleFieldChange}
             onSubmit={handleSubmit}
             vehicles={vehicles || []}
+            cidades={cidades || []}
             isNew={!selectedItem}
             isSubmitting={loading}
           />
@@ -108,13 +111,17 @@ export default function GenericModule({ moduleConfig, token, vehicles, filterPar
           <div className="module-table-header">
             <h3>Registros</h3>
             {!formOpen && (
-              <button type="button" className="form-expand-btn" onClick={() => setFormOpen(true)}>
+              <button type="button" className="form-expand-btn" onClick={() => {
+                setSelectedItem(null);
+                setFormData({});
+                setFormOpen(true);
+              }}>
                 + Novo
               </button>
             )}
           </div>
           {loading ? (
-            <p style={{ color: '#888' }}>Carregando...</p>
+            <div className="loading-spinner">Carregando...</div>
           ) : (
             <EntityTable
               items={items}

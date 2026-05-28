@@ -5,10 +5,12 @@ export default function LoginForm({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
       const response = await login(username, password);
       if (response.token) {
@@ -20,6 +22,8 @@ export default function LoginForm({ onLoginSuccess }) {
       }
     } catch (err) {
       setError('Erro ao conectar com o servidor');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -28,7 +32,7 @@ export default function LoginForm({ onLoginSuccess }) {
       <div className="login-box">
         <h1>GestaoFrota</h1>
         <p>Faça login para continuar</p>
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleSubmit} autoComplete="off">
           <div className="form-group">
             <label className="form-label" htmlFor="username">Usuário</label>
             <input
@@ -37,6 +41,7 @@ export default function LoginForm({ onLoginSuccess }) {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
               required
             />
           </div>
@@ -48,12 +53,13 @@ export default function LoginForm({ onLoginSuccess }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
           </div>
           {error && <div className="login-error">{error}</div>}
-          <button type="submit" className="btn btn-primary login-btn">
-            Entrar
+          <button type="submit" className="btn btn-primary login-btn" disabled={loading}>
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
       </div>

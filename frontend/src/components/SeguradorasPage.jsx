@@ -14,7 +14,7 @@ const MODULE_KEY_MAP = {
   pagamentos: 'pagamentos-seguro',
 };
 
-export default function SeguradorasPage({ moduleConfig, token, vehicles }) {
+export default function SeguradorasPage({ moduleConfig, token, vehicles, cidades }) {
   const [activeTab, setActiveTab] = useState('cadastro');
   const [selectedSeguradora, setSelectedSeguradora] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
@@ -41,7 +41,7 @@ export default function SeguradorasPage({ moduleConfig, token, vehicles }) {
 
   const renderContent = () => {
     if (activeTab === 'cadastro') {
-      return <GenericModule moduleConfig={moduleConfig} token={token} vehicles={vehicles} />;
+      return <GenericModule moduleConfig={moduleConfig} token={token} vehicles={vehicles} cidades={cidades} />;
     }
     const modKey = MODULE_KEY_MAP[activeTab];
     const cfg = getByKey(modKey);
@@ -51,6 +51,7 @@ export default function SeguradorasPage({ moduleConfig, token, vehicles }) {
         moduleConfig={cfg}
         token={token}
         vehicles={vehicles}
+        cidades={cidades}
         filterParams={getFilterParams()}
       />
     );
@@ -84,7 +85,7 @@ export default function SeguradorasPage({ moduleConfig, token, vehicles }) {
             <option value="">Todos os veículos</option>
             {vehicles.map((v) => (
               <option key={v.placa} value={v.placa}>
-                {v.placa} — {v.fipe_modelo || v.tipo || ''}
+                {v.placa}{v.numero ? ` (${v.numero})` : ''} — {v.fipe_modelo || v.tipo || ''}
               </option>
             ))}
           </select>

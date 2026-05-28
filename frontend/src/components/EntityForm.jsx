@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getFileUrl, getItemValue } from '../api/client';
 
 export default function EntityForm({
@@ -7,24 +7,63 @@ export default function EntityForm({
   onChange,
   onSubmit,
   vehicles,
+  cidades,
   isNew,
   isSubmitting
 }) {
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const next = {};
+    for (const field of fields) {
+      if (field.tableOnly) continue;
+      if (field.required && !formData[field.name]) {
+        next[field.name] = 'Campo obrigatório';
+      }
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validate()) onSubmit(e);
+  };
+
   const renderField = (field) => {
+    const hasError = errors[field.name];
     const value = formData[field.name] || '';
 
     if (field.name === 'veiculo_id') {
       return (
         <select
           id={field.name}
-          className="form-select"
+          className={`form-select${hasError ? ' input-error' : ''}`}
           value={value}
-          onChange={(e) => onChange(field.name, e.target.value)}
+          onChange={(e) => { onChange(field.name, e.target.value); setErrors((p) => ({ ...p, [field.name]: undefined })); }}
         >
           <option value="">-- selecione --</option>
           {vehicles.map((v) => (
             <option key={v.placa} value={v.placa}>
-              {v.placa} {v.tipo ? ` - ${v.tipo}` : ''}
+              {v.placa}{v.numero ? ` (${v.numero})` : ''}{v.tipo ? ` - ${v.tipo}` : ''}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.name === 'cidade_id') {
+      return (
+        <select
+          id={field.name}
+          className={`form-select${hasError ? ' input-error' : ''}`}
+          value={value}
+          onChange={(e) => { onChange(field.name, e.target.value); setErrors((p) => ({ ...p, [field.name]: undefined })); }}
+        >
+          <option value="">-- selecione --</option>
+          {cidades.map((c) => (
+            <option key={c.id} value={String(c.id)}>
+              {c.nome}{c.uf ? ` - ${c.uf}` : ''}
             </option>
           ))}
         </select>
@@ -39,8 +78,8 @@ export default function EntityForm({
           <input
             type="file"
             id={field.name}
-            className="form-input"
-            onChange={(e) => onChange(field.name, e.target.files[0])}
+            className={`form-input${hasError ? ' input-error' : ''}`}
+            onChange={(e) => { onChange(field.name, e.target.files[0]); setErrors((p) => ({ ...p, [field.name]: undefined })); }}
           />
           {hasExistingFile && (
             <a
@@ -60,9 +99,9 @@ export default function EntityForm({
       return (
         <select
           id={field.name}
-          className="form-select"
+          className={`form-select${hasError ? ' input-error' : ''}`}
           value={value}
-          onChange={(e) => onChange(field.name, e.target.value)}
+          onChange={(e) => { onChange(field.name, e.target.value); setErrors((p) => ({ ...p, [field.name]: undefined })); }}
         >
           <option value="">-- selecione --</option>
           {field.options.map((opt) => (
@@ -90,9 +129,9 @@ export default function EntityForm({
       return (
         <textarea
           id={field.name}
-          className="form-textarea"
+          className={`form-textarea${hasError ? ' input-error' : ''}`}
           value={value}
-          onChange={(e) => onChange(field.name, e.target.value)}
+          onChange={(e) => { onChange(field.name, e.target.value); setErrors((p) => ({ ...p, [field.name]: undefined })); }}
         />
       );
     }
@@ -100,24 +139,25 @@ export default function EntityForm({
     return (
       <input
         id={field.name}
-        className="form-input"
+        className={`form-input${hasError ? ' input-error' : ''}`}
         type={field.type || 'text'}
         value={value}
-        onChange={(e) => onChange(field.name, e.target.value)}
+        onChange={(e) => { onChange(field.name, e.target.value); setErrors((p) => ({ ...p, [field.name]: undefined })); }}
       />
     );
   };
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={handleSubmit}>
       <div className="form-grid">
-        {fields.map((field) => (
+        {fields.filter(f => !f.tableOnly).map((field) => (
           <div key={field.name} className="form-group">
             <label className="form-label" htmlFor={field.name}>
               {field.label}
               {field.required ? ' *' : ''}
             </label>
             {renderField(field)}
+            {errors[field.name] && <span className="field-error">{errors[field.name]}</span>}
           </div>
         ))}
       </div>

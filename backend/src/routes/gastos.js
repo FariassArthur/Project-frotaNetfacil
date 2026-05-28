@@ -1,17 +1,12 @@
-const { openDb, all } = require('../database/connection');
+const { all, get } = require('../database/connection');
+const { handleError } = require('../services/errorHandler');
 
 function registerGastosRoutes(app) {
   app.get('/api/gastos/:placa', async (req, res) => {
-    const db = openDb();
     const { placa } = req.params;
     const { data_inicio, data_fim } = req.query;
     try {
-      const veiculo = await new Promise((resolve, reject) => {
-        db.get('SELECT placa, tipo, fipe_name_marca, fipe_modelo, fipe_name_ano FROM veiculos WHERE placa = ?', [placa], (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        });
-      });
+      const veiculo = await get('SELECT placa, tipo, fipe_name_marca, fipe_modelo, fipe_name_ano FROM veiculos WHERE placa = ?', [placa]);
       if (!veiculo) return res.status(404).json({ error: 'Veículo não encontrado' });
 
       const dateFilter = [];
@@ -39,11 +34,11 @@ function registerGastosRoutes(app) {
       const pgtoDocDateClause = pgtoDocDateFilter.join(' ');
 
       const [manutencoes, multas, abastecimentos, pagamentosSeguro, pagamentoDocumentos] = await Promise.all([
-        all(db, `SELECT id, data, valor, descricao, km, classificacao FROM manutencoes WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
-        all(db, `SELECT id, data_ocorrencia, valor, local_ocorrencia, pagamento_realizado FROM multas WHERE veiculo_id = ? ${multasDateClause} ORDER BY data_ocorrencia`, multasDateParams),
-        all(db, `SELECT id, data, valor, quantidade, km FROM abastecimentos WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
-        all(db, `SELECT id, data_pagamento, valor FROM pagamentos_seguro WHERE veiculo_id = ? ${pgtoDateClause} ORDER BY data_pagamento`, pgtoDateParams),
-        all(db, `SELECT id, data_pagamento, valor, descricao FROM pagamento_documentos WHERE veiculo_id = ? ${pgtoDocDateClause} ORDER BY data_pagamento`, pgtoDocDateParams),
+        all(`SELECT id, data, valor, descricao, km, classificacao FROM manutencoes WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
+        all(`SELECT id, data_ocorrencia, valor, local_ocorrencia, pagamento_realizado FROM multas WHERE veiculo_id = ? ${multasDateClause} ORDER BY data_ocorrencia`, multasDateParams),
+        all(`SELECT id, data, valor, quantidade, km FROM abastecimentos WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
+        all(`SELECT id, data_pagamento, valor FROM pagamentos_seguro WHERE veiculo_id = ? ${pgtoDateClause} ORDER BY data_pagamento`, pgtoDateParams),
+        all(`SELECT id, data_pagamento, valor, descricao FROM pagamento_documentos WHERE veiculo_id = ? ${pgtoDocDateClause} ORDER BY data_pagamento`, pgtoDocDateParams),
       ]);
 
       const sum = (arr) => arr.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
@@ -76,22 +71,14 @@ function registerGastosRoutes(app) {
         }
       });
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'gastos');
     }
   });
 
   app.get('/api/gastos', async (req, res) => {
-    const db = openDb();
     const { data_inicio, data_fim } = req.query;
     try {
-      const veiculos = await new Promise((resolve, reject) => {
-        db.all('SELECT placa, fipe_modelo, tipo FROM veiculos ORDER BY placa', (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const veiculos = await all('SELECT placa, fipe_modelo, tipo FROM veiculos ORDER BY placa');
 
       const dateWhere = [];
       const dateParams = [];
@@ -99,7 +86,7 @@ function registerGastosRoutes(app) {
       if (data_fim) { dateWhere.push('AND m.data <= ?'); dateParams.push(data_fim + ' 23:59:59'); }
       const dateClause = dateWhere.join(' ');
 
-      const rows = await all(db, `
+      const rows = await all(`
         SELECT veiculo_id, SUM(valor) as total
         FROM (
           SELECT veiculo_id, valor FROM manutencoes WHERE veiculo_id IS NOT NULL ${dateClause}
@@ -127,9 +114,7 @@ function registerGastosRoutes(app) {
 
       res.json(totais);
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'gastos');
     }
   });
 }

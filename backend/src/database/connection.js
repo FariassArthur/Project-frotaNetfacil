@@ -1,37 +1,49 @@
 const sqlite3 = require('sqlite3').verbose();
 const { DB_PATH } = require('../config');
+const fs = require('fs');
+const path = require('path');
 
-function openDb() {
-  const db = new sqlite3.Database(DB_PATH);
-  db.run('PRAGMA foreign_keys = ON');
+let db;
+
+function getDb() {
+  if (!db) {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    db = new sqlite3.Database(DB_PATH);
+    db.run('PRAGMA foreign_keys = ON');
+    db.run('PRAGMA journal_mode = WAL');
+  }
   return db;
 }
 
-function run(db, sql, params = []) {
+function run(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
+    getDb().run(sql, params, function (err) {
       if (err) reject(err);
-      else resolve(this);
+      else resolve({ lastID: this.lastID, changes: this.changes, rowCount: this.changes, rows: this.lastID != null ? [{ id: this.lastID }] : [] });
     });
   });
 }
 
-function all(db, sql, params = []) {
+function all(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
+    getDb().all(sql, params, (err, rows) => {
       if (err) reject(err);
       else resolve(rows);
     });
   });
 }
 
-function get(db, sql, params = []) {
+function get(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
+    getDb().get(sql, params, (err, row) => {
       if (err) reject(err);
       else resolve(row);
     });
   });
+}
+
+function query(sql, params = []) {
+  return run(sql, params);
 }
 
 function parseBoolean(value) {
@@ -46,12 +58,12 @@ function parseInteger(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-async function seedIfMissing(db, sql, params = []) {
+async function seedIfMissing(sql, params = []) {
   try {
-    await run(db, sql, params);
+    await run(sql, params);
   } catch (error) {
     console.warn('Seed skip or error', error.message || error);
   }
 }
 
-module.exports = { openDb, run, all, get, parseBoolean, parseInteger, seedIfMissing };
+module.exports = { run, all, get, query, parseBoolean, parseInteger, seedIfMissing };

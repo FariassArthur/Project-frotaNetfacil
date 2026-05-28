@@ -9,21 +9,25 @@ const SUB_TABS = [
   { key: 'cnhs', label: 'Motoristas' },
   { key: 'manutencoes', label: 'Manutenções' },
   { key: 'multas', label: 'Multas' },
+  { key: 'abastecimentos', label: 'Abastecimentos' },
   { key: 'contratos-seguro', label: 'Contratos Seguro' },
   { key: 'pagamentos-seguro', label: 'Pag. Seguro' },
   { key: 'documentos', label: 'Pag. Documentos' },
+  { key: 'higienizacao', label: 'Higienização' },
 ];
 
 const MODULE_KEY_MAP = {
   cnhs: 'cnhs',
   manutencoes: 'manutencoes',
   multas: 'multas',
+  abastecimentos: 'abastecimentos',
   'contratos-seguro': 'contratos-seguro',
   'pagamentos-seguro': 'pagamentos-seguro',
   documentos: 'pagamento-documentos',
+  higienizacao: 'higienizacao',
 };
 
-export default function VeiculosPage({ moduleConfig, token, vehicles }) {
+export default function VeiculosPage({ moduleConfig, token, vehicles, cidades }) {
   const [activeTab, setActiveTab] = useState('cadastro');
   const [selectedVehicle, setSelectedVehicle] = useState('');
 
@@ -31,7 +35,7 @@ export default function VeiculosPage({ moduleConfig, token, vehicles }) {
 
   const renderContent = () => {
     if (activeTab === 'cadastro') {
-      return <GenericModule moduleConfig={moduleConfig} token={token} vehicles={vehicles} />;
+      return <GenericModule moduleConfig={moduleConfig} token={token} vehicles={vehicles} cidades={cidades} />;
     }
     if (activeTab === 'gastos') {
       return (
@@ -55,6 +59,7 @@ export default function VeiculosPage({ moduleConfig, token, vehicles }) {
         moduleConfig={cfg}
         token={token}
         vehicles={vehicles}
+        cidades={cidades}
         filterParams={{ veiculo_id: selectedVehicle }}
       />
     );
@@ -73,7 +78,7 @@ export default function VeiculosPage({ moduleConfig, token, vehicles }) {
             <option value="">Selecione um veículo</option>
             {vehicles.map((v) => (
               <option key={v.placa} value={v.placa}>
-                {v.placa} — {v.fipe_modelo || v.tipo || ''}
+                {v.placa}{v.numero ? ` (${v.numero})` : ''} — {v.fipe_modelo || v.tipo || ''}
               </option>
             ))}
           </select>

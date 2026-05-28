@@ -1,4 +1,13 @@
-const { openDb, all } = require('../database/connection');
+const { all } = require('../database/connection');
+const { handleError } = require('../services/errorHandler');
+
+const ALLOWED_TABLES = {
+  veiculos: true, cnhs: true, mecanicas: true, manutencoes: true,
+  multas: true, seguradoras: true, contratos_seguro: true,
+  pagamentos_seguro: true, pagamento_documentos: true,
+  abastecimentos: true, higienizacao: true, combustiveis: true,
+  tipo_manutencao: true, cidades: true,
+};
 
 const TABLES = [
   { key: 'veiculos', label: 'Veículos' },
@@ -11,17 +20,19 @@ const TABLES = [
   { key: 'pagamentos_seguro', label: 'Pagamentos Seguro' },
   { key: 'pagamento_documentos', label: 'Pagamentos Documento' },
   { key: 'abastecimentos', label: 'Abastecimentos' },
+  { key: 'higienizacao', label: 'Higienização' },
+  { key: 'cidades', label: 'Cidades' },
   { key: 'combustiveis', label: 'Combustíveis' },
   { key: 'tipo_manutencao', label: 'Tipos Manutenção' },
 ];
 
 function registerDashboardRoutes(app) {
   app.get('/api/dashboard', async (req, res) => {
-    const db = openDb();
     try {
       const result = {};
       for (const table of TABLES) {
-        const rows = await all(db, `SELECT * FROM ${table.key} ORDER BY 1`);
+        if (!ALLOWED_TABLES[table.key]) continue;
+        const rows = await all(`SELECT * FROM ${table.key} ORDER BY 1`);
         result[table.key] = {
           label: table.label,
           count: rows.length,
@@ -31,24 +42,21 @@ function registerDashboardRoutes(app) {
       }
       res.json(result);
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'dashboard');
     }
   });
 
   app.get('/api/dashboard/pagamentos', async (req, res) => {
-    const db = openDb();
     try {
       const hoje = new Date().toISOString().slice(0, 10);
 
-      const multas = await all(db, `
+      const multas = await all(`
         SELECT id, 'Multa' AS tipo, veiculo_id, local_ocorrencia AS descricao,
                valor, data_vencimento, pagamento_realizado
         FROM multas WHERE data_vencimento IS NOT NULL
       `);
 
-      const documentos = await all(db, `
+      const documentos = await all(`
         SELECT id, 'Documento' AS tipo, veiculo_id, descricao,
                valor, data_vencimento, data_pagamento
         FROM pagamento_documentos WHERE data_vencimento IS NOT NULL
@@ -90,9 +98,7 @@ function registerDashboardRoutes(app) {
         noPrazoList,
       });
     } catch (error) {
-      res.status(500).json({ error: String(error.message || error) });
-    } finally {
-      db.close();
+      handleError(res, error, 'dashboard.pagamentos');
     }
   });
 }

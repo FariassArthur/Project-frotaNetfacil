@@ -154,7 +154,7 @@ export default function VeiculoGastos({ token }) {
             <option value="">Selecione um veículo</option>
             {veiculos.map((v) => (
               <option key={v.placa} value={v.placa}>
-                {v.placa} — {v.fipe_modelo || v.tipo || ''}
+                {v.placa}{v.numero ? ` (${v.numero})` : ''} — {v.fipe_modelo || v.tipo || ''}
               </option>
             ))}
           </select>
