@@ -30,7 +30,9 @@ function buildDatabaseUrl() {
   return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${name}`;
 }
 
-const DATABASE_URL = process.env.DATABASE_URL || buildDatabaseUrl();
+const DATABASE_URL = NODE_ENV === 'test'
+  ? ''
+  : (process.env.DATABASE_URL || buildDatabaseUrl());
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 const UPLOADS_BASE = process.env.UPLOADS_BASE || path.join(PUBLIC_DIR, 'uploads');
 const CORS_ORIGIN = NODE_ENV === 'production'

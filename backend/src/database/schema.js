@@ -33,6 +33,14 @@ async function initDb() {
   `);
 
   await run(`
+    CREATE TABLE IF NOT EXISTS cidades (
+      id ${AI},
+      nome TEXT NOT NULL UNIQUE,
+      uf TEXT
+    )
+  `);
+
+  await run(`
     CREATE TABLE IF NOT EXISTS veiculos (
       placa TEXT PRIMARY KEY,
       numero TEXT,

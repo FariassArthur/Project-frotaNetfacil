@@ -5,9 +5,7 @@ let pool;
 function getPool() {
   if (!pool) {
     const { DATABASE_URL } = require('../config');
-    const ssl = (process.env.PG_SSL === 'true' || /sslmode=(prefer|require|verify-ca|verify-full)/i.test(DATABASE_URL || ''))
-      ? { rejectUnauthorized: false }
-      : undefined;
+    const ssl = process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : undefined;
 
     pool = new Pool({
       connectionString: DATABASE_URL,

@@ -1,12 +1,12 @@
-const { all, get, run } = require('../database/connection');
+const { all, get, run, getActiveDbName } = require('../database/connection');
 const { handleError } = require('../services/errorHandler');
 
 function registerLookupRoutes(app) {
   app.get('/api/health', async (req, res) => {
     res.json({
       ok: true,
-      db: 'sqlite',
-version: process.env.npm_package_version || '1.1.0'
+      db: getActiveDbName(),
+      version: process.env.npm_package_version || '1.1.0'
     });
   });
 

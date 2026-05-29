@@ -4,7 +4,11 @@ import request from 'supertest';
 let app;
 
 beforeAll(async () => {
+  process.env.NODE_ENV = 'test';
   process.env.DB_PATH = ':memory:';
+  process.env.DB_FALLBACK_TO_SQLITE = 'true';
+  process.env.DATABASE_URL = '';
+  process.env.ADMIN_PASSWORD = 'admin';
   process.env.JWT_SECRET = 'test-secret';
   const { initDb } = await import('../database/schema');
   app = (await import('../app')).default;

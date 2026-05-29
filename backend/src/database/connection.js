@@ -1,11 +1,10 @@
 const { DATABASE_URL } = require('../config');
-
-const isPostgres = DATABASE_URL && (DATABASE_URL.startsWith('postgresql://') || DATABASE_URL.startsWith('postgres://'));
+const isPostgres = Boolean(DATABASE_URL && (DATABASE_URL.startsWith('postgresql://') || DATABASE_URL.startsWith('postgres://')));
+const allowSqliteFallback = process.env.DB_FALLBACK_TO_SQLITE === 'true' || (process.env.NODE_ENV !== 'production' && process.env.DB_FALLBACK_TO_SQLITE !== 'false');
 const pgDriver = require('./connection-pg');
-const sqliteDriver = require('./connection-sqlite');
-const allowSqliteFallback = process.env.DB_FALLBACK_TO_SQLITE !== 'false';
 
-let activeDriver = isPostgres ? pgDriver : sqliteDriver;
+let activeDriver = isPostgres ? pgDriver : null;
+let sqliteDriver = null;
 let fallbackApplied = false;
 
 function isConnectionError(error) {
@@ -17,18 +16,34 @@ function switchToSqlite(error) {
   if (!allowSqliteFallback || !isPostgres || fallbackApplied) return false;
   if (!isConnectionError(error)) return false;
 
+  if (!sqliteDriver) {
+    sqliteDriver = require('./connection-sqlite');
+  }
+
   fallbackApplied = true;
   activeDriver = sqliteDriver;
   console.warn('PostgreSQL indisponível; usando SQLite como fallback para evitar falha de login.', error.message || error);
   return true;
 }
 
+function getCurrentDriver() {
+  if (!activeDriver) {
+    if (!sqliteDriver) {
+      sqliteDriver = require('./connection-sqlite');
+    }
+    activeDriver = sqliteDriver;
+  }
+  return activeDriver;
+}
+
 function withFallback(operation, ...args) {
+  const driver = getCurrentDriver();
+
   return Promise.resolve()
-    .then(() => operation(activeDriver, ...args))
+    .then(() => operation(driver, ...args))
     .catch((error) => {
       if (switchToSqlite(error)) {
-        return operation(activeDriver, ...args);
+        return operation(getCurrentDriver(), ...args);
       }
       throw error;
     });
@@ -40,6 +55,11 @@ const get = (...args) => withFallback((driver, sql, params) => driver.get(sql, p
 const query = (...args) => withFallback((driver, sql, params) => driver.query(sql, params), ...args);
 const closeDb = () => activeDriver.closeDb?.() || Promise.resolve();
 const getDb = () => activeDriver.getDb?.() || activeDriver.getPool?.() || null;
+
+function getActiveDbName() {
+  if (fallbackApplied) return 'sqlite';
+  return isPostgres ? 'postgres' : 'sqlite';
+}
 
 function parseBoolean(value) {
   if (value === undefined || value === null) return null;
@@ -61,4 +81,4 @@ async function seedIfMissing(sql, params = []) {
   }
 }
 
-module.exports = { run, all, get, query, parseBoolean, parseInteger, seedIfMissing, closeDb, getDb, isPostgres };
+module.exports = { run, all, get, query, parseBoolean, parseInteger, seedIfMissing, closeDb, getDb, isPostgres, getActiveDbName };
