@@ -23,7 +23,7 @@ export default function SeguradorasPage({ moduleConfig, token, vehicles, cidades
   useEffect(() => {
     fetchList('/api/seguradoras', token).then((list) => {
       if (Array.isArray(list)) setSeguradoras(list);
-    }).catch(() => {});
+    }).catch((err) => console.error('Erro ao carregar seguradoras:', err));
   }, []);
 
   const getFilterParams = () => {

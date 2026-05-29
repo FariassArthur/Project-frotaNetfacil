@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -54,7 +54,7 @@ export default function App() {
     if (!token) {
       setSessionLoading(true);
       fetch('/api/me', { credentials: 'include' })
-        .then((r) => r.json().catch(() => ({})))
+        .then((r) => r.json())
         .then((data) => {
           if (data.username) {
             setUser({ username: data.username, role: data.role });
@@ -65,7 +65,10 @@ export default function App() {
             setSessionLoading(false);
           }
         })
-        .catch(() => setSessionLoading(false));
+        .catch((err) => {
+          console.error('Erro ao verificar sessão:', err);
+          setSessionLoading(false);
+        });
     }
   }, []);
 
@@ -87,6 +90,24 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    if (!token) return;
+    let timeout;
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        handleLogout();
+      }, 30 * 60 * 1000);
+    };
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach((e) => window.addEventListener(e, resetTimer));
+    resetTimer();
+    return () => {
+      clearTimeout(timeout);
+      events.forEach((e) => window.removeEventListener(e, resetTimer));
+    };
+  }, [token]);
+
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
   const handleLoginSuccess = (newToken, userData) => {
@@ -98,7 +119,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    logout(token).catch(() => {});
+    logout(token).catch((err) => console.error('Erro ao fazer logout:', err));
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

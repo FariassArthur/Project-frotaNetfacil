@@ -1,4 +1,5 @@
 export const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+const REQUEST_TIMEOUT = 30000;
 
 let onUnauthorized = null;
 export function setOnUnauthorized(cb) {
@@ -20,6 +21,17 @@ const fetchOptions = (token, extra = {}) => {
   }
   return options;
 };
+
+async function fetchWithTimeout(url, options = {}, timeout = REQUEST_TIMEOUT) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export const buildRequest = (formData, token) => {
   const form = new FormData();
@@ -48,124 +60,199 @@ export const buildRequest = (formData, token) => {
 async function handleResponse(response) {
   if (response.status === 401) {
     if (onUnauthorized) onUnauthorized();
-    const text = await response.text().catch(() => '');
-    try { return JSON.parse(text); }
-    catch { return { error: 'Sessão expirada. Faça login novamente.' }; }
+    try {
+      const text = await response.text();
+      return JSON.parse(text);
+    } catch {
+      return { error: 'Sessão expirada. Faça login novamente.' };
+    }
   }
-  const text = await response.text().catch(() => '');
-  try { return JSON.parse(text); }
-  catch { return { error: 'Erro inesperado do servidor' }; }
+  try {
+    const text = await response.text();
+    return JSON.parse(text);
+  } catch {
+    return { error: 'Erro inesperado do servidor' };
+  }
 }
 
 export async function login(username, password) {
-  const response = await fetch(`${apiBase}/api/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ username, password }),
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username, password }),
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function fetchList(endpoint, token) {
-  const response = await fetch(`${apiBase}${endpoint}`, fetchOptions(token));
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}${endpoint}`, fetchOptions(token));
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
+}
+
+export async function fetchListPaginated(endpoint, token) {
+  try {
+    const response = await fetchWithTimeout(`${apiBase}${endpoint}`, fetchOptions(token));
+    const data = await handleResponse(response);
+    if (data && !data.error) {
+      return { data, total: parseInt(response.headers.get('X-Total-Count') || '0', 10) };
+    }
+    return { data, total: 0 };
+  } catch (err) {
+    return { data: [], total: 0, error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function fetchOne(endpoint, id, token) {
-  const response = await fetch(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, fetchOptions(token));
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, fetchOptions(token));
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function createItem(endpoint, data, token) {
-  const { body, headers } = buildRequest(data, token);
-  const response = await fetch(`${apiBase}${endpoint}`, {
-    method: 'POST',
-    body,
-    headers,
-    credentials: 'include',
-  });
-  return handleResponse(response);
+  try {
+    const { body, headers } = buildRequest(data, token);
+    const response = await fetchWithTimeout(`${apiBase}${endpoint}`, {
+      method: 'POST',
+      body,
+      headers,
+      credentials: 'include',
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function updateItem(endpoint, id, data, token) {
-  const { body, headers } = buildRequest(data, token);
-  const response = await fetch(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
-    method: 'PUT',
-    body,
-    headers,
-    credentials: 'include',
-  });
-  return handleResponse(response);
+  try {
+    const { body, headers } = buildRequest(data, token);
+    const response = await fetchWithTimeout(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body,
+      headers,
+      credentials: 'include',
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function deleteItem(endpoint, id, token) {
-  const response = await fetch(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-    ...fetchOptions(token),
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      ...fetchOptions(token),
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function fetchUsers(token) {
-  const response = await fetch(`${apiBase}/api/usuarios`, fetchOptions(token));
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/usuarios`, fetchOptions(token));
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function createUser(data, token) {
-  const response = await fetch(`${apiBase}/api/usuarios`, {
-    method: 'POST',
-    headers: getHeaders(token),
-    credentials: 'include',
-    body: JSON.stringify(data),
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/usuarios`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function updateUser(id, data, token) {
-  const response = await fetch(`${apiBase}/api/usuarios/${id}`, {
-    method: 'PUT',
-    headers: getHeaders(token),
-    credentials: 'include',
-    body: JSON.stringify(data),
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/usuarios/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(token),
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function deleteUser(id, token) {
-  const response = await fetch(`${apiBase}/api/usuarios/${id}`, {
-    method: 'DELETE',
-    ...fetchOptions(token),
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/usuarios/${id}`, {
+      method: 'DELETE',
+      ...fetchOptions(token),
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function logout(token) {
-  const response = await fetch(`${apiBase}/api/logout`, {
-    method: 'POST',
-    ...fetchOptions(token),
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/logout`, {
+      method: 'POST',
+      ...fetchOptions(token),
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function changePassword(currentPassword, newPassword, token) {
-  const response = await fetch(`${apiBase}/api/usuarios/alterar-senha`, {
-    method: 'PUT',
-    headers: getHeaders(token),
-    credentials: 'include',
-    body: JSON.stringify({ currentPassword, newPassword }),
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/usuarios/alterar-senha`, {
+      method: 'PUT',
+      headers: getHeaders(token),
+      credentials: 'include',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function fetchHealth(token) {
-  const response = await fetch(`${apiBase}/api/health`, fetchOptions(token));
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/health`, fetchOptions(token));
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export async function fetchMe() {
-  const response = await fetch(`${apiBase}/api/me`, { credentials: 'include' });
-  return handleResponse(response);
+  try {
+    const response = await fetchWithTimeout(`${apiBase}/api/me`, { credentials: 'include' });
+    return handleResponse(response);
+  } catch (err) {
+    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
+  }
 }
 
 export function getItemValue(item, fieldName) {
@@ -177,6 +264,9 @@ export function getItemValue(item, fieldName) {
 
 export function getFileUrl(filePath) {
   if (!filePath || typeof filePath !== 'string') return null;
-  const cleaned = filePath.replace(/^public[\\/]/, '');
+  let cleaned = filePath.replace(/^public[\\/]/, '');
+  cleaned = cleaned.replace(/[^a-zA-Z0-9_\-./\\]/g, '');
+  const segments = cleaned.split(/[\\/]/).filter(Boolean);
+  if (segments.some((s) => s === '..')) return null;
   return `${apiBase}/api/files/${cleaned}`;
 }

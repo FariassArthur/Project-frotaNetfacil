@@ -9,7 +9,7 @@ export default function CidadesPage({ moduleConfig, token, vehicles, cidades: ci
   useEffect(() => {
     fetchList('/api/cnhs', token).then((data) => {
       if (Array.isArray(data)) setCnhs(data);
-    }).catch(() => {});
+    }).catch((err) => console.error('Erro ao carregar motoristas:', err));
   }, [token]);
 
   const relatedVehicles = useMemo(() => {

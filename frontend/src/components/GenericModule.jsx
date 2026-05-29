@@ -1,27 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { fetchList, createItem, updateItem, deleteItem } from '../api/client';
+import { fetchListPaginated, createItem, updateItem, deleteItem } from '../api/client';
 import EntityForm from './EntityForm';
 import EntityTable from './EntityTable';
+import { useToast } from './Toast';
+
+const PAGE_SIZE = 50;
 
 export default function GenericModule({ moduleConfig, token, vehicles, cidades, filterParams, onItemSelect }) {
+  const toast = useToast();
   const [items, setItems] = useState([]);
   const [formData, setFormData] = useState({});
   const [selectedItem, setSelectedItem] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formOpen, setFormOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  useEffect(() => {
+    setPage(1);
+  }, [moduleConfig.key, filterParams]);
 
   useEffect(() => {
     loadItems();
-  }, [moduleConfig.key, filterParams]);
+  }, [moduleConfig.key, filterParams, page]);
 
   const loadItems = async () => {
     setLoading(true);
     setError('');
     try {
-      const params = filterParams ? '?' + new URLSearchParams(filterParams).toString() : '';
-      const data = await fetchList(moduleConfig.endpoint + params, token);
-      setItems(Array.isArray(data) ? data : []);
+      const query = new URLSearchParams({ ...filterParams, _page: page, _limit: PAGE_SIZE });
+      const result = await fetchListPaginated(`${moduleConfig.endpoint}?${query}`, token);
+      setItems(Array.isArray(result.data) ? result.data : []);
+      setTotalCount(result.total || 0);
       setFormData({});
       setSelectedItem(null);
     } catch (err) {
@@ -52,13 +63,16 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
       if (selectedItem && moduleConfig.keyField) {
         const id = selectedItem[moduleConfig.keyField];
         await updateItem(moduleConfig.endpoint, id, formData, token);
+        toast.success('Registro atualizado com sucesso');
         await loadItems();
       } else {
         await createItem(moduleConfig.endpoint, formData, token);
+        toast.success('Registro criado com sucesso');
         await loadItems();
       }
     } catch (err) {
       setError('Erro ao salvar');
+      toast.error('Erro ao salvar registro');
       console.error(err);
     } finally {
       setLoading(false);
@@ -70,9 +84,11 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
     setLoading(true);
     try {
       await deleteItem(moduleConfig.endpoint, item[moduleConfig.keyField], token);
+      toast.success('Registro excluído com sucesso');
       await loadItems();
     } catch (err) {
       setError('Erro ao deletar');
+      toast.error('Erro ao excluir registro');
       console.error(err);
     } finally {
       setLoading(false);
@@ -128,6 +144,10 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
               fields={moduleConfig.fields}
               onSelect={handleSelectItem}
               onDelete={handleDelete}
+              totalCount={totalCount}
+              page={page}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
             />
           )}
         </div>

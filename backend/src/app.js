@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
-const { PUBLIC_DIR } = require('./config');
+const { PUBLIC_DIR, CORS_ORIGIN, NODE_ENV } = require('./config');
 const { parseUpload } = require('./middleware/upload');
 const { verifyAuth } = require('./middleware/auth');
 const { registerRoutes } = require('./routes');
@@ -14,11 +15,21 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+if (NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
+app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'same-origin' },
 }));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: CORS_ORIGIN || true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

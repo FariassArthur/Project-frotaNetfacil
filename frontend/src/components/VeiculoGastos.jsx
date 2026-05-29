@@ -111,7 +111,7 @@ export default function VeiculoGastos({ token }) {
   useEffect(() => {
     fetchList('/api/veiculos', token).then((list) => {
       if (Array.isArray(list)) setVeiculos(list);
-    }).catch(() => {});
+    }).catch((err) => console.error('Erro ao carregar veículos:', err));
   }, []);
 
   const handleSearch = async () => {

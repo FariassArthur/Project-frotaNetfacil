@@ -82,7 +82,16 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         params.push(req.query.contrato_seguro_id);
       }
       const where = filters.length ? 'WHERE ' + filters.join(' AND ') : '';
-      const rows = await all(`SELECT * FROM ${tableName} ${where} ORDER BY ${keyField}`, params);
+
+      const page = Math.max(1, parseInt(req.query._page, 10) || 1);
+      const limit = Math.min(500, Math.max(1, parseInt(req.query._limit, 10) || 200));
+      const offset = (page - 1) * limit;
+
+      const countResult = await all(`SELECT COUNT(*) as total FROM ${tableName} ${where}`, params);
+      const total = countResult[0]?.total || 0;
+
+      const rows = await all(`SELECT * FROM ${tableName} ${where} ORDER BY ${keyField} LIMIT ? OFFSET ?`, [...params, limit, offset]);
+      res.set('X-Total-Count', String(total));
       res.json(rows);
     } catch (error) {
       handleError(res, error, name);

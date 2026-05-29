@@ -1,9 +1,39 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config');
-const { get } = require('../database/connection');
+const { get, run } = require('../database/connection');
 const { logAudit } = require('../services/auditLog');
 const { handleError } = require('../services/errorHandler');
+
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000;
+const loginAttempts = new Map();
+
+function isLockedOut(username) {
+  const record = loginAttempts.get(username);
+  if (!record) return false;
+  if (record.count >= MAX_LOGIN_ATTEMPTS && Date.now() - record.firstAttempt < LOCKOUT_DURATION) {
+    return true;
+  }
+  if (Date.now() - record.firstAttempt >= LOCKOUT_DURATION) {
+    loginAttempts.delete(username);
+    return false;
+  }
+  return false;
+}
+
+function recordFailedAttempt(username) {
+  const record = loginAttempts.get(username);
+  if (!record) {
+    loginAttempts.set(username, { count: 1, firstAttempt: Date.now() });
+  } else {
+    record.count++;
+  }
+}
+
+function clearAttempts(username) {
+  loginAttempts.delete(username);
+}
 
 function registerAuthRoutes(app) {
   app.post('/api/login', async (req, res) => {
@@ -12,15 +42,23 @@ function registerAuthRoutes(app) {
       if (!username || !password) {
         return res.status(400).json({ error: 'username e password são obrigatórios' });
       }
+      if (isLockedOut(username)) {
+        return res.status(429).json({ error: 'Conta temporariamente bloqueada. Tente novamente em 15 minutos.' });
+      }
       const user = await get('SELECT id, username, role, ativo, permissoes, password FROM usuarios WHERE username = ?', [username]);
       if (!user) {
+        recordFailedAttempt(username);
         return res.status(401).json({ error: 'Usuário ou senha inválidos' });
       }
       if (!user.ativo) {
         return res.status(403).json({ error: 'Usuário inativo' });
       }
       const match = await bcrypt.compare(password, user.password);
-      if (!match) return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+      if (!match) {
+        recordFailedAttempt(username);
+        return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+      }
+      clearAttempts(username);
 
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },

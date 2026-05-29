@@ -1,10 +1,33 @@
 const bcrypt = require('bcryptjs');
-const { run, all, seedIfMissing } = require('./connection');
+const { run, all, seedIfMissing, isPostgres } = require('./connection');
+
+const AI = isPostgres ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
+const NOW = isPostgres ? 'NOW()' : "datetime('now', 'localtime')";
+
+function insertIgnore(table, columns, valuesCount) {
+  if (isPostgres) {
+    const vals = columns.map((_, i) => `$${i + 1}`).join(', ');
+    return `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${vals}) ON CONFLICT DO NOTHING`;
+  }
+  const vals = columns.map(() => '?').join(', ');
+  return `INSERT OR IGNORE INTO ${table} (${columns.join(', ')}) VALUES (${vals})`;
+}
+
+async function getTableColumns(table) {
+  if (isPostgres) {
+    return all("SELECT column_name FROM information_schema.columns WHERE table_name = $1", [table]);
+  }
+  return all(`PRAGMA table_info('${table}')`);
+}
+
+function hasColumn(cols, name) {
+  return cols.some((c) => c.name === name || c.column_name === name);
+}
 
 async function initDb() {
   await run(`
     CREATE TABLE IF NOT EXISTS combustiveis (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       tipo TEXT NOT NULL UNIQUE
     )
   `);
@@ -19,13 +42,13 @@ async function initDb() {
       fipe_name_ano TEXT,
       renavam TEXT,
       chassi TEXT,
-      combustivel INTEGER,
+      combustivel INTEGER REFERENCES combustiveis(id) ON DELETE SET NULL,
       ano_fab TEXT,
       ano_modelo TEXT,
       capacidade TEXT,
       cor TEXT,
       cidade TEXT,
-      cidade_id INTEGER,
+      cidade_id INTEGER REFERENCES cidades(id) ON DELETE SET NULL,
       uf TEXT,
       cpfcnpj TEXT,
       categoria TEXT,
@@ -57,14 +80,14 @@ async function initDb() {
       local TEXT,
       path_documento_pdf TEXT,
       aivo INTEGER,
-      veiculo_id TEXT,
+      veiculo_id TEXT REFERENCES veiculos(placa) ON DELETE SET NULL,
       path_foto TEXT
     )
   `);
 
   await run(`
     CREATE TABLE IF NOT EXISTS mecanicas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       nome TEXT,
       endereco TEXT,
       numero TEXT,
@@ -88,14 +111,14 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS tipo_manutencao (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       descricao TEXT
     )
   `);
 
   await run(`
     CREATE TABLE IF NOT EXISTS manutencoes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       data TEXT,
       data_s TEXT,
       valor REAL,
@@ -110,8 +133,8 @@ async function initDb() {
   `);
 
   try {
-    const cols = await all("PRAGMA table_info('manutencoes')");
-    if (!cols.some((c) => c.name === 'classificacao')) {
+    const cols = await getTableColumns('manutencoes');
+    if (!hasColumn(cols, 'classificacao')) {
       await run("ALTER TABLE manutencoes ADD COLUMN classificacao TEXT DEFAULT 'preventiva'");
     }
   } catch (err) {
@@ -120,7 +143,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS multas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       data_ocorrencia TEXT,
       data_ocorrencia_s TEXT,
       local_ocorrencia TEXT,
@@ -137,7 +160,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS seguradoras (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       nome TEXT,
       corretor TEXT,
       endereco TEXT,
@@ -161,7 +184,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS contratos_seguro (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       numero_apolice TEXT,
       data_inicial_contrato TEXT,
       data_final_contrato TEXT,
@@ -176,7 +199,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS pagamentos_seguro (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       data_pagamento TEXT,
       valor REAL,
       path_pagamento_pdf TEXT,
@@ -187,7 +210,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS pagamento_documentos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       data_pagamento TEXT,
       data_pagamento_s TEXT,
       data_vencimento TEXT,
@@ -202,7 +225,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS higienizacao (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       data TEXT,
       local TEXT,
       valor REAL,
@@ -213,7 +236,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS cidades (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       nome TEXT NOT NULL UNIQUE,
       uf TEXT
     )
@@ -221,11 +244,12 @@ async function initDb() {
 
   // Migrate existing cidade text values to cidades table
   try {
-    const cols = await all("PRAGMA table_info('veiculos')");
-    if (!cols.some((c) => c.name === 'cidade_id')) {
+    const cols = await getTableColumns('veiculos');
+    if (!hasColumn(cols, 'cidade_id')) {
       const veiculos = await all("SELECT DISTINCT cidade FROM veiculos WHERE cidade IS NOT NULL AND cidade != ''");
       for (const v of veiculos) {
-        await run('INSERT OR IGNORE INTO cidades (nome) VALUES (?)', [v.cidade]);
+        const sql = insertIgnore('cidades', ['nome'], 1);
+        await run(sql, [v.cidade]);
       }
       await run('ALTER TABLE veiculos ADD COLUMN cidade_id INTEGER');
       await run('UPDATE veiculos SET cidade_id = (SELECT id FROM cidades WHERE cidades.nome = veiculos.cidade)');
@@ -236,7 +260,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS abastecimentos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       quantidade REAL,
       combustivel_id INTEGER REFERENCES combustiveis(id) ON DELETE SET NULL,
       valor REAL,
@@ -250,14 +274,14 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS versoes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       version TEXT
     )
   `);
 
   await run(`
     CREATE TABLE IF NOT EXISTS configuracoes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       cod_pais TEXT NOT NULL,
       idioma TEXT NOT NULL,
       culture_info TEXT NOT NULL
@@ -266,7 +290,7 @@ async function initDb() {
 
   await run(`
     CREATE TABLE IF NOT EXISTS usuarios (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       username TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
       role TEXT DEFAULT 'user',
@@ -276,8 +300,8 @@ async function initDb() {
   `);
 
   try {
-    const userCols = await all("PRAGMA table_info('usuarios')");
-    if (!userCols.some((c) => c.name === 'permissoes')) {
+    const userCols = await getTableColumns('usuarios');
+    if (!hasColumn(userCols, 'permissoes')) {
       await run("ALTER TABLE usuarios ADD COLUMN permissoes TEXT DEFAULT 'all'");
     }
   } catch (err) {
@@ -285,8 +309,8 @@ async function initDb() {
   }
 
   try {
-    const veicCols = await all("PRAGMA table_info('veiculos')");
-    if (!veicCols.some((c) => c.name === 'numero')) {
+    const veicCols = await getTableColumns('veiculos');
+    if (!hasColumn(veicCols, 'numero')) {
       await run('ALTER TABLE veiculos ADD COLUMN numero TEXT');
     }
   } catch (err) {
@@ -294,38 +318,33 @@ async function initDb() {
   }
 
   try {
-    const pagDocCols = await all("PRAGMA table_info('pagamento_documentos')");
-    if (!pagDocCols.some((c) => c.name === 'path_boleto_pdf')) {
+    const pagDocCols = await getTableColumns('pagamento_documentos');
+    if (!hasColumn(pagDocCols, 'path_boleto_pdf')) {
       await run('ALTER TABLE pagamento_documentos ADD COLUMN path_boleto_pdf TEXT');
     }
-    if (!pagDocCols.some((c) => c.name === 'path_comprovante_pdf')) {
+    if (!hasColumn(pagDocCols, 'path_comprovante_pdf')) {
       await run('ALTER TABLE pagamento_documentos ADD COLUMN path_comprovante_pdf TEXT');
     }
   } catch (err) {
     console.warn('Could not ensure pagamento_documentos file columns', err.message || err);
   }
 
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Não definido']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Gasolina']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Alcool']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Flex']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['GNV']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Gasolina/GNV']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Flex/GNV']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Diesel']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Tri-Combustivel']);
-  await seedIfMissing("INSERT OR IGNORE INTO combustiveis (tipo) VALUES (?)", ['Diesel/GNV']);
+  const seedInserts = [
+    { table: 'combustiveis', cols: ['tipo'], values: ['Não definido', 'Gasolina', 'Alcool', 'Flex', 'GNV', 'Gasolina/GNV', 'Flex/GNV', 'Diesel', 'Tri-Combustivel', 'Diesel/GNV'] },
+    { table: 'tipo_manutencao', cols: ['descricao'], values: ['Revisão', 'Troca de óleo', 'Pneus', 'Freios'] },
+  ];
+  for (const { table, cols, values } of seedInserts) {
+    const sql = insertIgnore(table, cols, 1);
+    for (const val of values) {
+      await seedIfMissing(sql, [val]);
+    }
+  }
 
-  await seedIfMissing("INSERT OR IGNORE INTO tipo_manutencao (descricao) VALUES (?)", ['Revisão']);
-  await seedIfMissing("INSERT OR IGNORE INTO tipo_manutencao (descricao) VALUES (?)", ['Troca de óleo']);
-  await seedIfMissing("INSERT OR IGNORE INTO tipo_manutencao (descricao) VALUES (?)", ['Pneus']);
-  await seedIfMissing("INSERT OR IGNORE INTO tipo_manutencao (descricao) VALUES (?)", ['Freios']);
-
-  await seedIfMissing("INSERT OR IGNORE INTO configuracoes (id, cod_pais, idioma, culture_info) VALUES (1, ?, ?, ?)", ['BR', 'pt-BR', 'pt-BR']);
+  await run(insertIgnore('configuracoes', ['id', 'cod_pais', 'idioma', 'culture_info'], 4), [1, 'BR', 'pt-BR', 'pt-BR']);
 
   await run(`
     CREATE TABLE IF NOT EXISTS logs_auditoria (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${AI},
       user_id INTEGER,
       username TEXT NOT NULL,
       acao TEXT NOT NULL,
@@ -335,22 +354,26 @@ async function initDb() {
       dados_antigos TEXT,
       dados_novos TEXT,
       ip TEXT,
-      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+      created_at TEXT DEFAULT (${NOW})
     )
   `);
 
   try {
     const adminPassHash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin', 10);
-    await run("INSERT OR IGNORE INTO usuarios (id, username, password, role, ativo) VALUES (1, ?, ?, ?, 1)", [
-      'admin', adminPassHash, 'root'
-    ]);
+    await run(insertIgnore('usuarios', ['id', 'username', 'password', 'role', 'ativo'], 5), [1, 'admin', adminPassHash, 'root', 1]);
   } catch (err) {
     console.warn('Could not seed admin user', err.message || err);
   }
 
-  await run("INSERT OR IGNORE INTO versoes (id, version) VALUES (1, ?)", [
-    process.env.npm_package_version || '1.1.0'
-  ]);
+  await run(insertIgnore('versoes', ['id', 'version'], 2), [1, process.env.npm_package_version || '1.1.0']);
+
+  try {
+    await run("UPDATE veiculos SET combustivel = NULL WHERE combustivel IS NOT NULL AND combustivel NOT IN (SELECT id FROM combustiveis)");
+    await run("UPDATE veiculos SET cidade_id = NULL WHERE cidade_id IS NOT NULL AND cidade_id NOT IN (SELECT id FROM cidades)");
+    await run("UPDATE cnhs SET veiculo_id = NULL WHERE veiculo_id IS NOT NULL AND veiculo_id NOT IN (SELECT placa FROM veiculos)");
+  } catch (err) {
+    console.warn('Could not clean orphaned FK references', err.message || err);
+  }
 
   const FK_INDEXES = [
     'CREATE INDEX IF NOT EXISTS idx_manutencoes_veiculo ON manutencoes(veiculo_id)',

@@ -1,8 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { fetchList } from '../api/client';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import { formatHeader, FilterDropdown } from '../utils/tableUtils.jsx';
 
 const MODULE_ORDER = [
@@ -122,7 +119,7 @@ export default function Dashboard({ token }) {
   useEffect(() => {
     fetchList('/api/dashboard/pagamentos', token).then((r) => {
       if (r && !r.error) setPagamentos(r);
-    }).catch(() => {});
+    }).catch((err) => console.error('Erro ao carregar pagamentos:', err));
   }, []);
 
   useEffect(() => {
@@ -218,49 +215,31 @@ export default function Dashboard({ token }) {
 
   const hasActiveFilters = Object.keys(columnFilters).length > 0 || search;
 
-  const exportExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const exportCSV = () => {
+    const lines = [];
     for (const tab of tabs) {
       const rows = sanitizeRows(tab.rows);
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const colWidths = (tab.columns || []).map((c) => {
-        const maxLen = Math.max(c.length, ...rows.map((r) => String(r[c] ?? '').length));
-        return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
-      });
-      ws['!cols'] = colWidths;
-      XLSX.utils.book_append_sheet(wb, ws, tab.label || tab.key);
+      const cols = (tab.columns || []).filter((c) => !SENSITIVE_PREFIXES.some((p) => c === p || c.startsWith(p)));
+      lines.push(`TABELA:${tab.label || tab.key}`);
+      lines.push(cols.map(formatHeader).join(','));
+      for (const row of rows) {
+        lines.push(cols.map((c) => {
+          const value = formatCellValue(row[c]);
+          const s = String(value ?? '');
+          return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+        }).join(','));
+      }
+      lines.push('');
     }
-    XLSX.writeFile(wb, 'gestao_frota_completo.xlsx');
-  };
 
-  const exportPDF = () => {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    let first = true;
-    for (const tab of tabs) {
-      const rows = sanitizeRows(tab.rows);
-      const cols = tab.columns.filter((c) => !SENSITIVE_PREFIXES.some((p) => c === p || c.startsWith(p)));
-      const headers = cols.map(formatHeader);
-      const body = rows.map((r) => cols.map((c) => formatCellValue(r[c])));
-      if (!first) doc.addPage();
-      doc.setFontSize(16);
-      doc.setTextColor(255, 127, 30);
-      doc.text(tab.label || tab.key, 14, 18);
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(8);
-      doc.text(`Total: ${tab.count} registro(s)`, 14, 23);
-      doc.autoTable({
-        head: [headers],
-        body,
-        startY: 27,
-        styles: { fontSize: 6.5, cellPadding: 1.2 },
-        headStyles: { fillColor: [255, 127, 30], fontSize: 7, halign: 'center' },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { top: 30, left: 10, right: 10 },
-        tableWidth: 'auto',
-      });
-      first = false;
-    }
-    doc.save('gestao_frota_completo.pdf');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gestao_frota_completo.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const clearFilters = () => {
@@ -282,8 +261,7 @@ export default function Dashboard({ token }) {
       <div className="dashboard-header">
         <h2>Dashboard — Planilha Geral</h2>
         <div className="dashboard-export-buttons">
-          <button className="btn btn-primary" onClick={exportExcel}>⬇ Excel (.xlsx)</button>
-          <button className="btn btn-primary" onClick={exportPDF}>⬇ PDF</button>
+          <button className="btn btn-primary" onClick={exportCSV}>⬇ CSV — Planilha Geral</button>
         </div>
       </div>
 

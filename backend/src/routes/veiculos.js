@@ -20,7 +20,15 @@ function val(body, camel, snake) {
 function registerVeiculosRoutes(app) {
   app.get('/api/veiculos', async (req, res) => {
     try {
-      const rows = await all('SELECT * FROM veiculos ORDER BY placa');
+      const page = Math.max(1, parseInt(req.query._page, 10) || 1);
+      const limit = Math.min(500, Math.max(1, parseInt(req.query._limit, 10) || 200));
+      const offset = (page - 1) * limit;
+
+      const countResult = await all('SELECT COUNT(*) as total FROM veiculos');
+      const total = countResult[0]?.total || 0;
+
+      const rows = await all('SELECT * FROM veiculos ORDER BY placa LIMIT ? OFFSET ?', [limit, offset]);
+      res.set('X-Total-Count', String(total));
       res.json(rows);
     } catch (error) {
       handleError(res, error, 'veiculos');

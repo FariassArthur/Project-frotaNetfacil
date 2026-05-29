@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  --primary: #ff7f1e;
   --bg-primary: #ffffff;
   --bg-secondary: #fafafa;
   --bg-tertiary: #fff8f1;
@@ -153,6 +154,7 @@
 }
 
 [data-theme='dark'] {
+  --primary: #ff8f35;
   --bg-primary: #121212;
   --bg-secondary: #1e1e1e;
   --bg-tertiary: #1a1a2e;
@@ -2883,4 +2885,80 @@ a:focus-visible {
   color: var(--text-muted);
   font-size: 0.9rem;
   margin: 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+.pagination-info {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+.pagination-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.pagination-btn:hover:not(:disabled) {
+  background: var(--orange-bg);
+  border-color: var(--orange);
+}
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: toast-in 0.3s ease;
+  pointer-events: auto;
+  max-width: 380px;
+}
+.toast-success { background: #28a745; }
+.toast-error { background: #dc3545; }
+.toast-info { background: #17a2b8; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 2rem;
+}
+.error-boundary h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--danger);
+}
+.error-boundary p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
 }

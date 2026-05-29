@@ -5,6 +5,22 @@ const { handleError } = require('../services/errorHandler');
 
 const SENSITIVE_FIELDS = ['password'];
 
+function validatePasswordStrength(password) {
+  if (!password || password.length < 8) {
+    return 'A senha deve ter pelo menos 8 caracteres';
+  }
+  if (!/[A-Z]/.test(password)) {
+    return 'A senha deve conter pelo menos uma letra maiúscula';
+  }
+  if (!/[a-z]/.test(password)) {
+    return 'A senha deve conter pelo menos uma letra minúscula';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'A senha deve conter pelo menos um número';
+  }
+  return null;
+}
+
 function cleanData(data) {
   if (!data) return null;
   const cleaned = { ...data };
@@ -36,6 +52,8 @@ function registerUsuariosRoutes(app) {
     const { username, password, role, ativo, permissoes } = req.body || {};
     try {
       if (!username || !password) return res.status(400).json({ error: 'username e password são obrigatórios' });
+      const pwError = validatePasswordStrength(password);
+      if (pwError) return res.status(400).json({ error: pwError });
       const hash = await bcrypt.hash(password, 10);
       const result = await run(
         'INSERT INTO usuarios (username, password, role, ativo, permissoes) VALUES (?, ?, ?, ?, ?) RETURNING id',
@@ -67,9 +85,8 @@ function registerUsuariosRoutes(app) {
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: 'currentPassword e newPassword são obrigatórios' });
       }
-      if (newPassword.length < 3) {
-        return res.status(400).json({ error: 'A nova senha deve ter pelo menos 3 caracteres' });
-      }
+      const pwError = validatePasswordStrength(newPassword);
+      if (pwError) return res.status(400).json({ error: pwError });
       const user = await get('SELECT * FROM usuarios WHERE id = ?', [req.user.id]);
       if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
 
@@ -108,6 +125,8 @@ function registerUsuariosRoutes(app) {
       if (ativo !== undefined) { updates.push('ativo = ?'); params.push(ativo ? 1 : 0); }
       if (permissoes !== undefined) { updates.push('permissoes = ?'); params.push(permissoes); }
       if (password !== undefined && password !== '') {
+        const pwError = validatePasswordStrength(password);
+        if (pwError) return res.status(400).json({ error: pwError });
         const hash = await bcrypt.hash(password, 10);
         updates.push('password = ?');
         params.push(hash);

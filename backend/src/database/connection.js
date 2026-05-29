@@ -1,50 +1,45 @@
-const sqlite3 = require('sqlite3').verbose();
-const { DB_PATH } = require('../config');
-const fs = require('fs');
-const path = require('path');
+const { DATABASE_URL } = require('../config');
 
-let db;
+const isPostgres = DATABASE_URL && (DATABASE_URL.startsWith('postgresql://') || DATABASE_URL.startsWith('postgres://'));
+const pgDriver = require('./connection-pg');
+const sqliteDriver = require('./connection-sqlite');
+const allowSqliteFallback = process.env.DB_FALLBACK_TO_SQLITE !== 'false';
 
-function getDb() {
-  if (!db) {
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-    db = new sqlite3.Database(DB_PATH);
-    db.run('PRAGMA foreign_keys = ON');
-    db.run('PRAGMA journal_mode = WAL');
-  }
-  return db;
+let activeDriver = isPostgres ? pgDriver : sqliteDriver;
+let fallbackApplied = false;
+
+function isConnectionError(error) {
+  const code = error?.code || error?.errno || '';
+  return ['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT', 'ECONNRESET', '57P01'].includes(code);
 }
 
-function run(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    getDb().run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes, rowCount: this.changes, rows: this.lastID != null ? [{ id: this.lastID }] : [] });
+function switchToSqlite(error) {
+  if (!allowSqliteFallback || !isPostgres || fallbackApplied) return false;
+  if (!isConnectionError(error)) return false;
+
+  fallbackApplied = true;
+  activeDriver = sqliteDriver;
+  console.warn('PostgreSQL indisponível; usando SQLite como fallback para evitar falha de login.', error.message || error);
+  return true;
+}
+
+function withFallback(operation, ...args) {
+  return Promise.resolve()
+    .then(() => operation(activeDriver, ...args))
+    .catch((error) => {
+      if (switchToSqlite(error)) {
+        return operation(activeDriver, ...args);
+      }
+      throw error;
     });
-  });
 }
 
-function all(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    getDb().all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-}
-
-function get(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    getDb().get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-}
-
-function query(sql, params = []) {
-  return run(sql, params);
-}
+const run = (...args) => withFallback((driver, sql, params) => driver.run(sql, params), ...args);
+const all = (...args) => withFallback((driver, sql, params) => driver.all(sql, params), ...args);
+const get = (...args) => withFallback((driver, sql, params) => driver.get(sql, params), ...args);
+const query = (...args) => withFallback((driver, sql, params) => driver.query(sql, params), ...args);
+const closeDb = () => activeDriver.closeDb?.() || Promise.resolve();
+const getDb = () => activeDriver.getDb?.() || activeDriver.getPool?.() || null;
 
 function parseBoolean(value) {
   if (value === undefined || value === null) return null;
@@ -66,4 +61,4 @@ async function seedIfMissing(sql, params = []) {
   }
 }
 
-module.exports = { run, all, get, query, parseBoolean, parseInteger, seedIfMissing };
+module.exports = { run, all, get, query, parseBoolean, parseInteger, seedIfMissing, closeDb, getDb, isPostgres };

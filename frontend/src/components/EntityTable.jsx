@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { getFileUrl, getItemValue } from '../api/client';
 import { formatHeader, getSortValue, FilterDropdown } from '../utils/tableUtils.jsx';
 
-export default function EntityTable({ items, fields, onSelect, onDelete }) {
+export default function EntityTable({ items, fields, onSelect, onDelete, totalCount, page, pageSize, onPageChange }) {
   const [columnFilters, setColumnFilters] = useState({});
   const [openFilter, setOpenFilter] = useState(null);
   const [filterAnchor, setFilterAnchor] = useState(null);
@@ -156,6 +156,28 @@ export default function EntityTable({ items, fields, onSelect, onDelete }) {
           </tbody>
         </table>
       </div>
+      {totalCount > 0 && onPageChange && (
+        <div className="pagination">
+          <span className="pagination-info">
+            {((page || 1) - 1) * (pageSize || 200) + 1}-
+            {Math.min((page || 1) * (pageSize || 200), totalCount)} de {totalCount}
+          </span>
+          <button
+            className="pagination-btn"
+            disabled={(page || 1) <= 1}
+            onClick={() => onPageChange((page || 1) - 1)}
+          >
+            ‹ Anterior
+          </button>
+          <button
+            className="pagination-btn"
+            disabled={(page || 1) * (pageSize || 200) >= totalCount}
+            onClick={() => onPageChange((page || 1) + 1)}
+          >
+            Próximo ›
+          </button>
+        </div>
+      )}
     </div>
   );
 }
