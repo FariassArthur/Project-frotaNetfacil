@@ -6,3 +6,98 @@
 2026-05-29 22:00:13.895 -03 [17328] LOG:  sistema de banco de dados está pronto para aceitar conexões
 2026-05-29 22:05:13.983 -03 [17329] LOG:  checkpoint starting: time
 2026-05-29 22:06:58.501 -03 [17329] LOG:  checkpoint complete: wrote 1047 buffers (6.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=104.468 s, sync=0.045 s, total=104.519 s; sync files=417, longest=0.005 s, average=0.001 s; distance=5067 kB, estimate=5067 kB; lsn=0/19E04D0, redo lsn=0/19E0440
+2026-05-29 23:26:13.257 -03 [17328] LOG:  pedido de desligamento inteligente foi recebido
+2026-05-29 23:26:13.278 -03 [17328] LOG:  processo trabalhador em segundo plano "logical replication launcher" (PID 17334) terminou com código de retorno 1
+2026-05-29 23:26:13.279 -03 [17329] LOG:  desligando
+2026-05-29 23:26:13.281 -03 [17329] LOG:  checkpoint starting: shutdown immediate
+2026-05-29 23:26:13.297 -03 [17329] LOG:  checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.006 s, total=0.019 s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB, estimate=4560 kB; lsn=0/19E0580, redo lsn=0/19E0580
+2026-05-29 23:26:13.321 -03 [17328] LOG:  sistema de banco de dados está desligado
+2026-05-30 10:42:40.218 -03 [9472] LOG:  iniciando PostgreSQL 17.10 (Debian 17.10-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-30 10:42:40.219 -03 [9472] LOG:  escutando no endereço IPv6 "::1", porta 5432
+2026-05-30 10:42:40.219 -03 [9472] LOG:  escutando no endereço IPv4 "127.0.0.1", porta 5432
+2026-05-30 10:42:40.221 -03 [9472] LOG:  escutando no soquete Unix "/home/arthurfarias/GestaoFrotaJS/backend/pgdata/.s.PGSQL.5432"
+2026-05-30 10:42:40.229 -03 [9475] LOG:  sistema de banco de dados foi desligado em 2026-05-29 23:26:13 -03
+2026-05-30 10:42:40.240 -03 [9472] LOG:  sistema de banco de dados está pronto para aceitar conexões
+2026-05-30 10:42:43.643 -03 [9551] FATAL:  role "arthurfarias" não existe
+2026-05-30 10:47:14.027 -03 [10919] FATAL:  arquivo de bloqueio "postmaster.pid" já existe
+2026-05-30 10:47:14.027 -03 [10919] DICA:  Outro postmaster (PID 9472) está executando sob o diretório de dados "/home/arthurfarias/GestaoFrotaJS/backend/pgdata"?
+2026-05-30 10:47:19.369 -03 [11030] FATAL:  arquivo de bloqueio "postmaster.pid" já existe
+2026-05-30 10:47:19.369 -03 [11030] DICA:  Outro postmaster (PID 9472) está executando sob o diretório de dados "/home/arthurfarias/GestaoFrotaJS/backend/pgdata"?
+2026-05-30 10:47:21.882 -03 [9472] LOG:  pedido de desligamento rápido foi recebido
+2026-05-30 10:47:21.885 -03 [9472] LOG:  interrompendo quaisquer transações ativas
+2026-05-30 10:47:21.891 -03 [9472] LOG:  processo trabalhador em segundo plano "logical replication launcher" (PID 9478) terminou com código de retorno 1
+2026-05-30 10:47:21.895 -03 [9473] LOG:  desligando
+2026-05-30 10:47:21.896 -03 [9473] LOG:  checkpoint starting: shutdown immediate
+2026-05-30 10:47:21.905 -03 [9473] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.010 s; sync files=4, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/19E07B0, redo lsn=0/19E07B0
+2026-05-30 10:47:21.920 -03 [9472] LOG:  sistema de banco de dados está desligado
+2026-05-30 10:47:24.650 -03 [11118] LOG:  iniciando PostgreSQL 17.10 (Debian 17.10-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-30 10:47:24.651 -03 [11118] LOG:  escutando no endereço IPv6 "::1", porta 5432
+2026-05-30 10:47:24.651 -03 [11118] LOG:  escutando no endereço IPv4 "127.0.0.1", porta 5432
+2026-05-30 10:47:24.654 -03 [11118] LOG:  escutando no soquete Unix "/home/arthurfarias/GestaoFrotaJS/backend/pgdata/.s.PGSQL.5432"
+2026-05-30 10:47:24.664 -03 [11127] LOG:  sistema de banco de dados foi desligado em 2026-05-30 10:47:21 -03
+2026-05-30 10:47:24.683 -03 [11118] LOG:  sistema de banco de dados está pronto para aceitar conexões
+2026-05-30 10:48:54.746 -03 [11118] LOG:  pedido de desligamento inteligente foi recebido
+2026-05-30 10:48:54.759 -03 [11118] LOG:  processo trabalhador em segundo plano "logical replication launcher" (PID 11132) terminou com código de retorno 1
+2026-05-30 10:48:54.760 -03 [11125] LOG:  desligando
+2026-05-30 10:48:54.761 -03 [11125] LOG:  checkpoint starting: shutdown immediate
+2026-05-30 10:48:54.767 -03 [11125] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.008 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/19E0860, redo lsn=0/19E0860
+2026-05-30 10:48:54.778 -03 [11118] LOG:  sistema de banco de dados está desligado
+2026-05-30 10:48:59.132 -03 [11910] LOG:  iniciando PostgreSQL 17.10 (Debian 17.10-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-30 10:48:59.133 -03 [11910] LOG:  escutando no endereço IPv6 "::1", porta 5432
+2026-05-30 10:48:59.133 -03 [11910] LOG:  escutando no endereço IPv4 "127.0.0.1", porta 5432
+2026-05-30 10:48:59.135 -03 [11910] LOG:  escutando no soquete Unix "/home/arthurfarias/GestaoFrotaJS/backend/pgdata/.s.PGSQL.5432"
+2026-05-30 10:48:59.145 -03 [11913] LOG:  sistema de banco de dados foi desligado em 2026-05-30 10:48:54 -03
+2026-05-30 10:48:59.161 -03 [11910] LOG:  sistema de banco de dados está pronto para aceitar conexões
+2026-05-30 10:49:00.079 -03 [11963] FATAL:  arquivo de bloqueio "postmaster.pid" já existe
+2026-05-30 10:49:00.079 -03 [11963] DICA:  Outro postmaster (PID 11910) está executando sob o diretório de dados "/home/arthurfarias/GestaoFrotaJS/backend/pgdata"?
+2026-05-30 10:49:04.345 -03 [11910] LOG:  pedido de desligamento rápido foi recebido
+2026-05-30 10:49:04.347 -03 [11910] LOG:  interrompendo quaisquer transações ativas
+2026-05-30 10:49:04.350 -03 [11910] LOG:  processo trabalhador em segundo plano "logical replication launcher" (PID 11916) terminou com código de retorno 1
+2026-05-30 10:49:04.354 -03 [11911] LOG:  desligando
+2026-05-30 10:49:04.354 -03 [11911] LOG:  checkpoint starting: shutdown immediate
+2026-05-30 10:49:04.360 -03 [11911] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.007 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/19E08D8, redo lsn=0/19E08D8
+2026-05-30 10:49:04.369 -03 [11910] LOG:  sistema de banco de dados está desligado
+2026-05-30 10:49:05.405 -03 [12046] LOG:  iniciando PostgreSQL 17.10 (Debian 17.10-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-30 10:49:05.406 -03 [12046] LOG:  escutando no endereço IPv6 "::1", porta 5432
+2026-05-30 10:49:05.406 -03 [12046] LOG:  escutando no endereço IPv4 "127.0.0.1", porta 5432
+2026-05-30 10:49:05.408 -03 [12046] LOG:  escutando no soquete Unix "/home/arthurfarias/GestaoFrotaJS/backend/pgdata/.s.PGSQL.5432"
+2026-05-30 10:49:05.416 -03 [12050] LOG:  sistema de banco de dados foi desligado em 2026-05-30 10:49:04 -03
+2026-05-30 10:49:05.431 -03 [12046] LOG:  sistema de banco de dados está pronto para aceitar conexões
+2026-05-30 10:50:15.599 -03 [12046] LOG:  pedido de desligamento rápido foi recebido
+2026-05-30 10:50:15.603 -03 [12046] LOG:  interrompendo quaisquer transações ativas
+2026-05-30 10:50:15.632 -03 [12046] LOG:  processo trabalhador em segundo plano "logical replication launcher" (PID 12053) terminou com código de retorno 1
+2026-05-30 10:50:15.633 -03 [12048] LOG:  desligando
+2026-05-30 10:50:15.634 -03 [12048] LOG:  checkpoint starting: shutdown immediate
+2026-05-30 10:50:15.642 -03 [12048] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.009 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/19E0988, redo lsn=0/19E0988
+2026-05-30 10:50:15.659 -03 [12046] LOG:  sistema de banco de dados está desligado
+2026-05-30 10:50:40.613 -03 [12882] LOG:  iniciando PostgreSQL 17.10 (Debian 17.10-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-30 10:50:40.614 -03 [12882] LOG:  escutando no endereço IPv6 "::1", porta 5432
+2026-05-30 10:50:40.614 -03 [12882] LOG:  escutando no endereço IPv4 "127.0.0.1", porta 5432
+2026-05-30 10:50:40.616 -03 [12882] LOG:  escutando no soquete Unix "/home/arthurfarias/GestaoFrotaJS/backend/pgdata/.s.PGSQL.5432"
+2026-05-30 10:50:40.622 -03 [12891] LOG:  sistema de banco de dados foi desligado em 2026-05-30 10:50:15 -03
+2026-05-30 10:50:40.631 -03 [12882] LOG:  sistema de banco de dados está pronto para aceitar conexões
+2026-05-30 10:50:50.202 -03 [13062] FATAL:  role "arthurfarias" não existe
+2026-05-30 10:51:40.653 -03 [12882] LOG:  não foi possível abrir o arquivo "postmaster.pid": Arquivo ou diretório inexistente
+2026-05-30 10:51:40.653 -03 [12882] LOG:  performing immediate shutdown because data directory lock file is invalid
+2026-05-30 10:51:40.654 -03 [12882] LOG:  pedido de desligamento imediato foi recebido
+2026-05-30 10:51:40.654 -03 [12882] LOG:  não foi possível abrir o arquivo "postmaster.pid": Arquivo ou diretório inexistente
+2026-05-30 10:51:40.665 -03 [12882] LOG:  sistema de banco de dados está desligado
+2026-05-30 10:51:46.164 -03 [13366] LOG:  iniciando PostgreSQL 17.10 (Debian 17.10-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-30 10:51:46.166 -03 [13366] LOG:  escutando no endereço IPv6 "::1", porta 5432
+2026-05-30 10:51:46.166 -03 [13366] LOG:  escutando no endereço IPv4 "127.0.0.1", porta 5432
+2026-05-30 10:51:46.167 -03 [13366] LOG:  escutando no soquete Unix "/home/arthurfarias/GestaoFrotaJS/backend/pgdata/.s.PGSQL.5432"
+2026-05-30 10:51:46.174 -03 [13369] LOG:  sistema de banco de dados foi interrompido; última execução em 2026-05-30 10:50:40 -03
+2026-05-30 10:51:46.320 -03 [13369] LOG:  sistema de banco de dados não foi desligado corretamente; recuperação automática está em andamento
+2026-05-30 10:51:46.324 -03 [13369] LOG:  redo inicia em 0/19E0A00
+2026-05-30 10:51:46.324 -03 [13369] LOG:  comprimento de registro inválido em 0/19E0A38: esperado pelo menos 24, obtido 0
+2026-05-30 10:51:46.324 -03 [13369] LOG:  refazer feito em 0/19E0A00 uso do sistema: CPU: usuário: 0.00 s, sistema: 0.00 s, decorrido: 0.00 s
+2026-05-30 10:51:46.328 -03 [13367] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-05-30 10:51:46.334 -03 [13367] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.007 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/19E0A38, redo lsn=0/19E0A38
+2026-05-30 10:51:46.342 -03 [13366] LOG:  sistema de banco de dados está pronto para aceitar conexões
+2026-05-30 11:03:04.413 -03 [13366] LOG:  pedido de desligamento rápido foi recebido
+2026-05-30 11:03:04.417 -03 [13366] LOG:  interrompendo quaisquer transações ativas
+2026-05-30 11:03:04.435 -03 [13366] LOG:  processo trabalhador em segundo plano "logical replication launcher" (PID 13372) terminou com código de retorno 1
+2026-05-30 11:03:04.435 -03 [13367] LOG:  desligando
+2026-05-30 11:03:04.436 -03 [13367] LOG:  checkpoint starting: shutdown immediate
+2026-05-30 11:03:04.440 -03 [13367] LOG:  checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.006 s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB, estimate=0 kB; lsn=0/19E0AE8, redo lsn=0/19E0AE8
+2026-05-30 11:03:04.452 -03 [13366] LOG:  sistema de banco de dados está desligado
