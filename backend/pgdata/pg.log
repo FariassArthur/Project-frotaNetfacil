@@ -4,3 +4,5 @@
 2026-05-29 22:00:13.879 -03 [17328] LOG:  escutando no soquete Unix "/home/arthurfarias/GestaoFrotaJS/backend/pgdata/.s.PGSQL.5433"
 2026-05-29 22:00:13.885 -03 [17331] LOG:  sistema de banco de dados foi desligado em 2026-05-29 22:00:13 -03
 2026-05-29 22:00:13.895 -03 [17328] LOG:  sistema de banco de dados está pronto para aceitar conexões
+2026-05-29 22:05:13.983 -03 [17329] LOG:  checkpoint starting: time
+2026-05-29 22:06:58.501 -03 [17329] LOG:  checkpoint complete: wrote 1047 buffers (6.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=104.468 s, sync=0.045 s, total=104.519 s; sync files=417, longest=0.005 s, average=0.001 s; distance=5067 kB, estimate=5067 kB; lsn=0/19E04D0, redo lsn=0/19E0440
