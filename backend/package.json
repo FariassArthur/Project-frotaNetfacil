@@ -7,6 +7,13 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "pg:init": "bash scripts/init-pg-data.sh",
+    "pg:start": "pg_ctl -D pgdata -l pgdata/pg.log start",
+    "pg:stop": "pg_ctl -D pgdata stop",
+    "pg:status": "pg_ctl -D pgdata status",
+    "start:pg": "bash scripts/init-pg-data.sh && node src/server.js",
+    "setup:nginx": "bash scripts/setup-nginx.sh",
+    "setup:full": "bash scripts/init-pg-data.sh && bash scripts/setup-nginx.sh && node src/server.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

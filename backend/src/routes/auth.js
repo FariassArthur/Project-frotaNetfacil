@@ -67,10 +67,11 @@ function registerAuthRoutes(app) {
       );
 
       const ONE_DAY = 24 * 60 * 60 * 1000;
+      const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
       res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: isSecure,
+        sameSite: isSecure ? 'strict' : 'lax',
         maxAge: ONE_DAY,
         path: '/',
       });

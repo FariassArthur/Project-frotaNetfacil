@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -14,15 +15,6 @@ const { sanitizeError } = require('./services/errorHandler');
 const app = express();
 
 app.set('trust proxy', 1);
-
-if (NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.headers['x-forwarded-proto'] !== 'https') {
-      return res.redirect(301, `https://${req.headers.host}${req.url}`);
-    }
-    next();
-  });
-}
 
 app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(helmet({

@@ -1,0 +1,6 @@
+2026-05-29 22:00:13.877 -03 [17328] LOG:  iniciando PostgreSQL 17.10 (Debian 17.10-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-29 22:00:13.877 -03 [17328] LOG:  escutando no endereço IPv6 "::1", porta 5433
+2026-05-29 22:00:13.877 -03 [17328] LOG:  escutando no endereço IPv4 "127.0.0.1", porta 5433
+2026-05-29 22:00:13.879 -03 [17328] LOG:  escutando no soquete Unix "/home/arthurfarias/GestaoFrotaJS/backend/pgdata/.s.PGSQL.5433"
+2026-05-29 22:00:13.885 -03 [17331] LOG:  sistema de banco de dados foi desligado em 2026-05-29 22:00:13 -03
+2026-05-29 22:00:13.895 -03 [17328] LOG:  sistema de banco de dados está pronto para aceitar conexões
