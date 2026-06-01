@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { FaDownload, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { fetchList } from '../api/client';
 import { formatHeader, FilterDropdown } from '../utils/tableUtils.jsx';
 import { requestNotificationPermission, notifyOverdue } from '../utils/notifications';
@@ -96,6 +97,7 @@ export default function Dashboard({ token, onModuleSelect }) {
   const [pagamentos, setPagamentos] = useState(null);
   const [showPagamentoModal, setShowPagamentoModal] = useState(null);
   const [expenseSummary, setExpenseSummary] = useState(null);
+  const [manutencaoAlertas, setManutencaoAlertas] = useState(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const searchTimer = useRef(null);
   const filterBtnRefs = useRef({});
@@ -142,7 +144,13 @@ export default function Dashboard({ token, onModuleSelect }) {
       if (r && !r.error && Array.isArray(r)) {
         setExpenseSummary(r);
       }
-    }).catch(() => {});
+    }).catch(err => console.error('Audit log error:', err));
+
+    fetchList('/api/manutencao-preventiva/alertas', token).then((r) => {
+      if (r && !r.error) {
+        setManutencaoAlertas(r);
+      }
+    }).catch(err => console.error('Audit log error:', err));
   }, []);
 
   useEffect(() => {
@@ -315,14 +323,14 @@ export default function Dashboard({ token, onModuleSelect }) {
         <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Dashboard</h2>
         <div className="flex gap-2">
           <button
-            className="px-5 py-2.5 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg"
+            className="px-5 py-2.5 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg inline-flex items-center gap-1.5"
             style={{
               background: 'var(--orange)',
               boxShadow: '0 8px 20px rgba(255, 125, 40, 0.2)',
             }}
             onClick={exportCSV}
           >
-            ⬇ CSV — Planilha Geral
+            <FaDownload size={14} /> CSV — Planilha Geral
           </button>
         </div>
       </div>
@@ -370,7 +378,7 @@ export default function Dashboard({ token, onModuleSelect }) {
             <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border-light)' }}>
               <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Pagamentos em Atraso</h3>
               <div className="flex items-center gap-3">
-                <button className="px-4 py-2 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg" style={{ background: 'var(--orange)' }} onClick={() => {
+                <button className="px-4 py-2 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg inline-flex items-center gap-1.5" style={{ background: 'var(--orange)' }} onClick={() => {
                   const headers = ['Tipo', 'Veículo', 'Descrição', 'Valor', 'Vencimento', 'Dias Atraso'];
                   const rows = pagamentos.atrasados.map(i => [
                     i.tipo, i.veiculo_id, i.descricao || '',
@@ -379,7 +387,7 @@ export default function Dashboard({ token, onModuleSelect }) {
                     `${i.dias_atraso} dia(s)`,
                   ]);
                   downloadCSV('pagamentos_em_atraso.csv', headers, rows);
-                }}>⬇ CSV</button>
+                }}><FaDownload size={14} /> CSV</button>
                 <button className="bg-transparent border-none cursor-pointer text-xl font-bold" style={{ color: 'var(--text-muted)' }} onClick={() => setShowPagamentoModal(null)}>✕</button>
               </div>
             </div>
@@ -428,7 +436,7 @@ export default function Dashboard({ token, onModuleSelect }) {
             <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border-light)' }}>
               <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Pagamentos em Dia</h3>
               <div className="flex items-center gap-3">
-                <button className="px-4 py-2 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg" style={{ background: 'var(--orange)' }} onClick={() => {
+                <button className="px-4 py-2 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg inline-flex items-center gap-1.5" style={{ background: 'var(--orange)' }} onClick={() => {
                   const headers = ['Tipo', 'Veículo', 'Descrição', 'Valor', 'Vencimento', 'Situação'];
                   const rows = pagamentos.noPrazoList.map(i => [
                     i.tipo, i.veiculo_id, i.descricao || '',
@@ -437,7 +445,7 @@ export default function Dashboard({ token, onModuleSelect }) {
                     i.situacao,
                   ]);
                   downloadCSV('pagamentos_no_prazo.csv', headers, rows);
-                }}>⬇ CSV</button>
+                }}><FaDownload size={14} /> CSV</button>
                 <button className="bg-transparent border-none cursor-pointer text-xl font-bold" style={{ color: 'var(--text-muted)' }} onClick={() => setShowPagamentoModal(null)}>✕</button>
               </div>
             </div>
@@ -512,6 +520,39 @@ export default function Dashboard({ token, onModuleSelect }) {
         })()
       )}
 
+      {manutencaoAlertas && (manutencaoAlertas.alertas?.length > 0 || manutencaoAlertas.proximos?.length > 0) && (
+        <div className="flex gap-4 mb-6">
+          {manutencaoAlertas.alertas?.length > 0 && (
+            <div className="flex-1 p-4 rounded-xl border" style={{ background: 'rgba(220,53,69,0.08)', borderColor: 'var(--danger)' }}>
+              <span className="text-2xl font-bold block" style={{ color: 'var(--danger)' }}>{manutencaoAlertas.alertas.length}</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--danger)' }}>Manutenção(ões) pendente(s)</span>
+              <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                {manutencaoAlertas.alertas.map((a, i) => (
+                  <div key={i} className="flex justify-between py-0.5">
+                    <span>{a.placa} — {a.tipo_descricao || a.descricao || 'Manutenção'}</span>
+                    <span style={{ color: 'var(--danger)', fontWeight: 600 }}>KM {a.km_atual}/{a.km_proxima || '-'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {manutencaoAlertas.proximos?.length > 0 && (
+            <div className="flex-1 p-4 rounded-xl border" style={{ background: 'rgba(255,193,7,0.12)', borderColor: '#ffc107' }}>
+              <span className="text-2xl font-bold block" style={{ color: '#cc7a00' }}>{manutencaoAlertas.proximos.length}</span>
+              <span className="text-sm font-semibold" style={{ color: '#cc7a00' }}>Próximos da manutenção</span>
+              <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                {manutencaoAlertas.proximos.map((a, i) => (
+                  <div key={i} className="flex justify-between py-0.5">
+                    <span>{a.placa} — {a.tipo_descricao || a.descricao || 'Manutenção'}</span>
+                    <span style={{ color: '#cc7a00', fontWeight: 600 }}>KM {a.km_atual}/{a.km_proxima || '-'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {chartData && chartData.some(d => d.value > 0) && (
         <div className="flex gap-6 flex-col lg:flex-row mb-6">
           <div className="flex-1 min-h-[200px] rounded-xl border p-4" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
@@ -538,70 +579,6 @@ export default function Dashboard({ token, onModuleSelect }) {
                 <Bar dataKey="count" fill="#ff7f1e" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {showPagamentoModal === 'noPrazo' && pagamentos?.noPrazoList?.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Pagamentos em dia" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowPagamentoModal(null)}>
-          <div className="w-full max-w-4xl max-h-[80vh] flex flex-col rounded-xl border overflow-hidden" onClick={(e) => e.stopPropagation()} style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
-            <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border-light)' }}>
-              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Pagamentos em Dia</h3>
-              <div className="flex items-center gap-3">
-                <button className="px-4 py-2 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg" style={{ background: 'var(--orange)' }} onClick={() => {
-                  const headers = ['Tipo', 'Veículo', 'Descrição', 'Valor', 'Vencimento', 'Situação'];
-                  const rows = pagamentos.noPrazoList.map(i => [
-                    i.tipo, i.veiculo_id, i.descricao || '',
-                    `R$ ${(i.valor || 0).toFixed(2).replace('.', ',')}`,
-                    i.data_vencimento ? i.data_vencimento.split('-').reverse().join('/') : '',
-                    i.situacao,
-                  ]);
-                  downloadCSV('pagamentos_no_prazo.csv', headers, rows);
-                }}>⬇ CSV</button>
-                <button className="bg-transparent border-none cursor-pointer text-xl font-bold" style={{ color: 'var(--text-muted)' }} onClick={() => setShowPagamentoModal(null)}>✕</button>
-              </div>
-            </div>
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr style={{ background: 'var(--table-header-bg)' }}>
-                    <th className={thClass}>Tipo</th>
-                    <th className={thClass}>Veículo</th>
-                    <th className={thClass}>Descrição</th>
-                    <th className={thClass}>Valor</th>
-                    <th className={thClass}>Vencimento</th>
-                    <th className={thClass}>Situação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagamentos.noPrazoList.map((item, i) => (
-                    <tr key={`${item.tipo}-${item.id}`} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)', background: i % 2 === 0 ? 'rgba(34, 197, 94, 0.04)' : 'rgba(34, 197, 94, 0.09)' }}>
-                      <td className={tdClass}>
-                        <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{
-                          background: item.tipo === 'Multa' ? 'var(--danger-bg)' : 'var(--orange-bg)',
-                          color: item.tipo === 'Multa' ? 'var(--danger)' : 'var(--orange-dark)',
-                        }}>
-                          {item.tipo}
-                        </span>
-                      </td>
-                      <td className={tdClass} style={{ color: 'var(--success)' }}>{item.veiculo_id}</td>
-                      <td className={tdClass}>{item.descricao || '-'}</td>
-                      <td className={tdClass} style={{ color: 'var(--success)', fontWeight: 600 }}>
-                        R$ {(item.valor || 0).toFixed(2).replace('.', ',')}
-                      </td>
-                      <td className={tdClass}>{item.data_vencimento ? item.data_vencimento.split('-').reverse().join('/') : '-'}</td>
-                      <td className={tdClass}>
-                        {item.situacao === 'Pago' ? (
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>&#10003; Pago</span>
-                        ) : (
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ background: 'var(--info-bg)', color: '#0056b3' }}>&#128197; A vencer</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
         </div>
       )}
@@ -692,8 +669,8 @@ export default function Dashboard({ token, onModuleSelect }) {
                       >
                         <span>{formatHeader(col)}</span>
                         <span className="inline-flex items-center gap-0.5 ml-1">
-                          {sortDir === 'asc' && <span className="text-[0.6rem]">⬆</span>}
-                          {sortDir === 'desc' && <span className="text-[0.6rem]">⬇</span>}
+                          {sortDir === 'asc' && <FaSortUp className="text-[0.6rem]" />}
+                          {sortDir === 'desc' && <FaSortDown className="text-[0.6rem]" />}
                           <span className="text-[0.5rem]" style={{ color: isActive ? 'var(--orange)' : undefined }}>▼</span>
                         </span>
                         {openFilter === col && (
@@ -738,3 +715,4 @@ export default function Dashboard({ token, onModuleSelect }) {
     </div>
   );
 }
+

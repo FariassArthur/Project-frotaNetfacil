@@ -333,6 +333,15 @@ textarea {
   color: var(--text-secondary);
   border-right: 3px solid transparent;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.sidebar-btn:hover svg,
+.sidebar-btn.active svg {
+  color: var(--orange);
 }
 
 .sidebar-btn:hover {

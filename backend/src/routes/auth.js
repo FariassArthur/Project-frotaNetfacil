@@ -90,7 +90,7 @@ function registerAuthRoutes(app) {
         entidade_id: String(user.id),
         descricao: `Usuário ${user.username} fez login`,
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, 'auth');
     }
@@ -120,7 +120,7 @@ function registerAuthRoutes(app) {
         entidade_id: String(req.user.id),
         descricao: `Usuário ${req.user.username} fez logout`,
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     }
   });
 }

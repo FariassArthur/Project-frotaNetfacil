@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { FaDownload } from 'react-icons/fa';
 import { fetchList } from '../api/client';
 
 const ACTION_LABELS = {
@@ -221,7 +222,7 @@ export default function LogsAuditoria({ token, user }) {
               style={{ background: 'var(--orange)', boxShadow: '0 4px 12px rgba(255,125,40,0.2)' }}
               onClick={exportCSV}
             >
-              &#11015; CSV
+              <FaDownload size={14} /> CSV
             </button>
           </div>
           <div className="overflow-x-auto">

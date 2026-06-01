@@ -35,11 +35,33 @@ function registerGastosRoutes(app) {
 
       const [manutencoes, multas, abastecimentos, pagamentosSeguro, pagamentoDocumentos] = await Promise.all([
         all(`SELECT id, data, valor, descricao, km, classificacao FROM manutencoes WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
-        all(`SELECT id, data_ocorrencia, valor, local_ocorrencia, pagamento_realizado FROM multas WHERE veiculo_id = ? ${multasDateClause} ORDER BY data_ocorrencia`, multasDateParams),
+        all(`SELECT id, data_ocorrencia, valor, local_ocorrencia, pagamento_realizado, motorista_id FROM multas WHERE veiculo_id = ? ${multasDateClause} ORDER BY data_ocorrencia`, multasDateParams),
         all(`SELECT id, data, valor, quantidade, km FROM abastecimentos WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
         all(`SELECT id, data_pagamento, valor FROM pagamentos_seguro WHERE veiculo_id = ? ${pgtoDateClause} ORDER BY data_pagamento`, pgtoDateParams),
         all(`SELECT id, data_pagamento, valor, descricao FROM pagamento_documentos WHERE veiculo_id = ? ${pgtoDocDateClause} ORDER BY data_pagamento`, pgtoDocDateParams),
       ]);
+
+      const consumo = [];
+      if (abastecimentos.length >= 2) {
+        for (let i = 1; i < abastecimentos.length; i++) {
+          const atual = abastecimentos[i];
+          const anterior = abastecimentos[i - 1];
+          if (atual.km != null && anterior.km != null && atual.quantidade > 0) {
+            const kmRodados = atual.km - anterior.km;
+            if (kmRodados > 0) {
+              consumo.push({
+                data: atual.data,
+                km_rodados: kmRodados,
+                litros: atual.quantidade,
+                km_por_litro: Math.round((kmRodados / atual.quantidade) * 100) / 100,
+              });
+            }
+          }
+        }
+      }
+      const consumoMedio = consumo.length > 0
+        ? Math.round((consumo.reduce((s, c) => s + c.km_por_litro, 0) / consumo.length) * 100) / 100
+        : null;
 
       const sum = (arr) => arr.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
       const totalManutencao = sum(manutencoes);
@@ -62,6 +84,10 @@ function registerGastosRoutes(app) {
         periodo: { inicio: data_inicio || null, fim: data_fim || null },
         total: Math.round(totalGeral * 100) / 100,
         categorias,
+        consumo: {
+          detalhes: consumo,
+          media_km_por_litro: consumoMedio,
+        },
         detalhes: {
           manutencoes,
           multas,

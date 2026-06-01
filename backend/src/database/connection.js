@@ -81,4 +81,22 @@ async function seedIfMissing(sql, params = []) {
   }
 }
 
-module.exports = { run, all, get, query, parseBoolean, parseInteger, seedIfMissing, closeDb, getDb, isPostgres, getActiveDbName };
+function sqlDate(expression) {
+  // expression: 'now', '?', "?, '+7 days'", etc.
+  if (isPostgres) {
+    if (expression === 'now') return 'CURRENT_DATE';
+    if (expression.includes("'+")) {
+      // e.g., "?, '+7 days'" -> "?::date + INTERVAL '7 days'"
+      const parts = expression.match(/\?,\s*'\+(\d+)\s+(\w+)'/);
+      if (parts) {
+        return `?::date + INTERVAL '${parts[1]} ${parts[2]}'`;
+      }
+    }
+    return expression.replace('?', '?::date');
+  }
+  // SQLite
+  return `date(${expression})`;
+}
+
+
+module.exports = { run, all, get, query, parseBoolean, parseInteger, seedIfMissing, closeDb, getDb, isPostgres, getActiveDbName, sqlDate };

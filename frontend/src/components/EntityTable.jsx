@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { FaPaperclip, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { getFileUrl, getItemValue } from '../api/client';
 import { formatHeader, getSortValue, FilterDropdown } from '../utils/tableUtils.jsx';
 
@@ -133,8 +134,8 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
                   >
                     <span>{field.label}</span>
                     <span className="inline-flex items-center gap-0.5 ml-1" style={{ transition: 'opacity 0.15s' }}>
-                      {sortDir === 'asc' && <span className="text-[0.6rem]" style={{ opacity: sortDir ? 1 : 0.3 }}>⬆</span>}
-                      {sortDir === 'desc' && <span className="text-[0.6rem]" style={{ opacity: sortDir ? 1 : 0.3 }}>⬇</span>}
+                      {sortDir === 'asc' && <FaSortUp className="text-[0.6rem]" style={{ opacity: sortDir ? 1 : 0.3 }} />}
+                      {sortDir === 'desc' && <FaSortDown className="text-[0.6rem]" style={{ opacity: sortDir ? 1 : 0.3 }} />}
                       <span className="text-[0.5rem]" style={{ color: isActive ? 'var(--orange)' : undefined }}>▼</span>
                     </span>
                     {openFilter === field.name && (
@@ -189,7 +190,7 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            📎 Visualizar
+                            <FaPaperclip size={12} className="mr-1" /> Visualizar
                           </a>
                         ) : (
                           <span title={String(val || '')}>{String(val || '').substring(0, 30)}</span>

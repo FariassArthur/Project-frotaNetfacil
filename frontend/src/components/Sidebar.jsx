@@ -1,4 +1,5 @@
 import React, { useRef, useCallback, useEffect } from 'react';
+import { FaFile } from 'react-icons/fa';
 import { MODULES } from '../modules/config';
 
 function canViewModule(moduleKey, user) {
@@ -88,7 +89,7 @@ export default function Sidebar({ currentKey, onModuleSelect, user, mobileOpen, 
               aria-current={currentKey === module.key ? 'page' : undefined}
               aria-label={`${module.label}${idx === currentIndex ? ' (ativo)' : ''}`}
             >
-              <span className="mr-2" aria-hidden="true">{module.icon || '📄'}</span>
+              <span className="mr-2 sidebar-icon" aria-hidden="true">{module.icon ? <module.icon /> : <FaFile />}</span>
               {module.label}
             </button>
           ))}

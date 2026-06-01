@@ -3,12 +3,14 @@ const app = require('./app');
 const { PORT } = require('./config');
 const { initDb } = require('./database/schema');
 const { closeDb } = require('./database/connection');
+const { startCron, stopCron } = require('./services/cron');
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 function shutdown(signal) {
   console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+  stopCron();
   closeDb()
     .then(() => {
       console.log('Database connection closed.');
@@ -24,6 +26,7 @@ initDb()
   .then(() => {
     const server = app.listen(PORT, () => {
       console.log(`GestaoFrota backend running on http://localhost:${PORT}`);
+      startCron();
     });
 
     server.on('error', (err) => {

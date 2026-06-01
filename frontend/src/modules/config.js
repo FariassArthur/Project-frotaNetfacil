@@ -1,9 +1,11 @@
+import { FaChartBar, FaTruck, FaTools, FaBuilding, FaCity, FaGlobeAmericas, FaCog, FaInfoCircle, FaClipboardList } from 'react-icons/fa';
+
 // Shared module configuration and helpers
 export const MODULES = [
   {
     key: 'dashboard',
     label: 'Dashboard',
-    icon: '📊',
+    icon: FaChartBar,
     description: 'Painel de controle inicial com status da API e navegação entre módulos.',
     endpoint: null,
     keyField: null,
@@ -12,7 +14,7 @@ export const MODULES = [
   {
     key: 'veiculos',
     label: 'Veículos',
-    icon: '🚗',
+    icon: FaTruck,
     endpoint: '/api/veiculos',
     keyField: 'placa',
     fields: [
@@ -72,7 +74,7 @@ export const MODULES = [
   {
     key: 'mecanicas',
     label: 'Mecânicas',
-    icon: '🔧',
+    icon: FaTools,
     endpoint: '/api/mecanicas',
     keyField: 'id',
     fields: [
@@ -132,13 +134,14 @@ export const MODULES = [
       { name: 'valor', label: 'Valor', type: 'number' },
       { name: 'path_anexo_multa_pdf', label: 'Anexo Multa', type: 'file' },
       { name: 'pagamento_realizado', label: 'Pagamento Realizado', type: 'checkbox' },
-      { name: 'veiculo_id', label: 'Placa do Veículo' }
+      { name: 'veiculo_id', label: 'Placa do Veículo' },
+      { name: 'motorista_id', label: 'Registro Motorista' }
     ]
   },
   {
     key: 'seguradoras',
     label: 'Seguradoras',
-    icon: '🏢',
+    icon: FaBuilding,
     endpoint: '/api/seguradoras',
     keyField: 'id',
     fields: [
@@ -165,7 +168,7 @@ export const MODULES = [
   {
     key: 'cidades',
     label: 'Cidades',
-    icon: '🏙️',
+    icon: FaCity,
     endpoint: '/api/cidades',
     keyField: 'id',
     fields: [
@@ -243,6 +246,23 @@ export const MODULES = [
     ]
   },
   {
+    key: 'viagens',
+    label: 'Viagens',
+    icon: FaGlobeAmericas,
+    endpoint: '/api/viagens',
+    keyField: 'id',
+    fields: [
+      { name: 'data_saida', label: 'Data Saída', type: 'date' },
+      { name: 'data_retorno', label: 'Data Retorno', type: 'date' },
+      { name: 'km_inicial', label: 'KM Inicial', type: 'number' },
+      { name: 'km_final', label: 'KM Final', type: 'number' },
+      { name: 'destino', label: 'Destino' },
+      { name: 'descricao', label: 'Descrição', type: 'textarea' },
+      { name: 'motorista_id', label: 'Registro Motorista' },
+      { name: 'veiculo_id', label: 'Placa do Veículo' }
+    ]
+  },
+  {
     key: 'higienizacao',
     label: 'Higienização',
     sidebarHidden: true,
@@ -259,7 +279,7 @@ export const MODULES = [
   {
     key: 'configuracoes',
     label: 'Configurações',
-    icon: '⚙️',
+    icon: FaCog,
     endpoint: '/api/configuracoes',
     keyField: null,
     fields: [
@@ -271,7 +291,7 @@ export const MODULES = [
   {
     key: 'versao',
     label: 'Versão',
-    icon: 'ℹ️',
+    icon: FaInfoCircle,
     endpoint: '/api/versao',
     keyField: null,
     fields: []
@@ -279,7 +299,7 @@ export const MODULES = [
   {
     key: 'logs-auditoria',
     label: 'Logs de Auditoria',
-    icon: '📋',
+    icon: FaClipboardList,
     description: 'Registro de todas as alterações realizadas no sistema.',
     endpoint: '/api/logs',
     keyField: 'id',

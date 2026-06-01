@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import GenericModule from './GenericModule';
 import VeiculoGastos from './VeiculoGastos';
+import ManutencaoPreventivaConfig from './ManutencaoPreventivaConfig';
 import { getByKey } from '../modules/config';
 
 const SUB_TABS = [
@@ -10,6 +11,8 @@ const SUB_TABS = [
   { key: 'manutencoes', label: 'Manutenções' },
   { key: 'multas', label: 'Multas' },
   { key: 'abastecimentos', label: 'Abastecimentos' },
+  { key: 'viagens', label: 'Viagens' },
+  { key: 'manutencao-preventiva', label: 'Prev. Manutenção' },
   { key: 'contratos-seguro', label: 'Contratos Seguro' },
   { key: 'pagamentos-seguro', label: 'Pag. Seguro' },
   { key: 'documentos', label: 'Pag. Documentos' },
@@ -21,6 +24,7 @@ const MODULE_KEY_MAP = {
   manutencoes: 'manutencoes',
   multas: 'multas',
   abastecimentos: 'abastecimentos',
+  viagens: 'viagens',
   'contratos-seguro': 'contratos-seguro',
   'pagamentos-seguro': 'pagamentos-seguro',
   documentos: 'pagamento-documentos',
@@ -44,6 +48,9 @@ export default function VeiculosPage({ moduleConfig, token, vehicles, cidades })
     }
     if (activeTab === 'gastos') {
       return <VeiculoGastos token={token} />;
+    }
+    if (activeTab === 'manutencao-preventiva') {
+      return <ManutencaoPreventivaConfig token={token} veiculoId={selectedVehicle || undefined} veiculos={vehicles} />;
     }
     if (!selectedVehicle) {
       return (

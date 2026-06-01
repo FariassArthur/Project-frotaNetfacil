@@ -20,7 +20,7 @@ describe('GET /api/health', () => {
     const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
-    expect(res.body.version).toBe('1.1.0');
+    expect(res.body.version).toBe('1.1.1');
   });
 });
 

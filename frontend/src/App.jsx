@@ -13,6 +13,7 @@ const CidadesPage = lazy(() => import('./components/CidadesPage'));
 const VersionPage = lazy(() => import('./components/VersionPage'));
 const ConfiguracoesPage = lazy(() => import('./components/ConfiguracoesPage'));
 const LogsAuditoria = lazy(() => import('./components/LogsAuditoria'));
+const ViagensPage = lazy(() => import('./components/ViagensPage'));
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WARNING_BEFORE_MS = 60 * 1000;
@@ -297,6 +298,11 @@ export default function App() {
                 token={token}
                 vehicles={vehicles}
                 cidades={cidades}
+              />
+            ) : currentKey === 'viagens' ? (
+              <ViagensPage
+                token={token}
+                vehicles={vehicles}
               />
             ) : (
               <GenericModule

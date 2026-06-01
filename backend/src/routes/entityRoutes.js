@@ -20,6 +20,7 @@ const ALLOWED_TABLES = {
   'higienizacao': true,
   'abastecimentos': true,
   'cidades': true,
+  'viagens': true,
 };
 
 const ALLOWED_KEY_FIELDS = {
@@ -81,6 +82,10 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         filters.push('contrato_seguro_id = ?');
         params.push(req.query.contrato_seguro_id);
       }
+      if (req.query.motorista_id) {
+        filters.push('motorista_id = ?');
+        params.push(req.query.motorista_id);
+      }
       const where = filters.length ? 'WHERE ' + filters.join(' AND ') : '';
 
       const page = Math.max(1, parseInt(req.query._page, 10) || 1);
@@ -120,8 +125,8 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
       if (fileFields.includes(field)) {
         return filePathFor(field, req) || body[field] || null;
       }
-      if (field === 'veiculo_id') return body['veiculo_id'] || body['veiculoId'] || null;
-      if ((field.endsWith('_id') && field !== 'veiculo_id') || field === 'id' || field.includes('km')) return parseInteger(body[field]);
+      if (field === 'veiculo_id' || field === 'motorista_id') return body[field] || null;
+      if ((field.endsWith('_id') && field !== 'veiculo_id' && field !== 'motorista_id') || field === 'id' || field.includes('km')) return parseInteger(body[field]);
       if (field === 'ativo' || field === 'pagamento_realizado' || field === 'aivo') return parseBoolean(body[field]) ? 1 : 0;
       return body[field] || null;
     });
@@ -143,7 +148,7 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         descricao: `${getEntityLabel(name)} criado`,
         dados_novos: cleanData(body),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, name);
     }
@@ -168,8 +173,11 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
       if (fileFields.includes(field)) {
         return filePathFor(field, req) || body[field] || existing[field] || null;
       }
-      if (field === 'veiculo_id') return (body['veiculo_id'] !== undefined ? body['veiculo_id'] : (body['veiculoId'] !== undefined ? body['veiculoId'] : existing[field])) || null;
-      if ((field.endsWith('_id') && field !== 'veiculo_id') || field === 'id' || field.includes('km')) return parseInteger(body[field]) ?? existing[field] ?? null;
+      if (field === 'veiculo_id' || field === 'motorista_id') {
+        const val = body[field] !== undefined ? body[field] : existing[field];
+        return val || null;
+      }
+      if ((field.endsWith('_id') && field !== 'veiculo_id' && field !== 'motorista_id') || field === 'id' || field.includes('km')) return parseInteger(body[field]) ?? existing[field] ?? null;
       if (field === 'ativo' || field === 'pagamento_realizado' || field === 'aivo') {
         const boolValue = body[field] !== undefined ? parseBoolean(body[field]) : existing[field];
         return boolValue ? 1 : 0;
@@ -194,7 +202,7 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         dados_antigos: cleanData(existing),
         dados_novos: cleanData(body),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, name);
     }
@@ -223,7 +231,7 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         descricao: `${getEntityLabel(name)} excluído`,
         dados_antigos: cleanData(existing),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, name);
     }

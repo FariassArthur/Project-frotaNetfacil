@@ -99,7 +99,7 @@ function registerVeiculosRoutes(app) {
         descricao: `Veículo ${placa} criado`,
         dados_novos: cleanData(body),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, 'veiculos');
     }
@@ -159,7 +159,7 @@ function registerVeiculosRoutes(app) {
         dados_antigos: cleanData(exists),
         dados_novos: cleanData(body),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, 'veiculos');
     }
@@ -184,7 +184,7 @@ function registerVeiculosRoutes(app) {
         descricao: `Veículo ${placa} excluído`,
         dados_antigos: cleanData(exists),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, 'veiculos');
     }

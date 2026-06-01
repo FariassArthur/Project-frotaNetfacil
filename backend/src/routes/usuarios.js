@@ -71,7 +71,7 @@ function registerUsuariosRoutes(app) {
         descricao: `Usuário ${username} criado`,
         dados_novos: cleanData(req.body),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       if (error.message && error.message.includes('unique')) {
         return res.status(409).json({ error: 'Username já existe' });
@@ -106,7 +106,7 @@ function registerUsuariosRoutes(app) {
         entidade_id: String(req.user.id),
         descricao: `Usuário ${req.user.username} alterou a própria senha`,
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, 'usuarios');
     }
@@ -149,7 +149,7 @@ function registerUsuariosRoutes(app) {
         dados_antigos: cleanData(exists),
         dados_novos: cleanData(req.body),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       if (error.message && error.message.includes('unique')) {
         return res.status(409).json({ error: 'Username já existe' });
@@ -175,7 +175,7 @@ function registerUsuariosRoutes(app) {
         descricao: `Usuário ${user.username} excluído`,
         dados_antigos: cleanData(user),
         ip: req.ip,
-      }).catch(() => {});
+      }).catch(err => console.error('Audit log error:', err));
     } catch (error) {
       handleError(res, error, 'usuarios');
     }

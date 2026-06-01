@@ -1,6 +1,16 @@
 import React from 'react';
 
 const changelog = [
+  ['1.1.1 — 2026', [
+    'Alerta de manutenção preventiva no Dashboard com KM e data',
+    'Diário de bordo: Check-in/Check-out de viagens com km e motorista',
+    'Análise de consumo (km/L) na tela de gastos do veículo',
+    'Vínculo de multas com motorista (motorista_id)',
+    'Mudança de senha na tela de login',
+    'Ícones substituídos por react-icons (neutros)',
+    'Correção de bugs: ordenamento de rotas, parseInt sem radix, falsy check em km=0',
+    'Segurança: requireRole em DELETE de viagens e manutenção preventiva',
+  ]],
   ['1.1 — 2026', [
     'Tabela de cidades agora exibe veículos e motoristas vinculados em colunas dinâmicas',
     'Botão "+ Novo" reseta estado corretamente ao abrir formulário',
@@ -25,7 +35,7 @@ const changelog = [
 export default function VersionPage() {
   return (
     <div className="p-6" style={{ background: 'var(--bg-primary)' }}>
-      <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Versão 1.1</h2>
+      <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Versão 1.1.1</h2>
       <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Sistema de Gestão de Frota</p>
 
       <div className="rounded-xl border p-6" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>

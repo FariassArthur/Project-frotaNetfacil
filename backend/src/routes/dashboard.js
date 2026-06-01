@@ -6,7 +6,7 @@ const ALLOWED_TABLES = {
   multas: true, seguradoras: true, contratos_seguro: true,
   pagamentos_seguro: true, pagamento_documentos: true,
   abastecimentos: true, higienizacao: true, combustiveis: true,
-  tipo_manutencao: true, cidades: true,
+  tipo_manutencao: true, cidades: true, viagens: true,
 };
 
 const TABLES = [
@@ -24,6 +24,7 @@ const TABLES = [
   { key: 'cidades', label: 'Cidades' },
   { key: 'combustiveis', label: 'Combustíveis' },
   { key: 'tipo_manutencao', label: 'Tipos Manutenção' },
+  { key: 'viagens', label: 'Viagens' },
 ];
 
 function registerDashboardRoutes(app) {
@@ -33,10 +34,12 @@ function registerDashboardRoutes(app) {
       const limit = Math.min(500, parseInt(req.query._limit, 10) || 200);
       for (const table of TABLES) {
         if (!ALLOWED_TABLES[table.key]) continue;
+        const countResult = await all(`SELECT COUNT(*) as cnt FROM ${table.key}`);
+        const count = countResult[0]?.cnt || 0;
         const rows = await all(`SELECT * FROM ${table.key} ORDER BY 1 LIMIT ?`, [limit]);
         result[table.key] = {
           label: table.label,
-          count: rows.length,
+          count,
           rows,
           columns: rows.length > 0 ? Object.keys(rows[0]) : []
         };
@@ -52,9 +55,12 @@ function registerDashboardRoutes(app) {
       const hoje = new Date().toISOString().slice(0, 10);
 
       const multas = await all(`
-        SELECT id, 'Multa' AS tipo, veiculo_id, local_ocorrencia AS descricao,
-               valor, data_vencimento, pagamento_realizado
-        FROM multas WHERE data_vencimento IS NOT NULL
+        SELECT m.id, 'Multa' AS tipo, m.veiculo_id, m.local_ocorrencia AS descricao,
+               m.valor, m.data_vencimento, m.pagamento_realizado, m.motorista_id,
+               c.nome AS motorista_nome
+        FROM multas m
+        LEFT JOIN cnhs c ON m.motorista_id = c.numero_registro
+        WHERE m.data_vencimento IS NOT NULL
       `);
 
       const documentos = await all(`

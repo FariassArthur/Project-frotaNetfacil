@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { FaPaperclip } from 'react-icons/fa';
 import { getFileUrl, getItemValue } from '../api/client';
 
 export default function EntityForm({
@@ -147,7 +148,7 @@ export default function EntityForm({
               target="_blank"
               rel="noopener noreferrer"
             >
-              📎 Arquivo atual
+              <FaPaperclip size={12} className="mr-1" /> Arquivo atual
             </a>
           )}
         </div>

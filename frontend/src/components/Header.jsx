@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FaGlobeAmericas, FaMoon, FaSun, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { changePassword } from '../api/client';
 
 export default function Header({ user, token, theme, onToggleTheme, onLogout, currentModule, onToggleMenu, menuOpen }) {
@@ -106,9 +107,12 @@ export default function Header({ user, token, theme, onToggleTheme, onLogout, cu
         <button className="hamburger" onClick={onToggleMenu} aria-label="Abrir menu" title="Menu">
           <span className={`hamburger-line${menuOpen ? ' open' : ''}`} />
         </button>
-        <div>
-          <h2 className="header-title">GestaoFrota</h2>
-          <p className="header-module">{currentModule}</p>
+        <div className="flex items-center gap-2">
+          <FaGlobeAmericas size={20} style={{ color: 'var(--header-text)', opacity: 0.8 }} />
+          <div>
+            <h2 className="header-title">Frota Netfacil</h2>
+            <p className="header-module">{currentModule}</p>
+          </div>
         </div>
       </div>
       <div className="header-right">
@@ -120,7 +124,7 @@ export default function Header({ user, token, theme, onToggleTheme, onLogout, cu
           title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
           aria-label={theme === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
         >
-          {theme === 'light' ? '🌙' : '☀️'}
+          {theme === 'light' ? <FaMoon size={16} /> : <FaSun size={16} />}
         </button>
         <button
           className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer text-base transition-transform hover:scale-110"
@@ -129,7 +133,7 @@ export default function Header({ user, token, theme, onToggleTheme, onLogout, cu
           title="Alterar Senha"
           aria-label="Alterar senha"
         >
-          🔑
+          <FaLock size={16} />
         </button>
         <button
           className={`${btnBase} px-4 py-2`}
@@ -228,7 +232,7 @@ export default function Header({ user, token, theme, onToggleTheme, onLogout, cu
                     }}
                     onClick={() => setShowCurrent((v) => !v)}
                   >
-                    {showCurrent ? '🙈' : '👁️'}
+                    {showCurrent ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
                   </button>
                 </div>
               </div>
@@ -269,7 +273,7 @@ export default function Header({ user, token, theme, onToggleTheme, onLogout, cu
                     }}
                     onClick={() => setShowNew((v) => !v)}
                   >
-                    {showNew ? '🙈' : '👁️'}
+                    {showNew ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
                   </button>
                 </div>
               </div>
@@ -310,7 +314,7 @@ export default function Header({ user, token, theme, onToggleTheme, onLogout, cu
                     }}
                     onClick={() => setShowConfirm((v) => !v)}
                   >
-                    {showConfirm ? '🙈' : '👁️'}
+                    {showConfirm ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
                   </button>
                 </div>
               </div>

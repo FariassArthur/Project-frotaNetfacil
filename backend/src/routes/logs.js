@@ -24,8 +24,8 @@ function registerLogsRoutes(app) {
       const countResult = await get(`SELECT COUNT(*) as total FROM logs_auditoria${where}`, params);
       const total = countResult ? countResult.total : 0;
 
-      const limitVal = parseInt(limit) || 50;
-      const offsetVal = parseInt(offset) || 0;
+      const limitVal = parseInt(limit, 10) || 50;
+      const offsetVal = parseInt(offset, 10) || 0;
       const rows = await all(
         `SELECT * FROM logs_auditoria${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         [...params, limitVal, offsetVal]

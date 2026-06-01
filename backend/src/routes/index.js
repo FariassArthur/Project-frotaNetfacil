@@ -7,6 +7,8 @@ const { registerLogsRoutes } = require('./logs');
 const { registerGastosRoutes } = require('./gastos');
 const { registerCidadesRoutes } = require('./cidades');
 const { createRoutesFor } = require('./entityRoutes');
+const { registerManutencaoPreventivaRoutes } = require('./manutencaoPreventiva');
+const { registerViagensRoutes } = require('./viagens');
 
 function registerRoutes(app) {
   registerAuthRoutes(app);
@@ -16,6 +18,8 @@ function registerRoutes(app) {
   registerLookupRoutes(app);
   registerLogsRoutes(app);
   registerGastosRoutes(app);
+  registerManutencaoPreventivaRoutes(app);
+  registerViagensRoutes(app);
 
   // Generic CRUD entities
   createRoutesFor(app, {
@@ -52,7 +56,7 @@ function registerRoutes(app) {
     name: 'multas',
     tableName: 'multas',
     keyField: 'id',
-    fields: ['data_ocorrencia', 'data_ocorrencia_s', 'local_ocorrencia', 'data_vencimento', 'data_vencimento_s', 'data_pagamento', 'data_pagamento_s', 'valor', 'path_anexo_multa_pdf', 'pagamento_realizado', 'veiculo_id'],
+    fields: ['data_ocorrencia', 'data_ocorrencia_s', 'local_ocorrencia', 'data_vencimento', 'data_vencimento_s', 'data_pagamento', 'data_pagamento_s', 'valor', 'path_anexo_multa_pdf', 'pagamento_realizado', 'veiculo_id', 'motorista_id'],
     fileFields: ['path_anexo_multa_pdf']
   });
 

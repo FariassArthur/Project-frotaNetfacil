@@ -242,14 +242,6 @@ async function initDb() {
     )
   `);
 
-  await run(`
-    CREATE TABLE IF NOT EXISTS cidades (
-      id ${AI},
-      nome TEXT NOT NULL UNIQUE,
-      uf TEXT
-    )
-  `);
-
   // Migrate existing cidade text values to cidades table
   try {
     const cols = await getTableColumns('veiculos');
@@ -279,6 +271,45 @@ async function initDb() {
       veiculo_id TEXT REFERENCES veiculos(placa) ON DELETE CASCADE
     )
   `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS viagens (
+      id ${AI},
+      veiculo_id TEXT REFERENCES veiculos(placa) ON DELETE CASCADE,
+      motorista_id TEXT REFERENCES cnhs(numero_registro) ON DELETE SET NULL,
+      data_saida TEXT,
+      data_saida_s TEXT,
+      data_retorno TEXT,
+      data_retorno_s TEXT,
+      km_inicial INTEGER,
+      km_final INTEGER,
+      destino TEXT,
+      descricao TEXT
+    )
+  `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS config_manutencao_preventiva (
+      id ${AI},
+      veiculo_id TEXT REFERENCES veiculos(placa) ON DELETE CASCADE,
+      tipo_manutencao_id INTEGER REFERENCES tipo_manutencao(id) ON DELETE SET NULL,
+      descricao TEXT,
+      km_intervalo INTEGER,
+      km_proxima INTEGER,
+      meses_intervalo INTEGER,
+      data_proxima TEXT,
+      ativo INTEGER DEFAULT 1
+    )
+  `);
+
+  try {
+    const multasCols = await getTableColumns('multas');
+    if (!hasColumn(multasCols, 'motorista_id')) {
+      await run("ALTER TABLE multas ADD COLUMN motorista_id TEXT REFERENCES cnhs(numero_registro) ON DELETE SET NULL");
+    }
+  } catch (err) {
+    console.warn('Could not ensure multas.motorista_id column', err.message || err);
+  }
 
   await run(`
     CREATE TABLE IF NOT EXISTS versoes (
@@ -373,7 +404,7 @@ async function initDb() {
     console.warn('Could not seed admin user', err.message || err);
   }
 
-  await run(insertIgnore('versoes', ['id', 'version'], 2), [1, process.env.npm_package_version || '1.1.0']);
+  await run(insertIgnore('versoes', ['id', 'version'], 2), [1, process.env.npm_package_version || '1.1.1']);
 
   try {
     await run("UPDATE veiculos SET combustivel = NULL WHERE combustivel IS NOT NULL AND combustivel NOT IN (SELECT id FROM combustiveis)");
@@ -396,6 +427,9 @@ async function initDb() {
     'CREATE INDEX IF NOT EXISTS idx_higienizacao_veiculo ON higienizacao(veiculo_id)',
     'CREATE INDEX IF NOT EXISTS idx_abastecimentos_veiculo ON abastecimentos(veiculo_id)',
     'CREATE INDEX IF NOT EXISTS idx_cnhs_veiculo ON cnhs(veiculo_id)',
+    'CREATE INDEX IF NOT EXISTS idx_viagens_veiculo ON viagens(veiculo_id)',
+    'CREATE INDEX IF NOT EXISTS idx_viagens_motorista ON viagens(motorista_id)',
+    'CREATE INDEX IF NOT EXISTS idx_config_manutencao_veiculo ON config_manutencao_preventiva(veiculo_id)',
   ];
   for (const sql of FK_INDEXES) {
     try { await run(sql); } catch (_) {}

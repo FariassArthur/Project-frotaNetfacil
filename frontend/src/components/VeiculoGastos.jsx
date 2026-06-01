@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { FaWrench, FaExclamationTriangle, FaGasPump, FaShieldAlt, FaFile, FaDownload } from 'react-icons/fa';
 import { fetchList } from '../api/client';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -7,11 +8,11 @@ import 'jspdf-autotable';
 const COLORS = ['#ff7f1e', '#dc3545', '#28a745', '#007bff', '#6f42c1', '#fd7e14'];
 
 const CATEGORY_META = {
-  Manutenção: { icon: '🔧', color: '#ff7f1e' },
-  Multas: { icon: '⚠️', color: '#dc3545' },
-  Abastecimento: { icon: '⛽', color: '#28a745' },
-  Seguro: { icon: '🛡️', color: '#007bff' },
-  Documentos: { icon: '📄', color: '#6f42c1' },
+  Manutenção: { icon: FaWrench, color: '#ff7f1e' },
+  Multas: { icon: FaExclamationTriangle, color: '#dc3545' },
+  Abastecimento: { icon: FaGasPump, color: '#28a745' },
+  Seguro: { icon: FaShieldAlt, color: '#007bff' },
+  Documentos: { icon: FaFile, color: '#6f42c1' },
 };
 
 function formatMoney(val) {
@@ -76,6 +77,7 @@ function catTotal(list) { return list.reduce((s, i) => s + (parseFloat(i.valor) 
 
 function DetailCard({ icon, title, count, color, children, csvKey, csvData, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen);
+  const IconComp = typeof icon === 'function' ? icon : null;
   return (
     <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
       <button
@@ -83,16 +85,16 @@ function DetailCard({ icon, title, count, color, children, csvKey, csvData, defa
         style={{ background: color, color: 'white' }}
         onClick={() => setOpen(!open)}
       >
-        <span className="text-lg">{icon}</span>
+        <span className="text-lg">{IconComp ? <IconComp /> : icon}</span>
         <span className="font-semibold text-sm flex-1">{title}</span>
         <span className="text-xs opacity-80">{count} registro(s)</span>
-        <span className="text-sm cursor-pointer hover:opacity-80"
+        <span className="cursor-pointer hover:opacity-80"
           onClick={(e) => {
             e.stopPropagation();
             const cfg = CSV_CONFIG[csvKey];
             if (cfg && csvData) downloadCSV(`${title}.csv`, cfg.headers, csvData.map(cfg.map));
           }}
-          title="Download CSV">⬇</span>
+          title="Download CSV"><FaDownload size={14} /></span>
         <span className={`text-sm transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
       </button>
       {open && <div className="p-4">{children}</div>}
@@ -217,7 +219,7 @@ export default function VeiculoGastos({ token }) {
             style={{ background: '#28a745', boxShadow: '0 8px 20px rgba(40,167,69,0.2)' }}
             onClick={exportFullPDF}
           >
-            📄 PDF Completo
+            <FaFile size={14} className="mr-1" /> PDF Completo
           </button>
         )}
       </div>
@@ -257,12 +259,12 @@ export default function VeiculoGastos({ token }) {
                   onClick={() => {
                     const rows = data.categorias.map(c => [c.categoria, rawMoney(c.valor), (data.total > 0 ? ((c.valor / data.total) * 100).toFixed(1) : '0') + '%']);
                     downloadCSV('resumo_categorias.csv', ['Categoria', 'Valor', '%'], rows);
-                  }} title="Download CSV">⬇ CSV</span>
+                  }} title="Download CSV"><FaDownload size={14} className="mr-1" /> CSV</span>
                 <span className="text-xs cursor-pointer hover:opacity-80" style={{ color: 'var(--orange)' }}
                   onClick={() => {
                     const rows = data.categorias.map(c => [c.categoria, `R$ ${rawMoney(c.valor)}`, (data.total > 0 ? ((c.valor / data.total) * 100).toFixed(1) : '0') + '%']);
                     downloadPDF(`Resumo_Gastos_${data.veiculo.placa}`, ['Categoria', 'Valor', '%'], rows);
-                  }} title="Download PDF">📄 PDF</span>
+                  }} title="Download PDF"><FaFile size={14} className="mr-1" /> PDF</span>
               </div>
               <table className="w-full border-collapse text-sm">
                 <thead>
@@ -281,7 +283,7 @@ export default function VeiculoGastos({ token }) {
                       <tr key={cat.categoria} style={{ color: 'var(--text-secondary)' }}>
                         <td className="px-3 py-2 border-b flex items-center gap-1.5 text-sm">
                           <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: meta.color || '#888' }} />
-                          {meta.icon ? `${meta.icon} ` : ''}{cat.categoria}
+                          {meta.icon && <meta.icon size={12} className="mr-1" />}{cat.categoria}
                         </td>
                         <td className="px-3 py-2 border-b text-right font-medium" style={{ color: 'var(--orange)' }}>{formatMoney(cat.valor)}</td>
                         <td className="px-3 py-2 border-b text-right" style={{ color: 'var(--text-muted)' }}>{data.total > 0 ? ((cat.valor / data.total) * 100).toFixed(1) : 0}%</td>
@@ -300,11 +302,55 @@ export default function VeiculoGastos({ token }) {
             </div>
           </div>
 
+          {data.consumo && data.consumo.media_km_por_litro && (
+            <div className="mb-4 p-4 rounded-xl border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
+              <h4 className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+                <FaGasPump size={14} className="mr-1" /> Análise de Consumo
+              </h4>
+              <div className="flex items-center gap-4 mb-3 flex-wrap">
+                <div className="px-4 py-3 rounded-lg" style={{ background: 'var(--orange-bg)' }}>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Média</span>
+                  <span className="text-xl font-bold block" style={{ color: 'var(--orange)' }}>{data.consumo.media_km_por_litro} km/L</span>
+                </div>
+              </div>
+              {data.consumo.detalhes?.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr style={{ background: 'var(--bg-secondary)' }}>
+                        <th className="px-3 py-2 text-left font-bold border-b">Data</th>
+                        <th className="px-3 py-2 text-right font-bold border-b">KM Rodados</th>
+                        <th className="px-3 py-2 text-right font-bold border-b">Litros</th>
+                        <th className="px-3 py-2 text-right font-bold border-b">km/L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.consumo.detalhes.map((c, i) => {
+                        const isLow = c.km_por_litro < data.consumo.media_km_por_litro * 0.8;
+                        return (
+                          <tr key={i} style={{ color: 'var(--text-secondary)', background: isLow ? 'rgba(255,0,0,0.04)' : undefined }}>
+                            <td className="px-3 py-2 border-b">{formatDate(c.data)}</td>
+                            <td className="px-3 py-2 border-b text-right">{c.km_rodados.toLocaleString('pt-BR')}</td>
+                            <td className="px-3 py-2 border-b text-right">{c.litros.toFixed(1)}</td>
+                            <td className="px-3 py-2 border-b text-right font-semibold"
+                              style={{ color: isLow ? 'var(--danger)' : 'var(--success)' }}>
+                              {c.km_por_litro} km/L
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <h4 className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Detalhamento</h4>
             <div className="flex flex-col gap-3">
               {data.detalhes.manutencoes.length > 0 && (
-                <DetailCard icon="🔧" title="Manutenções" count={data.detalhes.manutencoes.length} color="#ff7f1e" csvKey="manutencoes" csvData={data.detalhes.manutencoes} defaultOpen>
+                <DetailCard icon={FaWrench} title="Manutenções" count={data.detalhes.manutencoes.length} color="#ff7f1e" csvKey="manutencoes" csvData={data.detalhes.manutencoes} defaultOpen>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
                       <thead><tr style={{ background: 'var(--bg-secondary)' }}><th className="px-3 py-2 text-left font-bold border-b">Data</th><th className="px-3 py-2 text-left font-bold border-b">Descrição</th><th className="px-3 py-2 text-left font-bold border-b">Classif.</th><th className="px-3 py-2 text-right font-bold border-b">KM</th><th className="px-3 py-2 text-right font-bold border-b">Valor</th></tr></thead>
@@ -330,7 +376,7 @@ export default function VeiculoGastos({ token }) {
                 </DetailCard>
               )}
               {data.detalhes.multas.length > 0 && (
-                <DetailCard icon="⚠️" title="Multas" count={data.detalhes.multas.length} color="#dc3545" csvKey="multas" csvData={data.detalhes.multas}>
+                <DetailCard icon={FaExclamationTriangle} title="Multas" count={data.detalhes.multas.length} color="#dc3545" csvKey="multas" csvData={data.detalhes.multas}>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
                       <thead><tr style={{ background: 'var(--bg-secondary)' }}><th className="px-3 py-2 text-left font-bold border-b">Data</th><th className="px-3 py-2 text-left font-bold border-b">Local</th><th className="px-3 py-2 text-left font-bold border-b">Status</th><th className="px-3 py-2 text-right font-bold border-b">Valor</th></tr></thead>
@@ -355,7 +401,7 @@ export default function VeiculoGastos({ token }) {
                 </DetailCard>
               )}
               {data.detalhes.abastecimentos.length > 0 && (
-                <DetailCard icon="⛽" title="Abastecimentos" count={data.detalhes.abastecimentos.length} color="#28a745" csvKey="abastecimentos" csvData={data.detalhes.abastecimentos}>
+                <DetailCard icon={FaGasPump} title="Abastecimentos" count={data.detalhes.abastecimentos.length} color="#28a745" csvKey="abastecimentos" csvData={data.detalhes.abastecimentos}>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
                       <thead><tr style={{ background: 'var(--bg-secondary)' }}><th className="px-3 py-2 text-left font-bold border-b">Data</th><th className="px-3 py-2 text-right font-bold border-b">Qtd (L)</th><th className="px-3 py-2 text-right font-bold border-b">KM</th><th className="px-3 py-2 text-right font-bold border-b">Valor</th></tr></thead>
@@ -377,7 +423,7 @@ export default function VeiculoGastos({ token }) {
                 </DetailCard>
               )}
               {data.detalhes.pagamentos_seguro.length > 0 && (
-                <DetailCard icon="🛡️" title="Seguro" count={data.detalhes.pagamentos_seguro.length} color="#007bff" csvKey="seguro" csvData={data.detalhes.pagamentos_seguro}>
+                <DetailCard icon={FaShieldAlt} title="Seguro" count={data.detalhes.pagamentos_seguro.length} color="#007bff" csvKey="seguro" csvData={data.detalhes.pagamentos_seguro}>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
                       <thead><tr style={{ background: 'var(--bg-secondary)' }}><th className="px-3 py-2 text-left font-bold border-b">Data</th><th className="px-3 py-2 text-right font-bold border-b">Valor</th></tr></thead>
@@ -397,7 +443,7 @@ export default function VeiculoGastos({ token }) {
                 </DetailCard>
               )}
               {data.detalhes.pagamento_documentos.length > 0 && (
-                <DetailCard icon="📄" title="Documentos" count={data.detalhes.pagamento_documentos.length} color="#6f42c1" csvKey="documentos" csvData={data.detalhes.pagamento_documentos}>
+                <DetailCard icon={FaFile} title="Documentos" count={data.detalhes.pagamento_documentos.length} color="#6f42c1" csvKey="documentos" csvData={data.detalhes.pagamento_documentos}>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
                       <thead><tr style={{ background: 'var(--bg-secondary)' }}><th className="px-3 py-2 text-left font-bold border-b">Data</th><th className="px-3 py-2 text-left font-bold border-b">Descrição</th><th className="px-3 py-2 text-right font-bold border-b">Valor</th></tr></thead>

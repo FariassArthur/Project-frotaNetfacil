@@ -6,7 +6,7 @@ function registerLookupRoutes(app) {
     res.json({
       ok: true,
       db: getActiveDbName(),
-      version: process.env.npm_package_version || '1.1.0'
+      version: process.env.npm_package_version || '1.1.1'
     });
   });
 
@@ -61,7 +61,7 @@ function registerLookupRoutes(app) {
   app.get('/api/versao', async (req, res) => {
     try {
       const row = await get('SELECT * FROM versoes WHERE id = 1');
-      res.json(row || { version: process.env.npm_package_version || '1.1.0' });
+      res.json(row || { version: process.env.npm_package_version || '1.1.1' });
     } catch (error) {
       handleError(res, error, 'lookup');
     }

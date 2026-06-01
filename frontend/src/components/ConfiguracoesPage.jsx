@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import { fetchList, fetchUsers, createUser, updateUser, deleteUser, fetchOne, updateItem } from '../api/client';
 import { MODULES } from '../modules/config';
 
@@ -260,9 +261,9 @@ export default function ConfiguracoesPage({ token, user: currentUser }) {
                     <td className="px-4 py-3 border-b">
                       <div className="flex gap-2">
                         <button className="bg-transparent border-none cursor-pointer text-sm p-1 rounded hover:bg-[var(--orange-bg)]"
-                          onClick={() => handleEditUser(u)} title="Editar">✏️</button>
+                          onClick={() => handleEditUser(u)} title="Editar"><FaEdit size={14} /></button>
                         <button className="bg-transparent border-none cursor-pointer text-sm p-1 rounded hover:bg-[var(--orange-bg)] disabled:opacity-40 disabled:cursor-not-allowed"
-                          onClick={() => handleDeleteUser(u)} title="Excluir" disabled={u.role === 'root'}>🗑️</button>
+                          onClick={() => handleDeleteUser(u)} title="Excluir" disabled={u.role === 'root'}><FaTrash size={14} /></button>
                       </div>
                     </td>
                   )}
