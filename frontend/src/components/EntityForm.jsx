@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { FaPaperclip } from 'react-icons/fa';
-import { getFileUrl, getItemValue } from '../api/client';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { FaPaperclip, FaSearch } from 'react-icons/fa';
+import { getFileUrl, getItemValue, fetchList } from '../api/client';
 
 export default function EntityForm({
   fields,
@@ -14,9 +14,30 @@ export default function EntityForm({
   isSubmitting
 }) {
   const [errors, setErrors] = useState({});
+  const [filePreviews, setFilePreviews] = useState({});
+  const [motoristas, setMotoristas] = useState([]);
+  const [motoristaSuggestions, setMotoristaSuggestions] = useState([]);
+  const [showMotoristaDropdown, setShowMotoristaDropdown] = useState(false);
   const firstFieldRef = useRef(null);
+  const motoristaRef = useRef(null);
 
   const visibleFields = fields.filter(f => !f.tableOnly);
+
+  useEffect(() => {
+    fetchList('cnhs', { _limit: 999 })
+      .then(data => setMotoristas(data || []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (formData.motorista_id && motoristas.length > 0) {
+      const filtered = motoristas.filter(m =>
+        m.numero_registro && m.numero_registro.includes(formData.motorista_id)
+      );
+      setMotoristaSuggestions(filtered);
+    }
+  }, [motoristas, formData.motorista_id]);
+
   useEffect(() => {
     if (firstFieldRef.current) {
       const el = firstFieldRef.current;
@@ -126,30 +147,49 @@ export default function EntityForm({
     if (field.type === 'file') {
       const existingFile = !isNew ? getItemValue(formData, field.name) : null;
       const hasExistingFile = existingFile && typeof existingFile === 'string';
+      const isImage = (name) => /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+      const preview = filePreviews[field.name];
+
+      const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        onChange(field.name, file);
+        setErrors((p) => ({ ...p, [field.name]: undefined }));
+        if (file && isImage(file.name)) {
+          setFilePreviews(prev => ({ ...prev, [field.name]: URL.createObjectURL(file) }));
+        } else {
+          setFilePreviews(prev => ({ ...prev, [field.name]: null }));
+        }
+      };
+
       return (
         <div className="flex flex-col gap-2">
-          <input
-            ref={(el) => setRef(field, el)}
-            type="file"
-            id={field.name}
-            className={inputBase}
-            style={inpStyle}
-            onChange={(e) => { onChange(field.name, e.target.files[0]); setErrors((p) => ({ ...p, [field.name]: undefined })); }}
-          />
+          <div className="flex items-center gap-3">
+            <input ref={(el) => setRef(field, el)} type="file" id={field.name}
+              accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+              className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none transition-colors"
+              style={inpStyle}
+              onChange={handleFileChange}
+            />
+            {preview && (
+              <img src={preview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border flex-shrink-0"
+                style={{ borderColor: 'var(--border-light)' }} />
+            )}
+          </div>
           {hasExistingFile && (
-            <a
-              href={getFileUrl(existingFile)}
-              className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-semibold no-underline transition-colors w-fit"
-              style={{
-                background: 'var(--orange-bg)',
-                color: 'var(--orange-dark)',
-                border: '1px solid var(--border-light)',
-              }}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <FaPaperclip size={12} className="mr-1" /> Arquivo atual
-            </a>
+            <div className="flex items-center gap-3">
+              <a href={getFileUrl(existingFile)}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-semibold no-underline transition-colors w-fit"
+                style={{ background: 'var(--orange-bg)', color: 'var(--orange-dark)', border: '1px solid var(--border-light)' }}
+                target="_blank" rel="noopener noreferrer">
+                <FaPaperclip size={12} /> Arquivo atual
+              </a>
+              {isImage(existingFile) && (
+                <a href={getFileUrl(existingFile)} target="_blank" rel="noopener noreferrer">
+                  <img src={getFileUrl(existingFile)} alt="Preview" className="w-12 h-12 rounded-lg object-cover border cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ borderColor: 'var(--border-light)' }} />
+                </a>
+              )}
+            </div>
           )}
         </div>
       );
@@ -200,6 +240,58 @@ export default function EntityForm({
           onBlur={() => handleBlur(field.name)}
           onChange={(e) => { onChange(field.name, e.target.value); setErrors((p) => ({ ...p, [field.name]: undefined })); }}
         />
+      );
+    }
+
+    if (field.name === 'motorista_id') {
+      const handleMotoristaChange = (val) => {
+        onChange(field.name, val);
+        setErrors((p) => ({ ...p, [field.name]: undefined }));
+        setShowMotoristaDropdown(true);
+      };
+      const handleSelectMotorista = (m) => {
+        onChange(field.name, m.numero_registro);
+        setErrors((p) => ({ ...p, [field.name]: undefined }));
+        setShowMotoristaDropdown(false);
+      };
+
+      return (
+        <div className="relative" ref={motoristaRef}>
+          <div className="relative">
+            <input ref={(el) => setRef(field, el)} id={field.name}
+              className={`${inputBase} pr-8`}
+              style={inpStyle}
+              type="text" value={value}
+              onFocus={() => setShowMotoristaDropdown(true)}
+              onBlur={() => setTimeout(() => setShowMotoristaDropdown(false), 200)}
+              placeholder="Digite o número do registro"
+              onChange={(e) => handleMotoristaChange(e.target.value)}
+            />
+            <FaSearch size={14} className="absolute right-3 top-1/2 -translate-y-1/2"
+              style={{ color: 'var(--text-muted)' }} />
+          </div>
+          {showMotoristaDropdown && motoristaSuggestions.length > 0 && (
+            <ul className="absolute z-50 w-full mt-1 rounded-lg border shadow-lg overflow-hidden"
+              style={{
+                background: 'var(--card-bg)',
+                borderColor: 'var(--input-border)',
+                boxShadow: 'var(--card-shadow)',
+              }}>
+              {motoristaSuggestions.slice(0, 10).map((m) => (
+                <li key={m.id || m.numero_registro}
+                  className="px-3 py-2 text-sm cursor-pointer flex flex-col gap-0.5"
+                  style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--table-border)' }}
+                  onMouseDown={() => handleSelectMotorista(m)}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--table-row-hover)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span className="font-medium">{m.nome || '—'}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Registro: {m.numero_registro}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       );
     }
 

@@ -9,6 +9,12 @@ const { registerCidadesRoutes } = require('./cidades');
 const { createRoutesFor } = require('./entityRoutes');
 const { registerManutencaoPreventivaRoutes } = require('./manutencaoPreventiva');
 const { registerViagensRoutes } = require('./viagens');
+const { registerCalendarioRoutes } = require('./calendario');
+const { registerOrdensServicoRoutes } = require('./ordensServico');
+const { registerMotoristaMultasRoutes } = require('./motoristaMultas');
+const { registerMotoristaHistoricoRoutes } = require('./motoristaHistorico');
+const { registerComparativoVeiculosRoutes } = require('./comparativoVeiculos');
+const { registerImportarCSVRoutes } = require('./importarCSV');
 
 function registerRoutes(app) {
   registerAuthRoutes(app);
@@ -20,6 +26,12 @@ function registerRoutes(app) {
   registerGastosRoutes(app);
   registerManutencaoPreventivaRoutes(app);
   registerViagensRoutes(app);
+  registerCalendarioRoutes(app);
+  registerOrdensServicoRoutes(app);
+  registerMotoristaMultasRoutes(app);
+  registerMotoristaHistoricoRoutes(app);
+  registerComparativoVeiculosRoutes(app);
+  registerImportarCSVRoutes(app);
 
   // Generic CRUD entities
   createRoutesFor(app, {
@@ -112,7 +124,7 @@ function registerRoutes(app) {
     name: 'abastecimentos',
     tableName: 'abastecimentos',
     keyField: 'id',
-    fields: ['quantidade', 'combustivel_id', 'valor', 'km', 'path_comprovante_pdf', 'data', 'data_s', 'veiculo_id'],
+    fields: ['quantidade', 'combustivel_id', 'valor', 'km', 'tanque_cheio', 'path_comprovante_pdf', 'data', 'data_s', 'veiculo_id'],
     fileFields: ['path_comprovante_pdf']
   });
 
@@ -130,6 +142,13 @@ function registerRoutes(app) {
     keyField: 'id',
     fields: ['veiculo_id', 'identificacao', 'marca', 'modelo', 'medidas', 'dot', 'posicao', 'km_instalacao', 'data_instalacao', 'km_retirada', 'data_retirada', 'status', 'nf', 'valor', 'observacoes', 'path_foto'],
     fileFields: ['path_foto']
+  });
+
+  createRoutesFor(app, {
+    name: 'ordens-servico',
+    tableName: 'ordens_servico',
+    keyField: 'id',
+    fields: ['veiculo_id', 'numero_os', 'data_abertura', 'data_conclusao', 'km_atual', 'descricao', 'tipo', 'status', 'prioridade', 'mecanica_id', 'valor_mao_obra', 'valor_pecas', 'observacoes', 'criado_por'],
   });
 }
 

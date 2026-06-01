@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FaDownload } from 'react-icons/fa';
 import { fetchListPaginated, createItem, updateItem, deleteItem } from '../api/client';
 import EntityForm from './EntityForm';
 import EntityTable from './EntityTable';
@@ -7,6 +8,7 @@ import { useToast } from './Toast';
 
 const PAGE_SIZES = [10, 25, 50, 100];
 const DEFAULT_PAGE_SIZE = 50;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function GenericModule({ moduleConfig, token, vehicles, cidades, filterParams, onItemSelect }) {
   const toast = useToast();
@@ -21,7 +23,11 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [totalCount, setTotalCount] = useState(0);
   const [isDirty, setIsDirty] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [dateFilters, setDateFilters] = useState({});
   const isPaginating = useRef(false);
+  const searchTimer = useRef(null);
 
   useEffect(() => {
     setPage(1);
@@ -29,13 +35,21 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
 
   useEffect(() => {
     loadItems();
-  }, [moduleConfig.key, filterParams, page, pageSize]);
+  }, [moduleConfig.key, filterParams, page, pageSize, debouncedSearch, dateFilters]);
+
+  useEffect(() => {
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setDebouncedSearch(searchQuery), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(searchTimer.current);
+  }, [searchQuery]);
 
   const loadItems = async () => {
     setLoading(true);
     setError('');
     try {
       const query = new URLSearchParams({ ...filterParams, _page: page, _limit: pageSize });
+      if (debouncedSearch) query.set('_q', debouncedSearch);
+      Object.entries(dateFilters).forEach(([key, val]) => { if (val) query.set(key, val); });
       const result = await fetchListPaginated(`${moduleConfig.endpoint}?${query}`, token);
       setItems(Array.isArray(result.data) ? result.data : []);
       setTotalCount(result.total || 0);
@@ -56,6 +70,26 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
   const handlePageChange = (newPage) => {
     isPaginating.current = true;
     setPage(newPage);
+  };
+
+  const exportCSV = () => {
+    if (!items.length) return;
+    const fields = moduleConfig.fields.filter(f => f.tableOnly !== false);
+    const headers = fields.map(f => f.label || f.name);
+    const rows = items.map(item => fields.map(f => {
+      const val = item[f.name];
+      if (val === null || val === undefined) return '';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    }));
+    const csv = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${moduleConfig.key || 'export'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleFieldChange = (name, value) => {
@@ -157,7 +191,6 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
   };
 
   const dateFields = moduleConfig.fields.filter(f => f.type === 'date' && !f.tableOnly);
-  const [dateFilters, setDateFilters] = useState({});
 
   const inputBase = 'px-3 py-2 rounded-lg border text-sm outline-none transition-colors';
 
@@ -176,28 +209,45 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{moduleConfig.label}</h2>
       </div>
-      {dateFields.length > 0 && (
-        <div className="flex gap-3 items-end flex-wrap mb-4 p-3 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
-          {dateFields.slice(0, 2).map((f) => (
-            <div key={f.name} className="flex flex-col gap-1">
-              <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{f.label}</label>
-              <input type="date" className={inputBase}
-                style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
-                value={dateFilters[`${f.name}_start`] || ''}
-                onChange={(e) => setDateFilters(prev => ({ ...prev, [`${f.name}_start`]: e.target.value }))}
-              />
-            </div>
-          ))}
-          {dateFields.length > 0 && (
-            <button className="px-3 py-2 rounded-lg text-xs font-semibold border-none cursor-pointer"
-              style={{ background: 'var(--orange)', color: 'white' }}
-              onClick={() => setDateFilters({})}
-            >
-              Limpar
-            </button>
-          )}
+      <div className="flex gap-3 items-end flex-wrap mb-4 p-3 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Buscar</label>
+          <input type="text" placeholder="Pesquisar em todos os campos..."
+            className={inputBase}
+            style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+          />
         </div>
-      )}
+        {dateFields.slice(0, 2).map((f) => (
+          <div key={f.name} className="flex flex-col gap-1">
+            <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{f.label} (início)</label>
+            <input type="date" className={inputBase}
+              style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+              value={dateFilters[`${f.name}_start`] || ''}
+              onChange={(e) => { setDateFilters(prev => ({ ...prev, [`${f.name}_start`]: e.target.value })); setPage(1); }}
+            />
+          </div>
+        ))}
+        {dateFields.slice(0, 2).map((f) => (
+          <div key={`${f.name}_end`} className="flex flex-col gap-1">
+            <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{f.label} (fim)</label>
+            <input type="date" className={inputBase}
+              style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+              value={dateFilters[`${f.name}_end`] || ''}
+              onChange={(e) => { setDateFilters(prev => ({ ...prev, [`${f.name}_end`]: e.target.value })); setPage(1); }}
+            />
+          </div>
+        ))}
+        {(searchQuery || Object.values(dateFilters).some(Boolean)) && (
+          <button className="px-3 py-2 rounded-lg text-xs font-semibold border-none cursor-pointer"
+            style={{ background: 'var(--orange)', color: 'white' }}
+            onClick={() => { setDateFilters({}); setSearchQuery(''); setDebouncedSearch(''); }}
+          >
+            Limpar
+          </button>
+        )}
+      </div>
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg text-sm mb-4 border" style={{
           background: 'var(--orange-bg)',
@@ -259,14 +309,22 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
                 </select>
               </div>
               {!formOpen && (
-                <button
-                  type="button"
-                  className={`${btnBase} text-white`}
-                  style={{ background: 'var(--orange)' }}
-                  onClick={handleNewItem}
-                >
-                  + Novo
-                </button>
+                <div className="flex items-center gap-2">
+                  <button type="button"
+                    className="px-3 py-2 rounded-[12px] text-xs font-semibold border cursor-pointer inline-flex items-center gap-1.5"
+                    style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)', color: 'var(--text-secondary)' }}
+                    onClick={exportCSV} title="Exportar CSV">
+                    <FaDownload size={12} /> CSV
+                  </button>
+                  <button
+                    type="button"
+                    className={`${btnBase} text-white`}
+                    style={{ background: 'var(--orange)' }}
+                    onClick={handleNewItem}
+                  >
+                    + Novo
+                  </button>
+                </div>
               )}
             </div>
           </div>

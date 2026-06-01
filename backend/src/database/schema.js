@@ -339,6 +339,28 @@ async function initDb() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS ordens_servico (
+      id ${AI},
+      veiculo_id TEXT NOT NULL REFERENCES veiculos(placa) ON DELETE CASCADE,
+      numero_os TEXT,
+      data_abertura TEXT NOT NULL,
+      data_conclusao TEXT,
+      km_atual INTEGER,
+      descricao TEXT,
+      tipo TEXT DEFAULT 'corretiva' CHECK(tipo IN ('preventiva','corretiva','emergencial')),
+      status TEXT DEFAULT 'aberta' CHECK(status IN ('aberta','em_andamento','concluida','cancelada')),
+      prioridade TEXT DEFAULT 'normal' CHECK(prioridade IN ('baixa','normal','alta','urgente')),
+      mecanica_id INTEGER REFERENCES mecanicas(id) ON DELETE SET NULL,
+      valor_mao_obra REAL,
+      valor_pecas REAL,
+      observacoes TEXT,
+      criado_por TEXT REFERENCES usuarios(username) ON DELETE SET NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   try {
     const multasCols = await getTableColumns('multas');
     if (!hasColumn(multasCols, 'motorista_id')) {
@@ -405,6 +427,15 @@ async function initDb() {
     console.warn('Could not ensure pagamento_documentos file columns', err.message || err);
   }
 
+  try {
+    const absCols = await getTableColumns('abastecimentos');
+    if (!hasColumn(absCols, 'tanque_cheio')) {
+      await run('ALTER TABLE abastecimentos ADD COLUMN tanque_cheio INTEGER DEFAULT 0');
+    }
+  } catch (err) {
+    console.warn('Could not ensure abastecimentos.tanque_cheio column', err.message || err);
+  }
+
   const seedInserts = [
     { table: 'combustiveis', cols: ['tipo'], values: ['Não definido', 'Gasolina', 'Alcool', 'Flex', 'GNV', 'Gasolina/GNV', 'Flex/GNV', 'Diesel', 'Tri-Combustivel', 'Diesel/GNV'] },
     { table: 'tipo_manutencao', cols: ['descricao'], values: ['Revisão', 'Troca de óleo', 'Pneus', 'Freios'] },
@@ -469,6 +500,8 @@ async function initDb() {
     'CREATE INDEX IF NOT EXISTS idx_config_manutencao_veiculo ON config_manutencao_preventiva(veiculo_id)',
     'CREATE INDEX IF NOT EXISTS idx_vistorias_veiculo ON vistorias(veiculo_id)',
     'CREATE INDEX IF NOT EXISTS idx_pneus_veiculo ON pneus(veiculo_id)',
+    'CREATE INDEX IF NOT EXISTS idx_ordens_servico_veiculo ON ordens_servico(veiculo_id)',
+    'CREATE INDEX IF NOT EXISTS idx_ordens_servico_status ON ordens_servico(status)',
   ];
   for (const sql of FK_INDEXES) {
     try { await run(sql); } catch (_) {}

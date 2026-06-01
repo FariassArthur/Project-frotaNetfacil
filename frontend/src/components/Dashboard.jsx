@@ -99,6 +99,10 @@ export default function Dashboard({ token, onModuleSelect }) {
   const [showPagamentoModal, setShowPagamentoModal] = useState(null);
   const [expenseSummary, setExpenseSummary] = useState(null);
   const [manutencaoAlertas, setManutencaoAlertas] = useState(null);
+  const [notificacoes, setNotificacoes] = useState(null);
+  const [graficos, setGraficos] = useState(null);
+  const [graficoAno, setGraficoAno] = useState(String(new Date().getFullYear()));
+  const [graficoVeiculo, setGraficoVeiculo] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const searchTimer = useRef(null);
   const filterBtnRefs = useRef({});
@@ -128,6 +132,7 @@ export default function Dashboard({ token, onModuleSelect }) {
 
   useEffect(() => {
     requestNotificationPermission();
+
     fetchList('/api/dashboard/pagamentos', token).then((r) => {
       if (r && !r.error) {
         setPagamentos(r);
@@ -152,7 +157,29 @@ export default function Dashboard({ token, onModuleSelect }) {
         setManutencaoAlertas(r);
       }
     }).catch(err => console.error('Audit log error:', err));
+
+    fetchList('/api/dashboard/notificacoes', token).then((r) => {
+      if (r && !r.error) {
+        setNotificacoes(r);
+        const prevNotifIds = JSON.parse(localStorage.getItem('notificacaoIds') || '[]');
+        const currNotifIds = (r.atrasados || []).map(a => a.id);
+        const newNotifs = (r.atrasados || []).filter(a => !prevNotifIds.includes(a.id));
+        if (newNotifs.length > 0) {
+          notifyOverdue(newNotifs);
+        }
+        localStorage.setItem('notificacaoIds', JSON.stringify(currNotifIds));
+      }
+    }).catch(err => console.error('Notificacoes error:', err));
   }, []);
+
+  useEffect(() => {
+    if (!graficoAno) return;
+    const params = new URLSearchParams({ ano: graficoAno });
+    if (graficoVeiculo) params.set('veiculo_id', graficoVeiculo);
+    fetchList(`/api/dashboard/graficos?${params}`, token).then((r) => {
+      if (r && !r.error) setGraficos(r);
+    }).catch(err => console.error('Graficos error:', err));
+  }, [graficoAno, graficoVeiculo]);
 
   useEffect(() => {
     setColumnFilters({});
@@ -343,6 +370,35 @@ export default function Dashboard({ token, onModuleSelect }) {
         </div>
       )}
 
+      {notificacoes && (notificacoes.totais?.cnh_expiradas > 0 || notificacoes.totais?.seguro_expirados > 0 || notificacoes.totais?.ipva_expirados > 0) && (
+        <div className="flex gap-4 mb-6 flex-wrap">
+          {notificacoes.totais.cnh_expiradas > 0 && (
+            <div className="flex-1 min-w-[160px] p-4 rounded-xl border" style={{ background: 'rgba(220,53,69,0.08)', borderColor: 'var(--danger)' }}>
+              <span className="text-2xl font-bold block" style={{ color: 'var(--danger)' }}>{notificacoes.totais.cnh_expiradas}</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--danger)' }}>CNH vencida(s)</span>
+            </div>
+          )}
+          {notificacoes.totais.cnh_expiram > 0 && (
+            <div className="flex-1 min-w-[160px] p-4 rounded-xl border" style={{ background: 'rgba(255,193,7,0.12)', borderColor: '#ffc107' }}>
+              <span className="text-2xl font-bold block" style={{ color: '#cc7a00' }}>{notificacoes.totais.cnh_expiram}</span>
+              <span className="text-sm font-semibold" style={{ color: '#cc7a00' }}>CNH vence em 30 dias</span>
+            </div>
+          )}
+          {notificacoes.totais.seguro_expirados > 0 && (
+            <div className="flex-1 min-w-[160px] p-4 rounded-xl border" style={{ background: 'rgba(220,53,69,0.08)', borderColor: 'var(--danger)' }}>
+              <span className="text-2xl font-bold block" style={{ color: 'var(--danger)' }}>{notificacoes.totais.seguro_expirados}</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--danger)' }}>Seguro(s) vencido(s)</span>
+            </div>
+          )}
+          {notificacoes.totais.ipva_expirados > 0 && (
+            <div className="flex-1 min-w-[160px] p-4 rounded-xl border" style={{ background: 'rgba(220,53,69,0.08)', borderColor: 'var(--danger)' }}>
+              <span className="text-2xl font-bold block" style={{ color: 'var(--danger)' }}>{notificacoes.totais.ipva_expirados}</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--danger)' }}>IPVA vencido(s)</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {pagamentos && (
         <div className="flex gap-4 mb-6">
           <button
@@ -489,6 +545,61 @@ export default function Dashboard({ token, onModuleSelect }) {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {graficos?.gastos?.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Evolução Mensal de Gastos</h3>
+            <div className="flex gap-3 items-center">
+              <select value={graficoAno} onChange={(e) => setGraficoAno(e.target.value)}
+                className="px-3 py-1.5 rounded-lg border text-sm outline-none"
+                style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}>
+                {Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - i)).map(ano => (
+                  <option key={ano} value={ano}>{ano}</option>
+                ))}
+              </select>
+              <select value={graficoVeiculo} onChange={(e) => setGraficoVeiculo(e.target.value)}
+                className="px-3 py-1.5 rounded-lg border text-sm outline-none"
+                style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}>
+                <option value="">Todos os veículos</option>
+                {data.veiculos?.rows?.map(v => (
+                  <option key={v.placa} value={v.placa}>{v.placa}{v.numero ? ` (${v.numero})` : ''}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="rounded-xl border p-4" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={graficos.gastos}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="var(--text-muted)" />
+                <YAxis tick={{ fontSize: 12 }} stroke="var(--text-muted)" />
+                <Tooltip />
+                <Bar dataKey="manutencao" name="Manutenção" fill="#f97316" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="combustivel" name="Combustível" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="multas" name="Multas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="seguros" name="Seguros" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {graficos.gastos.some(g => g.km_l != null) && (
+            <>
+              <h3 className="text-base font-bold mt-4 mb-3" style={{ color: 'var(--text-primary)' }}>Consumo Médio (km/L)</h3>
+              <div className="rounded-xl border p-4" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={graficos.gastos.filter(g => g.km_l != null)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
+                    <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="var(--text-muted)" />
+                    <YAxis tick={{ fontSize: 12 }} stroke="var(--text-muted)" />
+                    <Tooltip />
+                    <Bar dataKey="km_l" name="km/L" fill="#f97316" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          )}
         </div>
       )}
 

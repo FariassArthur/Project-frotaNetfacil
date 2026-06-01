@@ -23,6 +23,7 @@ const ALLOWED_TABLES = {
   'viagens': true,
   'vistorias': true,
   'pneus': true,
+  'ordens_servico': true,
 };
 
 const ALLOWED_KEY_FIELDS = {
@@ -88,6 +89,34 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         filters.push('motorista_id = ?');
         params.push(req.query.motorista_id);
       }
+
+      if (req.query._q) {
+        const searchable = fields.filter(f =>
+          !fileFields.includes(f) && f !== keyField &&
+          !f.endsWith('_id') && f !== 'id' && f !== 'ativo' &&
+          f !== 'pagamento_realizado' && f !== 'aivo' && f !== 'tanque_cheio'
+        );
+        if (searchable.length > 0) {
+          const clauses = searchable.map(() => `${filters.length > 0 ? '' : ''}`);
+          const likeVal = `%${req.query._q}%`;
+          filters.push(`(${searchable.map(f => `${f} LIKE ?`).join(' OR ')})`);
+          searchable.forEach(() => params.push(likeVal));
+        }
+      }
+
+      Object.keys(req.query).forEach(key => {
+        const startMatch = key.match(/^(.+)_start$/);
+        if (startMatch && fields.includes(startMatch[1])) {
+          filters.push(`${startMatch[1]} >= ?`);
+          params.push(req.query[key]);
+        }
+        const endMatch = key.match(/^(.+)_end$/);
+        if (endMatch && fields.includes(endMatch[1])) {
+          filters.push(`${endMatch[1]} <= ?`);
+          params.push(req.query[key] + ' 23:59:59');
+        }
+      });
+
       const where = filters.length ? 'WHERE ' + filters.join(' AND ') : '';
 
       const page = Math.max(1, parseInt(req.query._page, 10) || 1);
@@ -129,7 +158,7 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
       }
       if (field === 'veiculo_id' || field === 'motorista_id') return body[field] || null;
       if ((field.endsWith('_id') && field !== 'veiculo_id' && field !== 'motorista_id') || field === 'id' || field.includes('km')) return parseInteger(body[field]);
-      if (field === 'ativo' || field === 'pagamento_realizado' || field === 'aivo') return parseBoolean(body[field]) ? 1 : 0;
+      if (field === 'ativo' || field === 'pagamento_realizado' || field === 'aivo' || field === 'tanque_cheio') return parseBoolean(body[field]) ? 1 : 0;
       return body[field] || null;
     });
 
@@ -180,7 +209,7 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
         return val || null;
       }
       if ((field.endsWith('_id') && field !== 'veiculo_id' && field !== 'motorista_id') || field === 'id' || field.includes('km')) return parseInteger(body[field]) ?? existing[field] ?? null;
-      if (field === 'ativo' || field === 'pagamento_realizado' || field === 'aivo') {
+      if (field === 'ativo' || field === 'pagamento_realizado' || field === 'aivo' || field === 'tanque_cheio') {
         const boolValue = body[field] !== undefined ? parseBoolean(body[field]) : existing[field];
         return boolValue ? 1 : 0;
       }

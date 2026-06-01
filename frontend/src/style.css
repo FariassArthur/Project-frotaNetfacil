@@ -63,6 +63,10 @@
   --toast-bg-success: #2e7d32;
   --toast-bg-error: #c62828;
   --toast-bg-info: #555;
+  --scrollbar-bg: #f5f5f5;
+  --scrollbar-thumb: #ccc;
+  --scrollbar-thumb-hover: #aaa;
+  --skeleton-bg: #e0e0e0;
   --modal-z: 1000;
   --z-sidebar: 200;
   --z-overlay: 199;
@@ -115,6 +119,10 @@
   --toast-bg-success: #2e7d32;
   --toast-bg-error: #c62828;
   --toast-bg-info: #555;
+  --scrollbar-bg: #1a1a1a;
+  --scrollbar-thumb: #444;
+  --scrollbar-thumb-hover: #555;
+  --skeleton-bg: #2a2a2a;
 }
 
 /* ===== Reset ===== */
@@ -130,6 +138,22 @@ body {
   background: var(--bg-secondary);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.2s ease;
+}
+
+[data-theme] * {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease, box-shadow 0.25s ease;
+}
+
+[data-theme] input,
+[data-theme] select,
+[data-theme] textarea,
+[data-theme] button {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease, box-shadow 0.25s ease;
+}
+
+[data-theme] img {
+  transition: opacity 0.25s ease;
 }
 
 #root {
@@ -318,9 +342,14 @@ textarea {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  scrollbar-color: var(--border-color) transparent;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bg);
   scrollbar-width: thin;
 }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
 .sidebar-nav {
   display: flex;

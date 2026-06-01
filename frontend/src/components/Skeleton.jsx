@@ -6,7 +6,7 @@ export function SkeletonRow({ cols = 4 }) {
       {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-4 rounded" style={{
-            background: 'var(--border-light)',
+            background: 'var(--skeleton-bg, var(--border-light))',
             width: `${40 + Math.random() * 40}%`,
             animation: 'pulse 1.5s ease-in-out infinite',
           }} />
@@ -51,7 +51,7 @@ export default function Skeleton({ type = 'table', rows = 5, cols }) {
             {Array.from({ length: cols || 4 }).map((_, i) => (
               <th key={i} className="px-4 py-3">
                 <div className="h-4 rounded" style={{
-                  background: 'var(--border-light)',
+                  background: 'var(--skeleton-bg, var(--border-light))',
                   width: '60%',
                   animation: 'pulse 1.5s ease-in-out infinite',
                 }} />

@@ -1,4 +1,4 @@
-import { FaChartBar, FaTruck, FaTools, FaBuilding, FaCity, FaGlobeAmericas, FaCog, FaInfoCircle, FaClipboardList } from 'react-icons/fa';
+import { FaChartBar, FaTruck, FaTools, FaBuilding, FaCity, FaGlobeAmericas, FaCog, FaInfoCircle, FaClipboardList, FaDollarSign, FaCalendarAlt, FaClipboardCheck, FaUserCheck, FaTachometerAlt, FaGasPump, FaHistory, FaExchangeAlt, FaUpload, FaUserPlus } from 'react-icons/fa';
 
 // Shared module configuration and helpers
 export const MODULES = [
@@ -7,6 +7,91 @@ export const MODULES = [
     label: 'Dashboard',
     icon: FaChartBar,
     description: 'Painel de controle inicial com status da API e navegação entre módulos.',
+    endpoint: null,
+    keyField: null,
+    fields: []
+  },
+  {
+    key: 'calendario-eventos',
+    label: 'Calendário de Eventos',
+    icon: FaCalendarAlt,
+    description: 'Visão mensal de vencimentos, multas, manutenções, vistorias e mais.',
+    endpoint: null,
+    keyField: null,
+    fields: []
+  },
+  {
+    key: 'ordens-servico',
+    label: 'Ordens de Serviço',
+    icon: FaClipboardCheck,
+    endpoint: '/api/ordens-servico',
+    keyField: 'id',
+    fields: [
+      { name: 'veiculo_id', label: 'Placa', required: true },
+      { name: 'numero_os', label: 'Nº OS' },
+      { name: 'data_abertura', label: 'Data Abertura', type: 'date', required: true },
+      { name: 'data_conclusao', label: 'Data Conclusão', type: 'date' },
+      { name: 'km_atual', label: 'KM Atual', type: 'number' },
+      { name: 'descricao', label: 'Descrição', type: 'textarea' },
+      { name: 'tipo', label: 'Tipo', type: 'select', options: ['preventiva', 'corretiva', 'emergencial'] },
+      { name: 'status', label: 'Status', type: 'select', options: ['aberta', 'em_andamento', 'concluida', 'cancelada'] },
+      { name: 'prioridade', label: 'Prioridade', type: 'select', options: ['baixa', 'normal', 'alta', 'urgente'] },
+      { name: 'mecanica_id', label: 'ID Mecânica', type: 'number' },
+      { name: 'valor_mao_obra', label: 'Valor Mão de Obra', type: 'number' },
+      { name: 'valor_pecas', label: 'Valor Peças', type: 'number' },
+      { name: 'observacoes', label: 'Observações', type: 'textarea' },
+    ]
+  },
+  {
+    key: 'custo-km',
+    label: 'Custo por KM',
+    icon: FaTachometerAlt,
+    description: 'Custo operacional por quilômetro rodado de cada veículo.',
+    endpoint: null,
+    keyField: null,
+    fields: []
+  },
+  {
+    key: 'consumo',
+    label: 'Consumo (km/L)',
+    icon: FaGasPump,
+    description: 'Comparativo de consumo de combustível entre veículos.',
+    endpoint: null,
+    keyField: null,
+    fields: []
+  },
+  {
+    key: 'motorista-multas',
+    label: 'Multas por Motorista',
+    icon: FaUserCheck,
+    description: 'Total de multas agrupadas por motorista.',
+    endpoint: null,
+    keyField: null,
+    fields: []
+  },
+  {
+    key: 'historico-motorista',
+    label: 'Histórico do Motorista',
+    icon: FaHistory,
+    description: 'Histórico consolidado de multas, viagens e abastecimentos por motorista.',
+    endpoint: null,
+    keyField: null,
+    fields: []
+  },
+  {
+    key: 'comparativo-veiculos',
+    label: 'Comparativo Veículos',
+    icon: FaExchangeAlt,
+    description: 'Compare custos e consumo entre dois veículos lado a lado.',
+    endpoint: null,
+    keyField: null,
+    fields: []
+  },
+  {
+    key: 'importar-csv',
+    label: 'Importar CSV',
+    icon: FaUpload,
+    description: 'Importe dados de veículos, motoristas e mais via arquivo CSV.',
     endpoint: null,
     keyField: null,
     fields: []
@@ -166,6 +251,28 @@ export const MODULES = [
     ]
   },
   {
+    key: 'combustiveis',
+    label: 'Combustíveis',
+    icon: FaGasPump,
+    endpoint: '/api/combustiveis',
+    keyField: 'id',
+    fields: [
+      { name: 'id', label: 'ID', tableOnly: true },
+      { name: 'tipo', label: 'Tipo', required: true }
+    ]
+  },
+  {
+    key: 'tipo-manutencao',
+    label: 'Tipos de Manutenção',
+    icon: FaClipboardList,
+    endpoint: '/api/tipo-manutencao',
+    keyField: 'id',
+    fields: [
+      { name: 'id', label: 'ID', tableOnly: true },
+      { name: 'descricao', label: 'Descrição', required: true }
+    ]
+  },
+  {
     key: 'cidades',
     label: 'Cidades',
     icon: FaCity,
@@ -241,6 +348,7 @@ export const MODULES = [
       { name: 'valor', label: 'Valor', type: 'number' },
       { name: 'km', label: 'KM', type: 'number' },
       { name: 'path_comprovante_pdf', label: 'Comprovante PDF', type: 'file' },
+      { name: 'tanque_cheio', label: 'Tanque Cheio', type: 'checkbox' },
       { name: 'combustivel_id', label: 'ID Combustível', type: 'number' },
       { name: 'veiculo_id', label: 'Placa do Veículo' }
     ]
@@ -286,6 +394,23 @@ export const MODULES = [
       { name: 'path_foto', label: 'Foto', type: 'file' },
       { name: 'veiculo_id', label: 'Placa do Veículo' }
     ]
+  },
+  {
+    key: 'pneus-dashboard',
+    label: 'Dashboard Pneus',
+    icon: FaTachometerAlt,
+    description: 'Visão geral de pneus por veículo: gastos, quantidade, KM médio.',
+    endpoint: null,
+    keyField: null,
+    fields: []
+  },
+  {
+    key: 'relatorio-custos',
+    label: 'Relatório de Custos',
+    icon: FaDollarSign,
+    endpoint: null,
+    keyField: null,
+    fields: []
   },
   {
     key: 'vistorias',
@@ -345,6 +470,16 @@ export const MODULES = [
     description: 'Registro de todas as alterações realizadas no sistema.',
     endpoint: '/api/logs',
     keyField: 'id',
+    adminOnly: true,
+    fields: []
+  },
+  {
+    key: 'usuarios',
+    label: 'Usuários',
+    icon: FaUserPlus,
+    description: 'Gerenciar usuários do sistema.',
+    endpoint: null,
+    keyField: null,
     adminOnly: true,
     fields: []
   }

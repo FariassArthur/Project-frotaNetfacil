@@ -1,0 +1,156 @@
+import React, { useState, useEffect } from 'react';
+import { FaUserPlus, FaTrash, FaSave } from 'react-icons/fa';
+
+export default function UsuariosPage({ token }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ username: '', password: '', role: 'user', ativo: true, permissoes: 'all' });
+  const [editId, setEditId] = useState(null);
+
+  const api = (path, opts = {}) => fetch(`/api/usuarios${path}`, {
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...opts.headers },
+    ...opts,
+  });
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await api('');
+      setUsers(await r.json());
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleSave = async () => {
+    if (!form.username) return;
+    const body = { ...form };
+    if (!body.password) { delete body.password; }
+    try {
+      if (editId) {
+        await api(`/${editId}`, { method: 'PUT', body: JSON.stringify(body) });
+      } else {
+        await api('', { method: 'POST', body: JSON.stringify(body) });
+      }
+      setForm({ username: '', password: '', role: 'user', ativo: true, permissoes: 'all' });
+      setEditId(null);
+      load();
+    } catch (e) { console.error(e); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Excluir usuário?')) return;
+    try {
+      await api(`/${id}`, { method: 'DELETE' });
+      load();
+    } catch (e) { console.error(e); }
+  };
+
+  const startEdit = (u) => {
+    setEditId(u.id);
+    setForm({ username: u.username, password: '', role: u.role, ativo: !!u.ativo, permissoes: u.permissoes || 'all' });
+  };
+
+  const inputClass = 'w-full px-3 py-2 rounded-lg border text-sm outline-none';
+  const labelClass = 'text-xs font-semibold mb-1 block';
+
+  if (loading) return <div className="p-6 text-center" style={{ color: 'var(--text-muted)' }}>Carregando...</div>;
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+        <FaUserPlus style={{ color: 'var(--orange)' }} /> Usuários
+      </h1>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
+        <div className="p-4 rounded-xl border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
+          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{editId ? 'Editar' : 'Novo'} Usuário</h3>
+          <div className="space-y-3">
+            <div>
+              <label className={labelClass} style={{ color: 'var(--text-secondary)' }}>Usuário</label>
+              <input className={inputClass} value={form.username}
+                style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+                onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
+            </div>
+            <div>
+              <label className={labelClass} style={{ color: 'var(--text-secondary)' }}>Senha {editId ? '(deixe vazio para manter)' : ''}</label>
+              <input type="password" className={inputClass} value={form.password}
+                style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+            </div>
+            <div>
+              <label className={labelClass} style={{ color: 'var(--text-secondary)' }}>Perfil</label>
+              <select className={inputClass} value={form.role}
+                style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
+                onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+                <option value="user">Usuário</option>
+                <option value="admin">Admin</option>
+                <option value="root">Root</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="ativo-input" checked={form.ativo}
+                onChange={e => setForm(f => ({ ...f, ativo: e.target.checked }))} />
+              <label htmlFor="ativo-input" className="text-sm" style={{ color: 'var(--text-secondary)' }}>Ativo</label>
+            </div>
+            <button onClick={handleSave} disabled={!form.username}
+              className="w-full px-4 py-2.5 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              style={{ background: 'var(--orange)' }}>
+              <FaSave size={14} /> {editId ? 'Atualizar' : 'Criar'}
+            </button>
+            {editId && (
+              <button onClick={() => { setEditId(null); setForm({ username: '', password: '', role: 'user', ativo: true, permissoes: 'all' }); }}
+                className="w-full px-4 py-2 rounded-lg text-sm border cursor-pointer"
+                style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)', color: 'var(--text-secondary)' }}>
+                Cancelar
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--border-light)' }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: 'var(--orange-bg)' }}>
+                <th className="text-left px-4 py-2.5 font-semibold" style={{ color: 'var(--text-primary)' }}>Usuário</th>
+                <th className="text-left px-4 py-2.5 font-semibold" style={{ color: 'var(--text-primary)' }}>Perfil</th>
+                <th className="text-center px-4 py-2.5 font-semibold" style={{ color: 'var(--text-primary)' }}>Ativo</th>
+                <th className="text-center px-4 py-2.5 font-semibold" style={{ color: 'var(--text-primary)' }}>Permissões</th>
+                <th className="text-center px-4 py-2.5 font-semibold" style={{ color: 'var(--text-primary)' }}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id} className="border-t hover:opacity-80" style={{ borderColor: 'var(--border-light)' }}>
+                  <td className="px-4 py-2.5 font-medium" style={{ color: 'var(--text-primary)' }}>{u.username}</td>
+                  <td className="px-4 py-2.5"><span className="px-2 py-0.5 rounded text-xs font-semibold" style={{
+                    background: u.role === 'root' ? 'var(--danger-bg)' : u.role === 'admin' ? 'var(--orange-bg)' : 'var(--card-bg)',
+                    color: u.role === 'root' ? 'var(--danger)' : u.role === 'admin' ? 'var(--orange)' : 'var(--text-secondary)',
+                  }}>{u.role}</span></td>
+                  <td className="text-center px-4 py-2.5" style={{ color: u.ativo ? 'var(--success)' : 'var(--danger)' }}>{u.ativo ? 'Sim' : 'Não'}</td>
+                  <td className="text-center px-4 py-2.5" style={{ color: 'var(--text-muted)' }}>{u.permissoes}</td>
+                  <td className="text-center px-4 py-2.5">
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => startEdit(u)} className="px-2.5 py-1 rounded-lg text-xs font-semibold border cursor-pointer"
+                        style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)', color: 'var(--text-secondary)' }}>
+                        Editar
+                      </button>
+                      <button onClick={() => handleDelete(u.id)} className="px-2.5 py-1 rounded-lg text-xs font-semibold border cursor-pointer"
+                        style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+                        <FaTrash size={10} className="inline" /> Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-6" style={{ color: 'var(--text-muted)' }}>Nenhum usuário encontrado.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

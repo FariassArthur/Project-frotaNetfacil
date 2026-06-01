@@ -16,6 +16,16 @@ const LogsAuditoria = lazy(() => import('./components/LogsAuditoria'));
 const ViagensPage = lazy(() => import('./components/ViagensPage'));
 const VistoriaChecklist = lazy(() => import('./components/VistoriaChecklist'));
 const PneusPage = lazy(() => import('./components/PneusPage'));
+const RelatorioCustos = lazy(() => import('./components/RelatorioCustos'));
+const CalendarioEventos = lazy(() => import('./components/CalendarioEventos'));
+const CustoKm = lazy(() => import('./components/CustoKm'));
+const ConsumoVeiculos = lazy(() => import('./components/ConsumoVeiculos'));
+const MotoristaMultas = lazy(() => import('./components/MotoristaMultas'));
+const HistoricoMotoristaConsolidado = lazy(() => import('./components/HistoricoMotoristaConsolidado'));
+const ComparativoVeiculos = lazy(() => import('./components/ComparativoVeiculos'));
+const ImportarCSV = lazy(() => import('./components/ImportarCSV'));
+const PneusDashboard = lazy(() => import('./components/PneusDashboard'));
+const UsuariosPage = lazy(() => import('./components/UsuariosPage'));
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WARNING_BEFORE_MS = 60 * 1000;
@@ -314,6 +324,28 @@ export default function App() {
               <PneusPage
                 token={token}
               />
+            ) : currentKey === 'relatorio-custos' ? (
+              <RelatorioCustos
+                token={token}
+              />
+            ) : currentKey === 'calendario-eventos' ? (
+              <CalendarioEventos />
+            ) : currentKey === 'custo-km' ? (
+              <CustoKm token={token} />
+            ) : currentKey === 'consumo' ? (
+              <ConsumoVeiculos token={token} />
+            ) : currentKey === 'motorista-multas' ? (
+              <MotoristaMultas token={token} />
+            ) : currentKey === 'historico-motorista' ? (
+              <HistoricoMotoristaConsolidado token={token} />
+            ) : currentKey === 'comparativo-veiculos' ? (
+              <ComparativoVeiculos token={token} />
+            ) : currentKey === 'importar-csv' ? (
+              <ImportarCSV token={token} />
+            ) : currentKey === 'pneus-dashboard' ? (
+              <PneusDashboard token={token} />
+            ) : currentKey === 'usuarios' ? (
+              <UsuariosPage token={token} />
             ) : (
               <GenericModule
                 moduleConfig={currentModule}

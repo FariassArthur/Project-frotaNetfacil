@@ -1,7 +1,61 @@
 const { all, run, sqlDate } = require('../database/connection');
+const { notifyVencimentos, isConfigured } = require('./email');
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let intervalId = null;
+
+async function checkVencimentos() {
+  try {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const daqui7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+
+    const items = [];
+
+    // CNHs vencendo em 7 dias
+    const cnhs = await all(`SELECT nome, validade FROM cnhs WHERE validade BETWEEN ? AND ?`, [hoje, daqui7]);
+    for (const c of cnhs) {
+      items.push({ tipo: 'CNH', titulo: c.nome, veiculo_id: null, data: c.validade, dias_atraso: 0 });
+    }
+
+    // Seguros vencendo
+    const seguros = await all(`
+      SELECT cs.numero_apolice, cs.data_final_contrato, v.placa
+      FROM contratos_seguro cs LEFT JOIN veiculos v ON cs.veiculo_id = v.placa
+      WHERE cs.ativo = 1 AND cs.data_final_contrato BETWEEN ? AND ?
+    `, [hoje, daqui7]);
+    for (const s of seguros) {
+      items.push({ tipo: 'Seguro', titulo: `Apólice ${s.numero_apolice}`, veiculo_id: s.placa, data: s.data_final_contrato, dias_atraso: 0 });
+    }
+
+    // Multas vencidas
+    const multas = await all(`
+      SELECT id, veiculo_id, valor, data_vencimento FROM multas
+      WHERE data_vencimento < ? AND (pagamento_realizado IS NULL OR pagamento_realizado = 0)
+    `, [hoje]);
+    for (const m of multas) {
+      const dias = Math.floor((new Date(hoje) - new Date(m.data_vencimento)) / (1000 * 60 * 60 * 24));
+      items.push({ tipo: 'Multa', titulo: `R$ ${Number(m.valor).toFixed(2)}`, veiculo_id: m.veiculo_id, data: m.data_vencimento, dias_atraso: dias });
+    }
+
+    // Documentos vencidos
+    const docs = await all(`
+      SELECT id, veiculo_id, descricao, valor, data_vencimento FROM pagamento_documentos
+      WHERE data_vencimento < ? AND data_pagamento IS NULL
+    `, [hoje]);
+    for (const d of docs) {
+      const dias = Math.floor((new Date(hoje) - new Date(d.data_vencimento)) / (1000 * 60 * 60 * 24));
+      items.push({ tipo: 'Documento', titulo: d.descricao || 'Documento', veiculo_id: d.veiculo_id, data: d.data_vencimento, dias_atraso: dias });
+    }
+
+    if (items.length > 0) {
+      console.log(`[Cron] ${items.length} vencimento(s) encontrado(s).`);
+      const emailSent = await notifyVencimentos(items);
+      if (emailSent) console.log('[Cron] E-mail de notificação enviado.');
+    }
+  } catch (err) {
+    console.error('[Cron] Erro ao verificar vencimentos:', err.message || err);
+  }
+}
 
 async function checkManutencaoPreventiva() {
   try {
@@ -91,8 +145,9 @@ async function checkAbastecimentoAlertas() {
 }
 
 async function runAllChecks() {
-  await checkManutencaoPreventiva();
-  await checkAbastecimentoAlertas();
+  try { await checkVencimentos(); } catch (_) {}
+  try { await checkManutencaoPreventiva(); } catch (_) {}
+  try { await checkAbastecimentoAlertas(); } catch (_) {}
 }
 
 function startCron() {

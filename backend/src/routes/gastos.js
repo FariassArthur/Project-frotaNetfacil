@@ -42,10 +42,12 @@ function registerGastosRoutes(app) {
       ]);
 
       const consumo = [];
-      if (abastecimentos.length >= 2) {
-        for (let i = 1; i < abastecimentos.length; i++) {
-          const atual = abastecimentos[i];
-          const anterior = abastecimentos[i - 1];
+      const tanqueCheio = abastecimentos.filter(a => a.tanque_cheio == 1);
+      const absSource = tanqueCheio.length >= 2 ? tanqueCheio : abastecimentos;
+      if (absSource.length >= 2) {
+        for (let i = 1; i < absSource.length; i++) {
+          const atual = absSource[i];
+          const anterior = absSource[i - 1];
           if (atual.km != null && anterior.km != null && atual.quantidade > 0) {
             const kmRodados = atual.km - anterior.km;
             if (kmRodados > 0) {
@@ -54,6 +56,7 @@ function registerGastosRoutes(app) {
                 km_rodados: kmRodados,
                 litros: atual.quantidade,
                 km_por_litro: Math.round((kmRodados / atual.quantidade) * 100) / 100,
+                tanque_cheio: atual.tanque_cheio == 1,
               });
             }
           }
@@ -62,6 +65,11 @@ function registerGastosRoutes(app) {
       const consumoMedio = consumo.length > 0
         ? Math.round((consumo.reduce((s, c) => s + c.km_por_litro, 0) / consumo.length) * 100) / 100
         : null;
+
+      const anomalias = consumo.filter(c => consumoMedio != null && c.km_por_litro < consumoMedio * 0.7).map(c => ({
+        ...c,
+        desvio: Math.round((1 - c.km_por_litro / consumoMedio) * 100),
+      }));
 
       const sum = (arr) => arr.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
       const totalManutencao = sum(manutencoes);
@@ -87,6 +95,8 @@ function registerGastosRoutes(app) {
         consumo: {
           detalhes: consumo,
           media_km_por_litro: consumoMedio,
+          anomalias,
+          usando_tanque_cheio: tanqueCheio.length >= 2,
         },
         detalhes: {
           manutencoes,

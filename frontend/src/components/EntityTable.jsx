@@ -175,22 +175,20 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
                     {displayFields.map((field) => {
                     const val = getItemValue(item, field.name);
                     const fileUrl = field.type === 'file' ? getFileUrl(val) : null;
+                    const isImg = fileUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(val);
                     return (
                       <td key={field.name} className={tdClass} style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {fileUrl ? (
-                          <a
-                            href={fileUrl}
+                        {fileUrl ? isImg ? (
+                          <a href={fileUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                            <img src={fileUrl} alt="" className="w-10 h-10 rounded-lg object-cover border cursor-pointer hover:opacity-80 transition-opacity"
+                              style={{ borderColor: 'var(--border-light)' }} />
+                          </a>
+                        ) : (
+                          <a href={fileUrl}
                             className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-semibold no-underline transition-colors"
-                            style={{
-                              background: 'var(--orange-bg)',
-                              color: 'var(--orange-dark)',
-                              border: '1px solid var(--border-light)',
-                            }}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <FaPaperclip size={12} className="mr-1" /> Visualizar
+                            style={{ background: 'var(--orange-bg)', color: 'var(--orange-dark)', border: '1px solid var(--border-light)' }}
+                            target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                            <FaPaperclip size={12} /> Visualizar
                           </a>
                         ) : (
                           <span title={String(val || '')}>{String(val || '').substring(0, 30)}</span>
