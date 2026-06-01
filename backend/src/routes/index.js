@@ -115,6 +115,22 @@ function registerRoutes(app) {
     fields: ['quantidade', 'combustivel_id', 'valor', 'km', 'path_comprovante_pdf', 'data', 'data_s', 'veiculo_id'],
     fileFields: ['path_comprovante_pdf']
   });
+
+  createRoutesFor(app, {
+    name: 'vistorias',
+    tableName: 'vistorias',
+    keyField: 'id',
+    fields: ['veiculo_id', 'tipo', 'data', 'km', 'itens', 'status', 'observacoes', 'motorista_nome', 'path_foto'],
+    fileFields: ['path_foto']
+  });
+
+  createRoutesFor(app, {
+    name: 'pneus',
+    tableName: 'pneus',
+    keyField: 'id',
+    fields: ['veiculo_id', 'identificacao', 'marca', 'modelo', 'medidas', 'dot', 'posicao', 'km_instalacao', 'data_instalacao', 'km_retirada', 'data_retirada', 'status', 'nf', 'valor', 'observacoes', 'path_foto'],
+    fileFields: ['path_foto']
+  });
 }
 
 module.exports = { registerRoutes };

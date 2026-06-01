@@ -21,6 +21,8 @@ const ALLOWED_TABLES = {
   'abastecimentos': true,
   'cidades': true,
   'viagens': true,
+  'vistorias': true,
+  'pneus': true,
 };
 
 const ALLOWED_KEY_FIELDS = {

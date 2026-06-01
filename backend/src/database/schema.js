@@ -302,6 +302,43 @@ async function initDb() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS vistorias (
+      id ${AI},
+      veiculo_id TEXT REFERENCES veiculos(placa) ON DELETE CASCADE,
+      tipo TEXT NOT NULL DEFAULT 'saida',
+      data TEXT,
+      km INTEGER,
+      itens TEXT,
+      status TEXT DEFAULT 'ok',
+      observacoes TEXT,
+      motorista_nome TEXT,
+      path_foto TEXT
+    )
+  `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS pneus (
+      id ${AI},
+      veiculo_id TEXT REFERENCES veiculos(placa) ON DELETE SET NULL,
+      identificacao TEXT,
+      marca TEXT,
+      modelo TEXT,
+      medidas TEXT,
+      dot TEXT,
+      posicao TEXT,
+      km_instalacao INTEGER,
+      data_instalacao TEXT,
+      km_retirada INTEGER,
+      data_retirada TEXT,
+      status TEXT DEFAULT 'ativo',
+      nf TEXT,
+      valor REAL,
+      observacoes TEXT,
+      path_foto TEXT
+    )
+  `);
+
   try {
     const multasCols = await getTableColumns('multas');
     if (!hasColumn(multasCols, 'motorista_id')) {
@@ -430,6 +467,8 @@ async function initDb() {
     'CREATE INDEX IF NOT EXISTS idx_viagens_veiculo ON viagens(veiculo_id)',
     'CREATE INDEX IF NOT EXISTS idx_viagens_motorista ON viagens(motorista_id)',
     'CREATE INDEX IF NOT EXISTS idx_config_manutencao_veiculo ON config_manutencao_preventiva(veiculo_id)',
+    'CREATE INDEX IF NOT EXISTS idx_vistorias_veiculo ON vistorias(veiculo_id)',
+    'CREATE INDEX IF NOT EXISTS idx_pneus_veiculo ON pneus(veiculo_id)',
   ];
   for (const sql of FK_INDEXES) {
     try { await run(sql); } catch (_) {}

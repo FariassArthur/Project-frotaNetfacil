@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import GenericModule from './GenericModule';
 import VeiculoGastos from './VeiculoGastos';
 import ManutencaoPreventivaConfig from './ManutencaoPreventivaConfig';
+import HistoricoMotorista from './HistoricoMotorista';
+import VistoriaChecklist from './VistoriaChecklist';
 import { getByKey } from '../modules/config';
 
 const SUB_TABS = [
@@ -17,6 +19,9 @@ const SUB_TABS = [
   { key: 'pagamentos-seguro', label: 'Pag. Seguro' },
   { key: 'documentos', label: 'Pag. Documentos' },
   { key: 'higienizacao', label: 'Higienização' },
+  { key: 'historico', label: 'Histórico Motorista' },
+  { key: 'pneus', label: 'Pneus' },
+  { key: 'vistoria', label: 'Checklist' },
 ];
 
 const MODULE_KEY_MAP = {
@@ -29,6 +34,7 @@ const MODULE_KEY_MAP = {
   'pagamentos-seguro': 'pagamentos-seguro',
   documentos: 'pagamento-documentos',
   higienizacao: 'higienizacao',
+  pneus: 'pneus',
 };
 
 export default function VeiculosPage({ moduleConfig, token, vehicles, cidades }) {
@@ -51,6 +57,12 @@ export default function VeiculosPage({ moduleConfig, token, vehicles, cidades })
     }
     if (activeTab === 'manutencao-preventiva') {
       return <ManutencaoPreventivaConfig token={token} veiculoId={selectedVehicle || undefined} veiculos={vehicles} />;
+    }
+    if (activeTab === 'historico') {
+      return <HistoricoMotorista token={token} veiculoId={selectedVehicle} />;
+    }
+    if (activeTab === 'vistoria') {
+      return <VistoriaChecklist token={token} veiculoId={selectedVehicle} />;
     }
     if (!selectedVehicle) {
       return (

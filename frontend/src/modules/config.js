@@ -263,6 +263,48 @@ export const MODULES = [
     ]
   },
   {
+    key: 'pneus',
+    label: 'Pneus',
+    icon: FaTools,
+    endpoint: '/api/pneus',
+    keyField: 'id',
+    fields: [
+      { name: 'identificacao', label: 'Identificação' },
+      { name: 'marca', label: 'Marca' },
+      { name: 'modelo', label: 'Modelo' },
+      { name: 'medidas', label: 'Medidas' },
+      { name: 'dot', label: 'DOT' },
+      { name: 'posicao', label: 'Posição', type: 'select', options: ['dianteiro_esq', 'dianteiro_dir', 'traseiro_esq', 'traseiro_dir', 'estepe', 'reserva'] },
+      { name: 'km_instalacao', label: 'KM Instalação', type: 'number' },
+      { name: 'data_instalacao', label: 'Data Instalação', type: 'date' },
+      { name: 'km_retirada', label: 'KM Retirada', type: 'number' },
+      { name: 'data_retirada', label: 'Data Retirada', type: 'date' },
+      { name: 'status', label: 'Status', type: 'select', options: ['ativo', 'reserva', 'inservivel', 'vendido'] },
+      { name: 'nf', label: 'Nota Fiscal' },
+      { name: 'valor', label: 'Valor', type: 'number' },
+      { name: 'observacoes', label: 'Observações', type: 'textarea' },
+      { name: 'path_foto', label: 'Foto', type: 'file' },
+      { name: 'veiculo_id', label: 'Placa do Veículo' }
+    ]
+  },
+  {
+    key: 'vistorias',
+    label: 'Checklist Vistoria',
+    icon: FaClipboardList,
+    endpoint: '/api/vistorias',
+    keyField: 'id',
+    fields: [
+      { name: 'data', label: 'Data', type: 'date' },
+      { name: 'tipo', label: 'Tipo', type: 'select', options: ['saida', 'retorno'] },
+      { name: 'km', label: 'KM', type: 'number' },
+      { name: 'status', label: 'Status', type: 'select', options: ['ok', 'pendente', 'irregular'] },
+      { name: 'observacoes', label: 'Observações', type: 'textarea' },
+      { name: 'motorista_nome', label: 'Motorista' },
+      { name: 'path_foto', label: 'Foto', type: 'file' },
+      { name: 'veiculo_id', label: 'Placa do Veículo' }
+    ]
+  },
+  {
     key: 'higienizacao',
     label: 'Higienização',
     sidebarHidden: true,

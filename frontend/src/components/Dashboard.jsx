@@ -4,6 +4,7 @@ import { FaDownload, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { fetchList } from '../api/client';
 import { formatHeader, FilterDropdown } from '../utils/tableUtils.jsx';
 import { requestNotificationPermission, notifyOverdue } from '../utils/notifications';
+import Skeleton from './Skeleton';
 
 const MODULE_ORDER = [
   'veiculos', 'cnhs', 'manutencoes', 'multas', 'abastecimentos',
@@ -306,10 +307,7 @@ export default function Dashboard({ token, onModuleSelect }) {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Dashboard</h2>
         </div>
-        <div className="flex items-center gap-2 py-12 justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
-          <span className="inline-block w-4 h-4 border-2 border-[var(--orange)] border-t-transparent rounded-full animate-[spin_0.6s_linear_infinite]" />
-          Carregando dados...
-        </div>
+        <Skeleton type="card" rows={4} />
       </div>
     );
   }

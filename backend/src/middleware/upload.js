@@ -3,7 +3,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { UPLOADS_BASE } = require('../config');
 
-const ALLOWED_MODULES = ['uploads', 'veiculos', 'cnhs', 'manutencoes', 'multas', 'contratos-seguro', 'pagamentos-seguro', 'pagamento-documentos', 'higienizacao', 'abastecimentos', 'cidades'];
+const ALLOWED_MODULES = ['uploads', 'veiculos', 'cnhs', 'manutencoes', 'multas', 'contratos-seguro', 'pagamentos-seguro', 'pagamento-documentos', 'higienizacao', 'abastecimentos', 'cidades', 'vistorias', 'pneus'];
 
 const ALLOWED_MIMETYPES = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
 

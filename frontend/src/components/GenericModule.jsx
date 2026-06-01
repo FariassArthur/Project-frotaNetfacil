@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchListPaginated, createItem, updateItem, deleteItem } from '../api/client';
 import EntityForm from './EntityForm';
 import EntityTable from './EntityTable';
+import Skeleton from './Skeleton';
 import { useToast } from './Toast';
 
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -270,10 +271,7 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
             </div>
           </div>
           {loading ? (
-            <div className="flex items-center gap-2 py-8 justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
-              <span className="inline-block w-4 h-4 border-2 border-[var(--orange)] border-t-transparent rounded-full animate-[spin_0.6s_linear_infinite]" />
-              Carregando...
-            </div>
+            <Skeleton rows={5} cols={moduleConfig.fields.filter(f => f.tableOnly !== false).length} />
           ) : (
             <EntityTable
               items={items}

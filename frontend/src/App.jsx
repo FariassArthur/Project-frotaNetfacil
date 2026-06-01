@@ -14,6 +14,8 @@ const VersionPage = lazy(() => import('./components/VersionPage'));
 const ConfiguracoesPage = lazy(() => import('./components/ConfiguracoesPage'));
 const LogsAuditoria = lazy(() => import('./components/LogsAuditoria'));
 const ViagensPage = lazy(() => import('./components/ViagensPage'));
+const VistoriaChecklist = lazy(() => import('./components/VistoriaChecklist'));
+const PneusPage = lazy(() => import('./components/PneusPage'));
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WARNING_BEFORE_MS = 60 * 1000;
@@ -303,6 +305,14 @@ export default function App() {
               <ViagensPage
                 token={token}
                 vehicles={vehicles}
+              />
+            ) : currentKey === 'vistorias' ? (
+              <VistoriaChecklist
+                token={token}
+              />
+            ) : currentKey === 'pneus' ? (
+              <PneusPage
+                token={token}
               />
             ) : (
               <GenericModule
