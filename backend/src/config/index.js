@@ -37,7 +37,7 @@ const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 const UPLOADS_BASE = process.env.UPLOADS_BASE || path.join(PUBLIC_DIR, 'uploads');
 const CORS_ORIGIN = NODE_ENV === 'production'
   ? (process.env.CORS_ORIGIN || '')
-  : (process.env.CORS_ORIGIN || 'http://localhost:5173');
+  : (process.env.CORS_ORIGIN || 'http://localhost:4173');
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 fs.mkdirSync(PUBLIC_DIR, { recursive: true });

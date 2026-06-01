@@ -257,6 +257,15 @@ export async function fetchMe() {
 
 export function getItemValue(item, fieldName) {
   if (item == null) return undefined;
+  if (fieldName.includes('.')) {
+    const keys = fieldName.split('.');
+    let val = item;
+    for (const k of keys) {
+      if (val == null || typeof val !== 'object') return undefined;
+      val = val[k];
+    }
+    return val;
+  }
   if (item[fieldName] !== undefined && item[fieldName] !== null) return item[fieldName];
   const snake = fieldName.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
   return item[snake];

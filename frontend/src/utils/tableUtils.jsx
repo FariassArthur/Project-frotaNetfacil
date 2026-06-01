@@ -67,45 +67,87 @@ export function FilterDropdown({ items, getValue, filter, onFilterChange, onClos
   } : {};
 
   return (
-    <div className="filter-dropdown" ref={dropdownRef} onClick={(e) => e.stopPropagation()} style={style}>
-      <div className="filter-dropdown-section">
-        <label className="filter-label">Ordenar</label>
-        <div className="filter-sort-buttons">
-          <button
-            className={`filter-sort-btn${filter.sort === 'asc' ? ' active' : ''}`}
-            onClick={() => onFilterChange({ ...filter, sort: filter.sort === 'asc' ? null : 'asc' })}
-          >⬆ A-Z</button>
-          <button
-            className={`filter-sort-btn${filter.sort === 'desc' ? ' active' : ''}`}
-            onClick={() => onFilterChange({ ...filter, sort: filter.sort === 'desc' ? null : 'desc' })}
-          >⬇ Z-A</button>
+    <div
+      ref={dropdownRef}
+      onClick={(e) => e.stopPropagation()}
+      style={style}
+      className="fixed z-50 min-w-[220px] max-w-[300px] bg-[var(--card-bg)] border border-[var(--border-light)] rounded-xl shadow-lg py-1"
+    >
+      <fieldset className="border-0 p-0 m-0">
+        <legend className="sr-only">Opções de filtro</legend>
+        <div className="px-3 py-2 border-b border-[var(--border-light)]">
+          <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Ordenar</label>
+          <div className="flex gap-1">
+            <button
+              className={`flex-1 px-2 py-1 text-xs rounded-md border transition-colors ${
+                filter.sort === 'asc' ? 'bg-[var(--orange)] text-white border-[var(--orange)]' : 'border-[var(--border-light)] hover:bg-[var(--orange-bg)]'
+              }`}
+              style={{ color: filter.sort === 'asc' ? 'white' : 'var(--text-secondary)' }}
+              onClick={() => onFilterChange({ ...filter, sort: filter.sort === 'asc' ? null : 'asc' })}
+              aria-pressed={filter.sort === 'asc'}
+            >
+              <span aria-hidden="true">&#9650;</span> A-Z
+            </button>
+            <button
+              className={`flex-1 px-2 py-1 text-xs rounded-md border transition-colors ${
+                filter.sort === 'desc' ? 'bg-[var(--orange)] text-white border-[var(--orange)]' : 'border-[var(--border-light)] hover:bg-[var(--orange-bg)]'
+              }`}
+              style={{ color: filter.sort === 'desc' ? 'white' : 'var(--text-secondary)' }}
+              onClick={() => onFilterChange({ ...filter, sort: filter.sort === 'desc' ? null : 'desc' })}
+              aria-pressed={filter.sort === 'desc'}
+            >
+              <span aria-hidden="true">&#9660;</span> Z-A
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="filter-dropdown-section">
-        <label className="filter-label">Filtrar valores</label>
-        <input
-          className="filter-value-search"
-          placeholder="Buscar..."
-          value={valueSearch}
-          onChange={(e) => setValueSearch(e.target.value)}
-        />
-        <div className="filter-value-actions">
-          <button onClick={showAll}>Selecionar todos</button>
-          <button onClick={hideAll}>Limpar</button>
+        <div className="px-3 py-2">
+          <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Filtrar valores</label>
+          <input
+            className="w-full px-2 py-1.5 text-xs rounded-md border outline-none mb-1.5"
+            placeholder="Buscar..."
+            value={valueSearch}
+            onChange={(e) => setValueSearch(e.target.value)}
+            style={{
+              background: 'var(--input-bg)',
+              borderColor: 'var(--input-border)',
+              color: 'var(--text-primary)',
+            }}
+          />
+          <div className="flex gap-2 mb-1.5">
+            <button
+              className="text-xs border-none bg-transparent cursor-pointer p-0 font-medium"
+              style={{ color: 'var(--orange)' }}
+              onClick={showAll}
+            >Selecionar todos</button>
+            <button
+              className="text-xs border-none bg-transparent cursor-pointer p-0 font-medium"
+              style={{ color: 'var(--orange)' }}
+              onClick={hideAll}
+            >Limpar</button>
+          </div>
+          <div className="max-h-[180px] overflow-y-auto space-y-0.5">
+            {filteredValues.length > 0 ? (
+              filteredValues.map((v) => (
+                <label
+                  key={v}
+                  className="flex items-center gap-1.5 px-1 py-0.5 rounded cursor-pointer text-xs hover:bg-[var(--orange-bg)]"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <input
+                    type="checkbox"
+                    className="accent-[var(--orange)]"
+                    checked={!hidden.has(v)}
+                    onChange={() => toggleValue(v)}
+                  />
+                  <span className="truncate">{v || '(vazio)'}</span>
+                </label>
+              ))
+            ) : (
+              <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>Nenhum valor encontrado</p>
+            )}
+          </div>
         </div>
-        <div className="filter-value-list">
-          {filteredValues.map((v) => (
-            <label key={v} className="filter-value-item">
-              <input
-                type="checkbox"
-                checked={!hidden.has(v)}
-                onChange={() => toggleValue(v)}
-              />
-              <span>{v || '(vazio)'}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+      </fieldset>
     </div>
   );
 }

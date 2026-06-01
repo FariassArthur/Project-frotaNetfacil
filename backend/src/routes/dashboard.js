@@ -30,9 +30,10 @@ function registerDashboardRoutes(app) {
   app.get('/api/dashboard', async (req, res) => {
     try {
       const result = {};
+      const limit = Math.min(500, parseInt(req.query._limit, 10) || 200);
       for (const table of TABLES) {
         if (!ALLOWED_TABLES[table.key]) continue;
-        const rows = await all(`SELECT * FROM ${table.key} ORDER BY 1`);
+        const rows = await all(`SELECT * FROM ${table.key} ORDER BY 1 LIMIT ?`, [limit]);
         result[table.key] = {
           label: table.label,
           count: rows.length,

@@ -22,20 +22,11 @@ export default function CidadesPage({ moduleConfig, token, vehicles, cidades: ci
     const rows = [];
     for (const v of relatedVehicles) {
       const drivers = cnhs.filter((c) => c.veiculo_id === v.placa);
-      if (drivers.length === 0) {
-        rows.push({ vehicle: v, driver: null });
-      } else {
-        for (const d of drivers) {
-          rows.push({ vehicle: v, driver: d });
-        }
-      }
+      if (drivers.length === 0) rows.push({ vehicle: v, driver: null });
+      else for (const d of drivers) rows.push({ vehicle: v, driver: d });
     }
     return rows;
   }, [relatedVehicles, cnhs]);
-
-  const handleSelectChange = (item) => {
-    setSelectedCidade(item);
-  };
 
   return (
     <div>
@@ -44,44 +35,45 @@ export default function CidadesPage({ moduleConfig, token, vehicles, cidades: ci
         token={token}
         vehicles={vehicles}
         cidades={cidadesList}
-        onItemSelect={handleSelectChange}
+        onItemSelect={(item) => setSelectedCidade(item)}
       />
       {selectedCidade && (
-        <div className="cidade-detalhes">
-          <h3>Detalhes — {selectedCidade.nome}{selectedCidade.uf ? ` (${selectedCidade.uf})` : ''}</h3>
-
-          <div className="cidade-relacionados">
-            <div className="cidade-relacionados-card full-width">
-              <h4>Veículos e Motoristas ({combinedRows.length})</h4>
-              {combinedRows.length === 0 ? (
-                <p className="sem-dados">Nenhum veículo cadastrado nesta cidade.</p>
-              ) : (
-                <table className="table">
+        <div className="rounded-xl border m-6 p-6" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
+          <h3 className="text-base font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+            Detalhes — {selectedCidade.nome}{selectedCidade.uf ? ` (${selectedCidade.uf})` : ''}
+          </h3>
+          <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-light)' }}>
+            <h4 className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Veículos e Motoristas ({combinedRows.length})</h4>
+            {combinedRows.length === 0 ? (
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nenhum veículo cadastrado nesta cidade.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
                   <thead>
-                    <tr>
-                      <th>Placa</th>
-                      <th>Modelo</th>
-                      <th>Número</th>
-                      <th>Motorista</th>
-                      <th>CPF</th>
-                      <th>Validade CNH</th>
+                    <tr style={{ background: 'var(--table-header-bg)' }}>
+                      <th className="px-4 py-3 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Placa</th>
+                      <th className="px-4 py-3 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Modelo</th>
+                      <th className="px-4 py-3 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Número</th>
+                      <th className="px-4 py-3 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Motorista</th>
+                      <th className="px-4 py-3 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>CPF</th>
+                      <th className="px-4 py-3 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Validade CNH</th>
                     </tr>
                   </thead>
                   <tbody>
                     {combinedRows.map((row, idx) => (
-                      <tr key={idx}>
-                        <td>{row.vehicle.placa}</td>
-                        <td>{row.vehicle.fipe_modelo || row.vehicle.tipo || '-'}</td>
-                        <td>{row.vehicle.numero || '-'}</td>
-                        <td>{row.driver ? row.driver.nome : '-'}</td>
-                        <td>{row.driver ? row.driver.cpf || '-' : '-'}</td>
-                        <td>{row.driver ? row.driver.validade || '-' : '-'}</td>
+                      <tr key={idx} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)' }}>
+                        <td className="px-4 py-3 border-b">{row.vehicle.placa}</td>
+                        <td className="px-4 py-3 border-b">{row.vehicle.fipe_modelo || row.vehicle.tipo || '-'}</td>
+                        <td className="px-4 py-3 border-b">{row.vehicle.numero || '-'}</td>
+                        <td className="px-4 py-3 border-b">{row.driver ? row.driver.nome : '-'}</td>
+                        <td className="px-4 py-3 border-b">{row.driver ? row.driver.cpf || '-' : '-'}</td>
+                        <td className="px-4 py-3 border-b">{row.driver ? row.driver.validade || '-' : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -128,10 +128,10 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
 
     try {
       const result = await run(
-        `INSERT INTO ${tableName} (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')}) RETURNING ${keyField}`,
+        `INSERT INTO ${tableName} (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,
         values
       );
-      const insertedId = keyField === 'id' ? String(result.rows[0][keyField]) : (body[keyField] || values[0]);
+      const insertedId = keyField === 'id' ? String(result.lastID || result.rows?.[0]?.[keyField] || '') : (body[keyField] || values[0]);
       res.status(201).json({ ok: true });
 
       logAudit({

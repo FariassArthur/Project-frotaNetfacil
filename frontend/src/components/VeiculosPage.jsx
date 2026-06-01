@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GenericModule from './GenericModule';
 import VeiculoGastos from './VeiculoGastos';
 import { getByKey } from '../modules/config';
@@ -33,21 +33,22 @@ export default function VeiculosPage({ moduleConfig, token, vehicles, cidades })
 
   const needsVehicle = !['cadastro', 'gastos'].includes(activeTab);
 
+  const [animKey, setAnimKey] = useState('cadastro');
+  useEffect(() => {
+    setAnimKey(activeTab);
+  }, [activeTab]);
+
   const renderContent = () => {
     if (activeTab === 'cadastro') {
       return <GenericModule moduleConfig={moduleConfig} token={token} vehicles={vehicles} cidades={cidades} />;
     }
     if (activeTab === 'gastos') {
-      return (
-        <div className="module-container">
-          <VeiculoGastos token={token} />
-        </div>
-      );
+      return <VeiculoGastos token={token} />;
     }
     if (!selectedVehicle) {
       return (
-        <div className="module-container">
-          <p className="gastos-sem-dados">Selecione um veículo para ver os registros.</p>
+        <div className="p-4 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+          Selecione um veículo para ver os registros.
         </div>
       );
     }
@@ -65,13 +66,16 @@ export default function VeiculosPage({ moduleConfig, token, vehicles, cidades })
     );
   };
 
+  const inputBase = 'w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors';
+
   return (
     <div>
-      <div className="veiculo-page-bar">
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">Veículo</label>
+      <div className="flex items-center gap-4 p-4 border-b flex-wrap" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Veículo</label>
           <select
-            className="form-input"
+            className={inputBase}
+            style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
             value={selectedVehicle}
             onChange={(e) => setSelectedVehicle(e.target.value)}
           >
@@ -85,11 +89,17 @@ export default function VeiculosPage({ moduleConfig, token, vehicles, cidades })
         </div>
       </div>
 
-      <div className="sub-tabs">
+      <div className="flex gap-1 p-2 overflow-x-auto border-b" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
         {SUB_TABS.map((tab) => (
           <button
             key={tab.key}
-            className={`sub-tab-btn${activeTab === tab.key ? ' active' : ''}`}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg border-none cursor-pointer whitespace-nowrap transition-colors ${
+              activeTab === tab.key ? 'text-white' : ''
+            }`}
+            style={{
+              background: activeTab === tab.key ? 'var(--orange)' : 'transparent',
+              color: activeTab === tab.key ? 'white' : 'var(--text-secondary)',
+            }}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
@@ -97,7 +107,9 @@ export default function VeiculosPage({ moduleConfig, token, vehicles, cidades })
         ))}
       </div>
 
-      {renderContent()}
+      <div key={animKey} className="transition-opacity duration-200 ease-in">
+        {renderContent()}
+      </div>
     </div>
   );
 }

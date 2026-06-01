@@ -56,17 +56,18 @@ function registerUsuariosRoutes(app) {
       if (pwError) return res.status(400).json({ error: pwError });
       const hash = await bcrypt.hash(password, 10);
       const result = await run(
-        'INSERT INTO usuarios (username, password, role, ativo, permissoes) VALUES (?, ?, ?, ?, ?) RETURNING id',
+        'INSERT INTO usuarios (username, password, role, ativo, permissoes) VALUES (?, ?, ?, ?, ?)',
         [username, hash, role || 'user', ativo !== false ? 1 : 0, permissoes || 'all']
       );
-      res.status(201).json({ ok: true, id: result.rows[0].id });
+      const userId = String(result.lastID || result.rows?.[0]?.id || '');
+      res.status(201).json({ ok: true, id: userId });
 
       logAudit({
         user_id: req.user?.id,
         username: req.user?.username,
         acao: 'criou',
         entidade: 'Usuário',
-        entidade_id: String(result.rows[0].id),
+        entidade_id: userId,
         descricao: `Usuário ${username} criado`,
         dados_novos: cleanData(req.body),
         ip: req.ip,

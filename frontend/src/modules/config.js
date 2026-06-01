@@ -3,6 +3,7 @@ export const MODULES = [
   {
     key: 'dashboard',
     label: 'Dashboard',
+    icon: '📊',
     description: 'Painel de controle inicial com status da API e navegação entre módulos.',
     endpoint: null,
     keyField: null,
@@ -11,6 +12,7 @@ export const MODULES = [
   {
     key: 'veiculos',
     label: 'Veículos',
+    icon: '🚗',
     endpoint: '/api/veiculos',
     keyField: 'placa',
     fields: [
@@ -70,6 +72,7 @@ export const MODULES = [
   {
     key: 'mecanicas',
     label: 'Mecânicas',
+    icon: '🔧',
     endpoint: '/api/mecanicas',
     keyField: 'id',
     fields: [
@@ -135,6 +138,7 @@ export const MODULES = [
   {
     key: 'seguradoras',
     label: 'Seguradoras',
+    icon: '🏢',
     endpoint: '/api/seguradoras',
     keyField: 'id',
     fields: [
@@ -161,6 +165,7 @@ export const MODULES = [
   {
     key: 'cidades',
     label: 'Cidades',
+    icon: '🏙️',
     endpoint: '/api/cidades',
     keyField: 'id',
     fields: [
@@ -254,6 +259,7 @@ export const MODULES = [
   {
     key: 'configuracoes',
     label: 'Configurações',
+    icon: '⚙️',
     endpoint: '/api/configuracoes',
     keyField: null,
     fields: [
@@ -265,6 +271,7 @@ export const MODULES = [
   {
     key: 'versao',
     label: 'Versão',
+    icon: 'ℹ️',
     endpoint: '/api/versao',
     keyField: null,
     fields: []
@@ -272,6 +279,7 @@ export const MODULES = [
   {
     key: 'logs-auditoria',
     label: 'Logs de Auditoria',
+    icon: '📋',
     description: 'Registro de todas as alterações realizadas no sistema.',
     endpoint: '/api/logs',
     keyField: 'id',

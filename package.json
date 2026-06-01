@@ -12,7 +12,7 @@
     "electron": "npm run build && electron .",
     "electron:dev": "npm --prefix frontend run dev & electron .",
     "start": "npm --prefix backend run start",
-    "lint": "echo \"no lint configured\""
+    "lint": "eslint . --ext .js,.jsx"
   },
   "main": "electron/main.js",
   "keywords": [],
@@ -20,6 +20,7 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^26.0.0"
+    "electron": "^26.0.0",
+    "eslint": "^10.4.1"
   }
 }

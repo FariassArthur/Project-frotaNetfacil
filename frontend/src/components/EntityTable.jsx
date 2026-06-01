@@ -1,11 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { getFileUrl, getItemValue } from '../api/client';
 import { formatHeader, getSortValue, FilterDropdown } from '../utils/tableUtils.jsx';
 
-export default function EntityTable({ items, fields, onSelect, onDelete, totalCount, page, pageSize, onPageChange }) {
+export default function EntityTable({ items, fields, onSelect, onDelete, totalCount, page, pageSize, onPageChange, onBatchDelete }) {
   const [columnFilters, setColumnFilters] = useState({});
   const [openFilter, setOpenFilter] = useState(null);
   const [filterAnchor, setFilterAnchor] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const tableRef = useRef(null);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setColumnFilters({});
+    setOpenFilter(null);
+  }, [items]);
 
   const openFilterMenu = (fieldName, e) => {
     if (openFilter === fieldName) {
@@ -18,9 +26,9 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
     setOpenFilter(fieldName);
   };
 
-  const baseFields = fields.slice(0, 8);
-  const extraFileFields = fields.slice(8).filter((f) => f.type === 'file');
-  const displayFields = [...baseFields, ...extraFileFields];
+  const fileFields = fields.filter((f) => f.type === 'file');
+  const nonFileFields = fields.filter((f) => f.type !== 'file' && !f.tableOnly);
+  const displayFields = [...nonFileFields, ...fileFields];
 
   const handleFilterChange = (fieldName, filter) => {
     setColumnFilters((prev) => {
@@ -66,19 +74,52 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
 
   const hasActiveFilters = Object.keys(columnFilters).length > 0;
 
+  const thClass = 'px-3.5 py-3 text-left text-sm font-bold border-b whitespace-nowrap cursor-pointer select-none';
+  const tdClass = 'px-3.5 py-3 text-sm border-b';
+  const btnBase = 'px-3.5 py-1.5 text-xs rounded-[6px] font-semibold text-white border-none cursor-pointer inline-flex items-center gap-1 transition-colors';
+
   return (
     <div>
-      {hasActiveFilters && (
-        <div style={{ marginBottom: 8 }}>
-          <button className="clear-filters-btn" onClick={() => setColumnFilters({})}>
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        {hasActiveFilters && (
+          <button
+            className="text-xs px-3 py-1.5 rounded-lg border-none cursor-pointer font-medium"
+            style={{ background: 'var(--orange-bg)', color: 'var(--orange-dark)' }}
+            onClick={() => setColumnFilters({})}
+          >
             Limpar filtros
           </button>
-        </div>
-      )}
-      <div className="table-wrapper">
-        <table className="table">
-          <thead>
+        )}
+        {selectedIds.size > 0 && onBatchDelete && (
+          <button
+            className="text-xs px-3 py-1.5 rounded-lg border-none cursor-pointer font-medium"
+            style={{ background: '#dc3545', color: 'white' }}
+            onClick={() => {
+              if (window.confirm(`Deletar ${selectedIds.size} registro(s) selecionado(s)?`)) {
+                onBatchDelete([...selectedIds]);
+                setSelectedIds(new Set());
+              }
+            }}
+          >
+            Deletar {selectedIds.size} selecionado(s)
+          </button>
+        )}
+      </div>
+      <div className="overflow-x-auto" ref={tableRef}>
+        <table className="w-full border-collapse rounded-xl overflow-hidden table-sticky-header" style={{ background: 'var(--card-bg)' }}>
+          <thead style={{ background: 'var(--table-header-bg)' }}>
             <tr>
+              {onBatchDelete && (
+                <th className={thClass} style={{ background: 'var(--table-header-bg)', width: 36, position: 'sticky', top: 0, zIndex: 11 }}>
+                  <input type="checkbox" className="w-4 h-4 accent-[var(--orange)] cursor-pointer"
+                    checked={selectedIds.size === items.length && items.length > 0}
+                    onChange={() => {
+                      if (selectedIds.size === items.length) setSelectedIds(new Set());
+                      else setSelectedIds(new Set(items.map((_, i) => i)));
+                    }}
+                  />
+                </th>
+              )}
               {displayFields.map((field) => {
                 const colFilter = columnFilters[field.name];
                 const isActive = !!colFilter;
@@ -86,14 +127,15 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
                 return (
                   <th
                     key={field.name}
-                    className={`col-header${isActive ? ' col-filter-active' : ''}`}
+                    className={thClass}
+                    style={{ background: 'var(--table-header-bg)', color: 'var(--text-primary)', position: 'sticky', top: 0, zIndex: 11 }}
                     onClick={(e) => openFilterMenu(field.name, e)}
                   >
-                    <span className="col-header-text">{field.label}</span>
-                    <span className="col-header-icons">
-                      {sortDir === 'asc' && <span className="sort-indicator">⬆</span>}
-                      {sortDir === 'desc' && <span className="sort-indicator">⬇</span>}
-                      <span className={`filter-icon${isActive ? ' active' : ''}`}>▼</span>
+                    <span>{field.label}</span>
+                    <span className="inline-flex items-center gap-0.5 ml-1" style={{ transition: 'opacity 0.15s' }}>
+                      {sortDir === 'asc' && <span className="text-[0.6rem]" style={{ opacity: sortDir ? 1 : 0.3 }}>⬆</span>}
+                      {sortDir === 'desc' && <span className="text-[0.6rem]" style={{ opacity: sortDir ? 1 : 0.3 }}>⬇</span>}
+                      <span className="text-[0.5rem]" style={{ color: isActive ? 'var(--orange)' : undefined }}>▼</span>
                     </span>
                     {openFilter === field.name && (
                       <FilterDropdown
@@ -108,22 +150,41 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
                   </th>
                 );
               })}
-              <th>Ações</th>
+              <th className={thClass} style={{ background: 'var(--table-header-bg)', color: 'var(--text-primary)', position: 'sticky', top: 0, zIndex: 11 }}>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {processedItems.length > 0 ? (
-              processedItems.map((item, idx) => (
-                <tr key={idx}>
-                  {displayFields.map((field) => {
+              {processedItems.length > 0 ? (
+                processedItems.map((item, idx) => (
+                  <tr key={idx} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)' }}>
+                    {onBatchDelete && (
+                      <td className={tdClass} style={{ width: 36 }}>
+                        <input type="checkbox" className="w-4 h-4 accent-[var(--orange)] cursor-pointer"
+                          checked={selectedIds.has(idx)}
+                          onChange={() => {
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(idx)) next.delete(idx); else next.add(idx);
+                              return next;
+                            });
+                          }}
+                        />
+                      </td>
+                    )}
+                    {displayFields.map((field) => {
                     const val = getItemValue(item, field.name);
                     const fileUrl = field.type === 'file' ? getFileUrl(val) : null;
                     return (
-                      <td key={field.name}>
+                      <td key={field.name} className={tdClass} style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {fileUrl ? (
                           <a
                             href={fileUrl}
-                            className="file-link"
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-semibold no-underline transition-colors"
+                            style={{
+                              background: 'var(--orange-bg)',
+                              color: 'var(--orange-dark)',
+                              border: '1px solid var(--border-light)',
+                            }}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
@@ -136,11 +197,19 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
                       </td>
                     );
                   })}
-                  <td>
-                    <button className="btn-edit" onClick={() => onSelect(item)} style={{ marginRight: 6 }}>
+                  <td className={`${tdClass} whitespace-nowrap flex gap-1.5 items-center`}>
+                    <button
+                      className={`${btnBase}`}
+                      style={{ background: 'var(--orange)' }}
+                      onClick={() => onSelect(item)}
+                    >
                       Editar
                     </button>
-                    <button className="btn-delete" onClick={() => onDelete(item)}>
+                    <button
+                      className={`${btnBase}`}
+                      style={{ background: 'var(--danger)' }}
+                      onClick={() => onDelete(item)}
+                    >
                       Deletar
                     </button>
                   </td>
@@ -148,7 +217,7 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
               ))
             ) : (
               <tr>
-                <td className="table-empty" colSpan={displayFields.length + 1}>
+                <td className="text-center py-8" style={{ color: 'var(--text-muted)' }} colSpan={displayFields.length + 1 + (onBatchDelete ? 1 : 0)}>
                   {hasActiveFilters ? 'Nenhum registro corresponde aos filtros' : 'Nenhum registro encontrado'}
                 </td>
               </tr>
@@ -157,24 +226,34 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
         </table>
       </div>
       {totalCount > 0 && onPageChange && (
-        <div className="pagination">
-          <span className="pagination-info">
+        <div className="flex items-center gap-4 mt-3 justify-end">
+          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
             {((page || 1) - 1) * (pageSize || 200) + 1}-
             {Math.min((page || 1) * (pageSize || 200), totalCount)} de {totalCount}
           </span>
           <button
-            className="pagination-btn"
+            className="px-3 py-1.5 text-sm rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: 'var(--card-bg)',
+              borderColor: 'var(--border-light)',
+              color: 'var(--text-secondary)',
+            }}
             disabled={(page || 1) <= 1}
             onClick={() => onPageChange((page || 1) - 1)}
           >
-            ‹ Anterior
+            &lsaquo; Anterior
           </button>
           <button
-            className="pagination-btn"
+            className="px-3 py-1.5 text-sm rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: 'var(--card-bg)',
+              borderColor: 'var(--border-light)',
+              color: 'var(--text-secondary)',
+            }}
             disabled={(page || 1) * (pageSize || 200) >= totalCount}
             onClick={() => onPageChange((page || 1) + 1)}
           >
-            Próximo ›
+            Pr&oacute;ximo &rsaquo;
           </button>
         </div>
       )}

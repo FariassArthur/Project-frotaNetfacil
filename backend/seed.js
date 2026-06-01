@@ -1,4 +1,4 @@
-const { openDb, run, all, get } = require('./src/database/connection');
+const { run, all, get } = require('./src/database/connection');
 
 const LOREM = [
   'Troca de óleo e filtros',
@@ -41,18 +41,16 @@ const PLACAS = [
 ];
 
 async function seed() {
-  const db = openDb();
-
   // 1. Upsert vehicles with proper data
   for (const v of PLACAS) {
-    const exists = await get(db, 'SELECT placa FROM veiculos WHERE placa = ?', [v.placa]);
+    const exists = await get('SELECT placa FROM veiculos WHERE placa = ?', [v.placa]);
     if (exists) {
-      await run(db,
+      await run(
         `UPDATE veiculos SET tipo=?, fipe_name_marca=?, fipe_modelo=?, fipe_name_ano=?, cor=?, combustivel=? WHERE placa=?`,
         [v.tipo, v.marca, v.modelo, v.ano, v.cor, v.combustivel, v.placa]
       );
     } else {
-      await run(db,
+      await run(
         `INSERT INTO veiculos (placa, tipo, fipe_name_marca, fipe_modelo, fipe_name_ano, cor, combustivel, ativo)
          VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
         [v.placa, v.tipo, v.marca, v.modelo, v.ano, v.cor, v.combustivel]
@@ -60,7 +58,7 @@ async function seed() {
     }
   }
 
-  const veiculos = await all(db, 'SELECT placa FROM veiculos');
+  const veiculos = await all('SELECT placa FROM veiculos');
   const placas = veiculos.map(v => v.placa);
   console.log(`${placas.length} veículos prontos`);
 
@@ -69,11 +67,11 @@ async function seed() {
 
   // delete old seed data to avoid duplicates if re-run
   for (const placa of placas) {
-    await run(db, `DELETE FROM manutencoes WHERE veiculo_id = ?`, [placa]);
-    await run(db, `DELETE FROM multas WHERE veiculo_id = ?`, [placa]);
-    await run(db, `DELETE FROM abastecimentos WHERE veiculo_id = ?`, [placa]);
-    await run(db, `DELETE FROM pagamentos_seguro WHERE veiculo_id = ?`, [placa]);
-    await run(db, `DELETE FROM pagamento_documentos WHERE veiculo_id = ?`, [placa]);
+    await run(`DELETE FROM manutencoes WHERE veiculo_id = ?`, [placa]);
+    await run(`DELETE FROM multas WHERE veiculo_id = ?`, [placa]);
+    await run(`DELETE FROM abastecimentos WHERE veiculo_id = ?`, [placa]);
+    await run(`DELETE FROM pagamentos_seguro WHERE veiculo_id = ?`, [placa]);
+    await run(`DELETE FROM pagamento_documentos WHERE veiculo_id = ?`, [placa]);
   }
 
   // 2. Manutencoes
@@ -85,7 +83,7 @@ async function seed() {
       const descricao = LOREM[rand(0, LOREM.length - 1)];
       const km = rand(10000, 80000);
       const classificacao = Math.random() > 0.3 ? 'preventiva' : 'corretiva';
-      await run(db,
+      await run(
         `INSERT INTO manutencoes (data, data_s, valor, descricao, km, classificacao, veiculo_id)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [data, data, valor, descricao, km, classificacao, placa]
@@ -104,7 +102,7 @@ async function seed() {
       const dataVencimento = vencDate.toISOString().split('T')[0];
       const local = ['Av. Paulista', 'BR-101', 'Rodovia dos Bandeirantes', 'Centro', 'Marginal Tietê', 'Av. Brasil'][rand(0, 5)];
       const valor = randFloat(85, 800);
-      await run(db,
+      await run(
         `INSERT INTO multas (data_ocorrencia, data_ocorrencia_s, data_vencimento, valor, local_ocorrencia, pagamento_realizado, veiculo_id)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [dataOcorrencia, dataOcorrencia, dataVencimento, valor, local, Math.random() > 0.2 ? 1 : 0, placa]
@@ -122,7 +120,7 @@ async function seed() {
       const quantidade = randFloat(20, 55, 1);
       const km = rand(10000, 80000);
       const combustivel_id = rand(2, 4);
-      await run(db,
+      await run(
         `INSERT INTO abastecimentos (data, data_s, valor, quantidade, km, combustivel_id, veiculo_id)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [data, data, valor, quantidade, km, combustivel_id, placa]
@@ -134,11 +132,11 @@ async function seed() {
   // 5. Pagamentos Seguro
   for (const placa of placas) {
     // check if there's a contrato_seguro for this vehicle (create one if not)
-    let contrato = await get(db, 'SELECT id FROM contratos_seguro WHERE veiculo_id = ?', [placa]);
+    let contrato = await get('SELECT id FROM contratos_seguro WHERE veiculo_id = ?', [placa]);
     if (!contrato) {
-      const seguradora = await get(db, 'SELECT id FROM seguradoras LIMIT 1');
+      const seguradora = await get('SELECT id FROM seguradoras LIMIT 1');
       const seguradoraId = seguradora ? seguradora.id : null;
-      const result = await run(db,
+      const result = await run(
         `INSERT INTO contratos_seguro (numero_apolice, data_inicial_contrato, data_final_contrato, ativo, veiculo_id, seguradora_id)
          VALUES (?, ?, ?, 1, ?, ?)`,
         ['AP-' + rand(10000, 99999), '2024-01-01', '2026-12-31', placa, seguradoraId]
@@ -149,7 +147,7 @@ async function seed() {
     for (let i = 0; i < count; i++) {
       const dataPagamento = randDate(startDate, endDate);
       const valor = randFloat(800, 2500);
-      await run(db,
+      await run(
         `INSERT INTO pagamentos_seguro (data_pagamento, valor, contrato_seguro_id, veiculo_id)
          VALUES (?, ?, ?, ?)`,
         [dataPagamento, valor, contrato.id, placa]
@@ -166,7 +164,7 @@ async function seed() {
       const dataVencimento = `${ano}-03-${rand(10, 31)}`;
       const dataPagamento = randDate(new Date(ano, 0, 1), new Date(ano, 2, 15));
       const valor = randFloat(400, 1800);
-      await run(db,
+      await run(
         `INSERT INTO pagamento_documentos (data_pagamento, data_pagamento_s, data_vencimento, data_vencimento_s, valor, descricao, veiculo_id)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [dataPagamento, dataPagamento, dataVencimento, dataVencimento, valor, `IPVA ${ano}`, placa]
@@ -176,7 +174,7 @@ async function seed() {
     for (const ano of anos) {
       const dataPagamento = randDate(new Date(ano, 0, 1), new Date(ano, 6, 30));
       const dataVencimento = `${ano}-06-30`;
-      await run(db,
+      await run(
         `INSERT INTO pagamento_documentos (data_pagamento, data_pagamento_s, data_vencimento, data_vencimento_s, valor, descricao, veiculo_id)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [dataPagamento, dataPagamento, dataVencimento, dataVencimento, randFloat(90, 150), `Licenciamento ${ano}`, placa]
@@ -185,7 +183,6 @@ async function seed() {
   }
   console.log('Pagamentos de documentos inseridos');
 
-  db.close();
   console.log('\nSeed concluído com sucesso!');
 }
 

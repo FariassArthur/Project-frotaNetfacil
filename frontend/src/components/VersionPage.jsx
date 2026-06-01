@@ -24,18 +24,18 @@ const changelog = [
 
 export default function VersionPage() {
   return (
-    <div className="version-page">
-      <h2>Versão 1.1</h2>
-      <p className="version-subtitle">Sistema de Gestão de Frota</p>
+    <div className="p-6" style={{ background: 'var(--bg-primary)' }}>
+      <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Versão 1.1</h2>
+      <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Sistema de Gestão de Frota</p>
 
-      <div className="changelog">
-        <h3>Log de Mudanças</h3>
+      <div className="rounded-xl border p-6" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
+        <h3 className="text-base font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Log de Mudanças</h3>
         {changelog.map(([version, items]) => (
-          <div key={version} className="changelog-version">
-            <h4>{version}</h4>
-            <ul>
+          <div key={version} className="mb-4">
+            <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--orange)' }}>{version}</h4>
+            <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
               {items.map((item, i) => (
-                <li key={i}>{item}</li>
+                <li key={i} className="ml-4 list-disc">{item}</li>
               ))}
             </ul>
           </div>

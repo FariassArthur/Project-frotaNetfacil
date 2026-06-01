@@ -28,13 +28,9 @@ export default function SeguradorasPage({ moduleConfig, token, vehicles, cidades
 
   const getFilterParams = () => {
     const params = {};
-    if (selectedSeguradora && activeTab !== 'cadastro') {
-      params.seguradora_id = selectedSeguradora;
-    }
+    if (selectedSeguradora && activeTab !== 'cadastro') params.seguradora_id = selectedSeguradora;
     if (selectedVehicle) {
-      if (activeTab === 'contratos' || activeTab === 'pagamentos') {
-        params.veiculo_id = selectedVehicle;
-      }
+      if (activeTab === 'contratos' || activeTab === 'pagamentos') params.veiculo_id = selectedVehicle;
     }
     return Object.keys(params).length > 0 ? params : null;
   };
@@ -57,28 +53,30 @@ export default function SeguradorasPage({ moduleConfig, token, vehicles, cidades
     );
   };
 
+  const inputBase = 'w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors';
+
   return (
     <div>
-      <div className="veiculo-page-bar">
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">Seguradora</label>
+      <div className="flex items-center gap-4 p-4 border-b flex-wrap" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Seguradora</label>
           <select
-            className="form-input"
+            className={inputBase}
+            style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
             value={selectedSeguradora}
             onChange={(e) => setSelectedSeguradora(e.target.value)}
           >
             <option value="">Todas as seguradoras</option>
             {seguradoras.map((s) => (
-              <option key={s.id} value={String(s.id)}>
-                {s.nome}
-              </option>
+              <option key={s.id} value={String(s.id)}>{s.nome}</option>
             ))}
           </select>
         </div>
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">Veículo</label>
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Veículo</label>
           <select
-            className="form-input"
+            className={inputBase}
+            style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }}
             value={selectedVehicle}
             onChange={(e) => setSelectedVehicle(e.target.value)}
           >
@@ -92,11 +90,17 @@ export default function SeguradorasPage({ moduleConfig, token, vehicles, cidades
         </div>
       </div>
 
-      <div className="sub-tabs">
+      <div className="flex gap-1 p-2 overflow-x-auto border-b" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
         {SUB_TABS.map((tab) => (
           <button
             key={tab.key}
-            className={`sub-tab-btn${activeTab === tab.key ? ' active' : ''}`}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg border-none cursor-pointer whitespace-nowrap transition-colors ${
+              activeTab === tab.key ? 'text-white' : ''
+            }`}
+            style={{
+              background: activeTab === tab.key ? 'var(--orange)' : 'transparent',
+              color: activeTab === tab.key ? 'white' : 'var(--text-secondary)',
+            }}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
