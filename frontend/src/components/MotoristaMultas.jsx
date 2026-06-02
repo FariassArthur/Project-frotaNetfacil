@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaUserCheck, FaDownload, FaSearch } from 'react-icons/fa';
+import Skeleton from './Skeleton';
 
 export default function MotoristaMultas({ token }) {
   const [data, setData] = useState({ motoristas: [], total_geral: 0 });
@@ -45,7 +46,7 @@ export default function MotoristaMultas({ token }) {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="p-6">Carregando...</div>;
+  if (loading) return <div className="p-6"><Skeleton type="card" rows={4} /></div>;
 
   const thClass = 'px-3.5 py-3 text-left text-sm font-bold border-b';
   const tdClass = 'px-3.5 py-3 text-sm border-b';

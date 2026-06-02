@@ -465,8 +465,24 @@ async function initDb() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS token_blacklist (
+      token_hash TEXT PRIMARY KEY,
+      expires_at INTEGER NOT NULL
+    )
+  `);
+
   try {
-    const adminPassHash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin', 10);
+    if (process.env.NODE_ENV === 'production') {
+      if (!process.env.ADMIN_PASSWORD) {
+        throw new Error('FATAL: ADMIN_PASSWORD environment variable is required in production');
+      }
+      if (process.env.ADMIN_PASSWORD.length < 8) {
+        throw new Error('FATAL: ADMIN_PASSWORD must be at least 8 characters');
+      }
+    }
+    const adminPasswd = process.env.ADMIN_PASSWORD || 'admin';
+    const adminPassHash = bcrypt.hashSync(adminPasswd, 10);
     await run(insertIgnore('usuarios', ['id', 'username', 'password', 'role', 'ativo'], 5), [1, 'admin', adminPassHash, 'root', 1]);
   } catch (err) {
     console.warn('Could not seed admin user', err.message || err);

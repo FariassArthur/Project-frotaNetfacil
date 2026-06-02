@@ -40,18 +40,10 @@ function LoadingFallback() {
 }
 
 export default function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [sessionLoading, setSessionLoading] = useState(false);
+  const [token, setToken] = useState(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      localStorage.removeItem('user');
-      return null;
-    }
-  });
+  const [user, setUser] = useState(null);
   const [currentKey, setCurrentKey] = useState('dashboard');
   const [vehicles, setVehicles] = useState([]);
   const [cidades, setCidades] = useState([]);
@@ -73,8 +65,6 @@ export default function App() {
       loadCidades();
     }
     setOnUnauthorized(() => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
       setToken(null);
       setUser(null);
       setCurrentKey('dashboard');
@@ -89,12 +79,8 @@ export default function App() {
         .then((data) => {
           if (data.username) {
             setUser({ username: data.username, role: data.role });
-            const t = data.token || localStorage.getItem('token');
-            if (t) setToken(t);
-            else setSessionLoading(false);
-          } else {
-            setSessionLoading(false);
           }
+          setSessionLoading(false);
         })
         .catch((err) => {
           console.error('Erro ao verificar sessão:', err);
@@ -174,8 +160,6 @@ export default function App() {
 
   const handleLogout = () => {
     logout(token).catch((err) => console.error('Erro ao fazer logout:', err));
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     setCurrentKey('dashboard');
@@ -329,7 +313,7 @@ export default function App() {
                 token={token}
               />
             ) : currentKey === 'calendario-eventos' ? (
-              <CalendarioEventos />
+              <CalendarioEventos token={token} />
             ) : currentKey === 'custo-km' ? (
               <CustoKm token={token} />
             ) : currentKey === 'consumo' ? (

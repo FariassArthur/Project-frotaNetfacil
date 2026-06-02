@@ -157,10 +157,10 @@ export default function VistoriaChecklist({ token, veiculoId }) {
         itens: JSON.stringify(form.itens),
       };
       if (editId) {
-        await updateItem('vistorias', editId, body, token);
+        await updateItem('/api/vistorias', editId, body, token);
         toast.success('Vistoria atualizada');
       } else {
-        await createItem('vistorias', body, token);
+        await createItem('/api/vistorias', body, token);
         toast.success('Vistoria registrada');
       }
       resetForm();

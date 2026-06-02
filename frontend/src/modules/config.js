@@ -1,9 +1,22 @@
-import { FaChartBar, FaTruck, FaTools, FaBuilding, FaCity, FaGlobeAmericas, FaCog, FaInfoCircle, FaClipboardList, FaDollarSign, FaCalendarAlt, FaClipboardCheck, FaUserCheck, FaTachometerAlt, FaGasPump, FaHistory, FaExchangeAlt, FaUpload, FaUserPlus } from 'react-icons/fa';
+import { FaChartBar, FaTruck, FaTools, FaBuilding, FaCity, FaGlobeAmericas, FaCog, FaInfoCircle, FaClipboardList, FaDollarSign, FaCalendarAlt, FaClipboardCheck, FaUserCheck, FaTachometerAlt, FaGasPump, FaHistory, FaExchangeAlt, FaUpload, FaUserPlus, FaUsers, FaWrench, FaCar, FaBalanceScale } from 'react-icons/fa';
+
+export const CATEGORIES = [
+  { key: 'frota', label: 'Frota', icon: FaTruck },
+  { key: 'financeiro', label: 'Financeiro', icon: FaDollarSign },
+  { key: 'motoristas', label: 'Motoristas', icon: FaUsers },
+  { key: 'relatorios', label: 'Relatórios', icon: FaChartBar },
+  { key: 'operacional', label: 'Operacional', icon: FaClipboardCheck },
+  { key: 'cadastros', label: 'Cadastros', icon: FaGlobeAmericas },
+  { key: 'admin', label: 'Administração', icon: FaCog },
+];
+
+export const CATEGORY_ORDER = CATEGORIES.map(c => c.key);
 
 // Shared module configuration and helpers
 export const MODULES = [
   {
     key: 'dashboard',
+    category: 'relatorios',
     label: 'Dashboard',
     icon: FaChartBar,
     description: 'Painel de controle inicial com status da API e navegação entre módulos.',
@@ -13,6 +26,7 @@ export const MODULES = [
   },
   {
     key: 'calendario-eventos',
+    category: 'operacional',
     label: 'Calendário de Eventos',
     icon: FaCalendarAlt,
     description: 'Visão mensal de vencimentos, multas, manutenções, vistorias e mais.',
@@ -22,6 +36,7 @@ export const MODULES = [
   },
   {
     key: 'ordens-servico',
+    category: 'operacional',
     label: 'Ordens de Serviço',
     icon: FaClipboardCheck,
     endpoint: '/api/ordens-servico',
@@ -44,6 +59,7 @@ export const MODULES = [
   },
   {
     key: 'custo-km',
+    category: 'relatorios',
     label: 'Custo por KM',
     icon: FaTachometerAlt,
     description: 'Custo operacional por quilômetro rodado de cada veículo.',
@@ -53,6 +69,7 @@ export const MODULES = [
   },
   {
     key: 'consumo',
+    category: 'relatorios',
     label: 'Consumo (km/L)',
     icon: FaGasPump,
     description: 'Comparativo de consumo de combustível entre veículos.',
@@ -62,6 +79,7 @@ export const MODULES = [
   },
   {
     key: 'motorista-multas',
+    category: 'motoristas',
     label: 'Multas por Motorista',
     icon: FaUserCheck,
     description: 'Total de multas agrupadas por motorista.',
@@ -71,6 +89,7 @@ export const MODULES = [
   },
   {
     key: 'historico-motorista',
+    category: 'motoristas',
     label: 'Histórico do Motorista',
     icon: FaHistory,
     description: 'Histórico consolidado de multas, viagens e abastecimentos por motorista.',
@@ -80,6 +99,7 @@ export const MODULES = [
   },
   {
     key: 'comparativo-veiculos',
+    category: 'relatorios',
     label: 'Comparativo Veículos',
     icon: FaExchangeAlt,
     description: 'Compare custos e consumo entre dois veículos lado a lado.',
@@ -89,6 +109,7 @@ export const MODULES = [
   },
   {
     key: 'importar-csv',
+    category: 'operacional',
     label: 'Importar CSV',
     icon: FaUpload,
     description: 'Importe dados de veículos, motoristas e mais via arquivo CSV.',
@@ -98,6 +119,7 @@ export const MODULES = [
   },
   {
     key: 'veiculos',
+    category: 'frota',
     label: 'Veículos',
     icon: FaTruck,
     endpoint: '/api/veiculos',
@@ -135,6 +157,7 @@ export const MODULES = [
   },
   {
     key: 'cnhs',
+    category: 'motoristas',
     label: 'Motoristas',
     sidebarHidden: true,
     endpoint: '/api/cnhs',
@@ -158,6 +181,7 @@ export const MODULES = [
   },
   {
     key: 'mecanicas',
+    category: 'cadastros',
     label: 'Mecânicas',
     icon: FaTools,
     endpoint: '/api/mecanicas',
@@ -185,6 +209,7 @@ export const MODULES = [
   },
   {
     key: 'manutencoes',
+    category: 'frota',
     label: 'Manutenções',
     sidebarHidden: true,
     endpoint: '/api/manutencoes',
@@ -204,6 +229,7 @@ export const MODULES = [
   },
   {
     key: 'multas',
+    category: 'frota',
     label: 'Multas',
     sidebarHidden: true,
     endpoint: '/api/multas',
@@ -225,6 +251,7 @@ export const MODULES = [
   },
   {
     key: 'seguradoras',
+    category: 'financeiro',
     label: 'Seguradoras',
     icon: FaBuilding,
     endpoint: '/api/seguradoras',
@@ -252,6 +279,7 @@ export const MODULES = [
   },
   {
     key: 'combustiveis',
+    category: 'cadastros',
     label: 'Combustíveis',
     icon: FaGasPump,
     endpoint: '/api/combustiveis',
@@ -263,6 +291,7 @@ export const MODULES = [
   },
   {
     key: 'tipo-manutencao',
+    category: 'cadastros',
     label: 'Tipos de Manutenção',
     icon: FaClipboardList,
     endpoint: '/api/tipo-manutencao',
@@ -274,6 +303,7 @@ export const MODULES = [
   },
   {
     key: 'cidades',
+    category: 'cadastros',
     label: 'Cidades',
     icon: FaCity,
     endpoint: '/api/cidades',
@@ -287,6 +317,7 @@ export const MODULES = [
   },
   {
     key: 'contratos-seguro',
+    category: 'financeiro',
     label: 'Contratos Seguro',
     sidebarHidden: true,
     endpoint: '/api/contratos-seguro',
@@ -305,6 +336,7 @@ export const MODULES = [
   },
   {
     key: 'pagamentos-seguro',
+    category: 'financeiro',
     label: 'Pagamentos Seguro',
     sidebarHidden: true,
     endpoint: '/api/pagamentos-seguro',
@@ -319,6 +351,7 @@ export const MODULES = [
   },
   {
     key: 'pagamento-documentos',
+    category: 'financeiro',
     label: 'Pagamentos Documento',
     sidebarHidden: true,
     endpoint: '/api/pagamento-documentos',
@@ -337,6 +370,7 @@ export const MODULES = [
   },
   {
     key: 'abastecimentos',
+    category: 'frota',
     label: 'Abastecimentos',
     sidebarHidden: true,
     endpoint: '/api/abastecimentos',
@@ -355,6 +389,7 @@ export const MODULES = [
   },
   {
     key: 'viagens',
+    category: 'operacional',
     label: 'Viagens',
     icon: FaGlobeAmericas,
     endpoint: '/api/viagens',
@@ -372,6 +407,7 @@ export const MODULES = [
   },
   {
     key: 'pneus',
+    category: 'frota',
     label: 'Pneus',
     icon: FaTools,
     endpoint: '/api/pneus',
@@ -397,6 +433,7 @@ export const MODULES = [
   },
   {
     key: 'pneus-dashboard',
+    category: 'relatorios',
     label: 'Dashboard Pneus',
     icon: FaTachometerAlt,
     description: 'Visão geral de pneus por veículo: gastos, quantidade, KM médio.',
@@ -406,6 +443,7 @@ export const MODULES = [
   },
   {
     key: 'relatorio-custos',
+    category: 'relatorios',
     label: 'Relatório de Custos',
     icon: FaDollarSign,
     endpoint: null,
@@ -414,6 +452,7 @@ export const MODULES = [
   },
   {
     key: 'vistorias',
+    category: 'frota',
     label: 'Checklist Vistoria',
     icon: FaClipboardList,
     endpoint: '/api/vistorias',
@@ -431,6 +470,7 @@ export const MODULES = [
   },
   {
     key: 'higienizacao',
+    category: 'frota',
     label: 'Higienização',
     sidebarHidden: true,
     endpoint: '/api/higienizacao',
@@ -445,6 +485,7 @@ export const MODULES = [
   },
   {
     key: 'configuracoes',
+    category: 'admin',
     label: 'Configurações',
     icon: FaCog,
     endpoint: '/api/configuracoes',
@@ -457,6 +498,7 @@ export const MODULES = [
   },
   {
     key: 'versao',
+    category: 'admin',
     label: 'Versão',
     icon: FaInfoCircle,
     endpoint: '/api/versao',
@@ -465,6 +507,7 @@ export const MODULES = [
   },
   {
     key: 'logs-auditoria',
+    category: 'admin',
     label: 'Logs de Auditoria',
     icon: FaClipboardList,
     description: 'Registro de todas as alterações realizadas no sistema.',
@@ -475,6 +518,7 @@ export const MODULES = [
   },
   {
     key: 'usuarios',
+    category: 'admin',
     label: 'Usuários',
     icon: FaUserPlus,
     description: 'Gerenciar usuários do sistema.',

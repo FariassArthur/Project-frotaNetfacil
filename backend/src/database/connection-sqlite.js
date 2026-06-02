@@ -10,6 +10,9 @@ function getDb() {
         console.error('SQLite open error:', error.message || error);
       }
     });
+    db.run('PRAGMA foreign_keys = ON', (err) => {
+      if (err) console.warn('Could not enable foreign keys:', err.message || err);
+    });
   }
   return db;
 }

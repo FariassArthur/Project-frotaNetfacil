@@ -34,13 +34,20 @@ function registerDashboardRoutes(app) {
       const veiculoFilter = req.query.veiculo_id || '';
       const meses = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
 
-      const veiculoSQL = veiculoFilter ? ` AND veiculo_id = '${veiculoFilter.replace(/'/g, "''")}'` : '';
-      const gastoMes = (tabela, campoData) => all(`
-        SELECT substr(${campoData}, 6, 2) as mes, COALESCE(SUM(valor), 0) as total
-        FROM ${tabela}
-        WHERE ${campoData} LIKE '${year}-%'${veiculoSQL}
-        GROUP BY mes ORDER BY mes
-      `);
+      const gastoMes = (tabela, campoData) => {
+        const params = [`${year}-%`];
+        if (veiculoFilter) params.push(veiculoFilter);
+        return all(`
+          SELECT substr(${campoData}, 6, 2) as mes, COALESCE(SUM(valor), 0) as total
+          FROM ${tabela}
+          WHERE ${campoData} LIKE ?${veiculoFilter ? ' AND veiculo_id = ?' : ''}
+          GROUP BY mes ORDER BY mes
+        `, params);
+      };
+
+      const baseParams = [`${year}-%`];
+      if (veiculoFilter) baseParams.push(veiculoFilter);
+      const veiculoWhere = veiculoFilter ? ' AND veiculo_id = ?' : '';
 
       const [manutencao, combustivel, multas, seguroDocs] = await Promise.all([
         gastoMes('manutencoes', 'data'),
@@ -48,17 +55,17 @@ function registerDashboardRoutes(app) {
         gastoMes('multas', 'data_ocorrencia'),
         all(`
           SELECT 'seguro' as tipo, substr(p.data_pagamento, 6, 2) as mes, COALESCE(SUM(p.valor), 0) as total
-          FROM pagamentos_seguro p WHERE p.data_pagamento LIKE '${year}-%'${veiculoSQL} GROUP BY mes
+          FROM pagamentos_seguro p WHERE p.data_pagamento LIKE ?${veiculoWhere} GROUP BY mes
           UNION ALL
           SELECT 'documento' as tipo, substr(d.data_pagamento, 6, 2) as mes, COALESCE(SUM(d.valor), 0) as total
-          FROM pagamento_documentos d WHERE d.data_pagamento LIKE '${year}-%'${veiculoSQL} GROUP BY mes
-        `),
+          FROM pagamento_documentos d WHERE d.data_pagamento LIKE ?${veiculoWhere} GROUP BY mes
+        `, [...baseParams, ...baseParams]),
         all(`
           SELECT substr(a.data, 6, 2) as mes, AVG(CASE WHEN a.km > 0 THEN a.km / a.quantidade ELSE NULL END) as media_km_l
           FROM abastecimentos a
-          WHERE a.data LIKE '${year}-%' AND a.km > 0 AND a.quantidade > 0${veiculoSQL}
+          WHERE a.data LIKE ? AND a.km > 0 AND a.quantidade > 0${veiculoWhere}
           GROUP BY mes ORDER BY mes
-        `),
+        `, [...baseParams]),
       ]);
 
       const toMap = (rows) => {
@@ -73,13 +80,14 @@ function registerDashboardRoutes(app) {
       const segMap = {};
       for (const r of seguroDocs) segMap[r.mes] = (segMap[r.mes] || 0) + Number(r.total);
 
-      const kmlMap = {};
-      for (const r of await all(`
+      const kmlRows = await all(`
         SELECT substr(a.data, 6, 2) as mes, AVG(CASE WHEN a.km > 0 THEN CAST(a.km AS REAL) / a.quantidade ELSE NULL END) as media_km_l
         FROM abastecimentos a
-        WHERE a.data LIKE '${year}-%' AND a.km > 0 AND a.quantidade > 0${veiculoSQL}
+        WHERE a.data LIKE ? AND a.km > 0 AND a.quantidade > 0${veiculoWhere}
         GROUP BY mes ORDER BY mes
-      `)) kmlMap[r.mes] = r.media_km_l;
+      `, [...baseParams]);
+      const kmlMap = {};
+      for (const r of kmlRows) kmlMap[r.mes] = r.media_km_l;
 
       const gastos = meses.map(mes => ({
         mes,

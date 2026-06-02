@@ -10,7 +10,7 @@ beforeEach(() => {
 describe('client.js API module', () => {
   it('fetchList adds credentials include and Bearer token', async () => {
     mockFetch.mockResolvedValue({
-      status: 200,
+      status: 200, ok: true,
       text: () => Promise.resolve(JSON.stringify([{ id: 1 }])),
     });
 
@@ -52,7 +52,7 @@ describe('client.js API module', () => {
     setOnUnauthorized(onUnauth);
 
     mockFetch.mockResolvedValue({
-      status: 401,
+      status: 401, ok: false,
       text: () => Promise.resolve(JSON.stringify({ error: 'Token expirado' })),
     });
 
@@ -64,7 +64,7 @@ describe('client.js API module', () => {
 
   it('login sends username and password', async () => {
     mockFetch.mockResolvedValue({
-      status: 200,
+      status: 200, ok: true,
       text: () => Promise.resolve(JSON.stringify({ token: 'abc', user: { id: 1 } })),
     });
 

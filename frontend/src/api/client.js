@@ -58,21 +58,21 @@ export const buildRequest = (formData, token) => {
 };
 
 async function handleResponse(response) {
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = { error: 'Erro inesperado do servidor' };
+  }
   if (response.status === 401) {
     if (onUnauthorized) onUnauthorized();
-    try {
-      const text = await response.text();
-      return JSON.parse(text);
-    } catch {
-      return { error: 'Sessão expirada. Faça login novamente.' };
-    }
+    return data;
   }
-  try {
-    const text = await response.text();
-    return JSON.parse(text);
-  } catch {
-    return { error: 'Erro inesperado do servidor' };
+  if (!response.ok) {
+    throw new Error(data?.error || `Erro HTTP ${response.status}`);
   }
+  return data;
 }
 
 export async function login(username, password) {
@@ -121,45 +121,33 @@ export async function fetchOne(endpoint, id, token) {
 }
 
 export async function createItem(endpoint, data, token) {
-  try {
-    const { body, headers } = buildRequest(data, token);
-    const response = await fetchWithTimeout(`${apiBase}${endpoint}`, {
-      method: 'POST',
-      body,
-      headers,
-      credentials: 'include',
-    });
-    return handleResponse(response);
-  } catch (err) {
-    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
-  }
+  const { body, headers } = buildRequest(data, token);
+  const response = await fetchWithTimeout(`${apiBase}${endpoint}`, {
+    method: 'POST',
+    body,
+    headers,
+    credentials: 'include',
+  });
+  return handleResponse(response);
 }
 
 export async function updateItem(endpoint, id, data, token) {
-  try {
-    const { body, headers } = buildRequest(data, token);
-    const response = await fetchWithTimeout(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      body,
-      headers,
-      credentials: 'include',
-    });
-    return handleResponse(response);
-  } catch (err) {
-    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
-  }
+  const { body, headers } = buildRequest(data, token);
+  const response = await fetchWithTimeout(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body,
+    headers,
+    credentials: 'include',
+  });
+  return handleResponse(response);
 }
 
 export async function deleteItem(endpoint, id, token) {
-  try {
-    const response = await fetchWithTimeout(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      ...fetchOptions(token),
-    });
-    return handleResponse(response);
-  } catch (err) {
-    return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
-  }
+  const response = await fetchWithTimeout(`${apiBase}${endpoint}/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    ...fetchOptions(token),
+  });
+  return handleResponse(response);
 }
 
 export async function fetchUsers(token) {

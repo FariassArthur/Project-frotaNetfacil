@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const { run, get, all } = require('../database/connection');
 const { logAudit } = require('../services/auditLog');
 const { handleError } = require('../services/errorHandler');
+const { requireRole } = require('../middleware/auth');
 
 const SENSITIVE_FIELDS = ['password'];
 
@@ -29,7 +30,7 @@ function cleanData(data) {
 }
 
 function registerUsuariosRoutes(app) {
-  app.get('/api/usuarios', async (req, res) => {
+  app.get('/api/usuarios', requireRole('admin', 'root'), async (req, res) => {
     try {
       const rows = await all('SELECT id, username, role, ativo, permissoes FROM usuarios ORDER BY username');
       res.json(rows);
@@ -38,7 +39,7 @@ function registerUsuariosRoutes(app) {
     }
   });
 
-  app.get('/api/usuarios/:id', async (req, res) => {
+  app.get('/api/usuarios/:id', requireRole('admin', 'root'), async (req, res) => {
     try {
       const row = await get('SELECT id, username, role, ativo, permissoes FROM usuarios WHERE id = ?', [req.params.id]);
       if (!row) return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -48,7 +49,7 @@ function registerUsuariosRoutes(app) {
     }
   });
 
-  app.post('/api/usuarios', async (req, res) => {
+  app.post('/api/usuarios', requireRole('admin', 'root'), async (req, res) => {
     const { username, password, role, ativo, permissoes } = req.body || {};
     try {
       if (!username || !password) return res.status(400).json({ error: 'username e password são obrigatórios' });
@@ -112,7 +113,7 @@ function registerUsuariosRoutes(app) {
     }
   });
 
-  app.put('/api/usuarios/:id', async (req, res) => {
+  app.put('/api/usuarios/:id', requireRole('admin', 'root'), async (req, res) => {
     const { username, password, role, ativo, permissoes } = req.body || {};
     try {
       const exists = await get('SELECT * FROM usuarios WHERE id = ?', [req.params.id]);
@@ -158,7 +159,7 @@ function registerUsuariosRoutes(app) {
     }
   });
 
-  app.delete('/api/usuarios/:id', async (req, res) => {
+  app.delete('/api/usuarios/:id', requireRole('admin', 'root'), async (req, res) => {
     try {
       const user = await get('SELECT * FROM usuarios WHERE id = ?', [req.params.id]);
       if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });

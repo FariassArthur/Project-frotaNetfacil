@@ -32,8 +32,6 @@ export default function LoginForm({ onLoginSuccess }) {
     try {
       const response = await login(username, password);
       if (response.token) {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user || { username }));
         onLoginSuccess(response.token, response.user);
       } else {
         setError(response.error || 'Falha na autenticação');

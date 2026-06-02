@@ -4,6 +4,7 @@ const { JWT_SECRET } = require('../config');
 const { get, run } = require('../database/connection');
 const { logAudit } = require('../services/auditLog');
 const { handleError } = require('../services/errorHandler');
+const { add: blacklistToken } = require('../services/tokenBlacklist');
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000;
@@ -23,11 +24,12 @@ function isLockedOut(username) {
 }
 
 function recordFailedAttempt(username) {
+  const now = Date.now();
   const record = loginAttempts.get(username);
-  if (!record) {
-    loginAttempts.set(username, { count: 1, firstAttempt: Date.now() });
+  if (!record || (now - record.firstAttempt) >= LOCKOUT_DURATION) {
+    loginAttempts.set(username, { count: 1, firstAttempt: now });
   } else {
-    record.count++;
+    loginAttempts.set(username, { count: record.count + 1, firstAttempt: record.firstAttempt });
   }
 }
 
@@ -108,6 +110,17 @@ function registerAuthRoutes(app) {
   });
 
   app.post('/api/logout', async (req, res) => {
+    const authHeader = req.headers['authorization'] || '';
+    const bearerToken = authHeader.replace('Bearer ', '').trim();
+    const cookieToken = (() => {
+      const raw = req.headers.cookie || '';
+      const m = raw.match(/(?:^|;\s*)token=([^;]*)/);
+      return m ? decodeURIComponent(m[1]) : null;
+    })();
+    const token = bearerToken || cookieToken;
+    if (token) {
+      await blacklistToken(token);
+    }
     res.clearCookie('token', { path: '/' });
     res.json({ ok: true });
 

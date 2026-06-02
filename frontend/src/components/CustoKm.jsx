@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaTachometerAlt } from 'react-icons/fa';
+import Skeleton from './Skeleton';
 
 export default function CustoKm({ token }) {
   const [data, setData] = useState([]);
@@ -14,7 +15,7 @@ export default function CustoKm({ token }) {
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-6">Carregando...</div>;
+  if (loading) return <div className="p-6"><Skeleton type="card" rows={4} /></div>;
 
   const totalGeral = data.reduce((s, r) => s + r.total_geral, 0);
   const mediaCustoKm = data.length > 0 ? data.reduce((s, r) => s + r.custo_por_km, 0) / data.length : 0;

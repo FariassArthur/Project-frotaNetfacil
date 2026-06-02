@@ -11,13 +11,22 @@ function registerOrdensServicoRoutes(app) {
       if (veiculo_id) { filters.push('os.veiculo_id = ?'); params.push(veiculo_id); }
       if (status) { filters.push('os.status = ?'); params.push(status); }
       const where = filters.length ? 'WHERE ' + filters.join(' AND ') : '';
+
+      const page = Math.max(1, parseInt(req.query._page, 10) || 1);
+      const limit = Math.min(500, Math.max(1, parseInt(req.query._limit, 10) || 200));
+      const offset = (page - 1) * limit;
+
+      const countResult = await all(`SELECT COUNT(*) as total FROM ordens_servico os ${where}`, params);
+      const total = countResult[0]?.total || 0;
+
       const rows = await all(`
         SELECT os.*, v.placa, v.fipe_modelo, m.nome as mecanica_nome
         FROM ordens_servico os
         LEFT JOIN veiculos v ON os.veiculo_id = v.placa
         LEFT JOIN mecanicas m ON os.mecanica_id = m.id
-        ${where} ORDER BY os.created_at DESC
-      `, params);
+        ${where} ORDER BY os.created_at DESC LIMIT ? OFFSET ?
+      `, [...params, limit, offset]);
+      res.set('X-Total-Count', String(total));
       res.json(rows);
     } catch (error) {
       handleError(res, error, 'ordens-servico.list');

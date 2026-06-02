@@ -46,6 +46,39 @@ function cleanData(data) {
   return cleaned;
 }
 
+function validateFields(body, fields, fileFields, extraAllowedFields = []) {
+  const errors = [];
+  const MAX_STR_LEN = 10000;
+  const allowedFields = new Set([...fields, ...extraAllowedFields]);
+
+  for (const field of fields) {
+    const val = body[field];
+    if (val === undefined || val === null) continue;
+
+    if (fileFields.includes(field)) continue;
+
+    if (field.endsWith('_id') || field === 'id' || field.includes('km') || field === 'valor') {
+      if (val !== '' && val !== null && val !== undefined) {
+        const num = Number(val);
+        if (!Number.isFinite(num)) {
+          errors.push(`Campo '${field}' deve ser um número`);
+        }
+      }
+    }
+
+    if (typeof val === 'string' && val.length > MAX_STR_LEN) {
+      errors.push(`Campo '${field}' excede o limite de ${MAX_STR_LEN} caracteres`);
+    }
+  }
+
+  const invalidFields = Object.keys(body).filter(k => !allowedFields.has(k));
+  if (invalidFields.length > 0) {
+    errors.push(`Campos não permitidos: ${invalidFields.join(', ')}`);
+  }
+
+  return errors;
+}
+
 function getEntityLabel(name) {
   const labels = {
     'cnhs': 'Motorista',
@@ -97,7 +130,6 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
           f !== 'pagamento_realizado' && f !== 'aivo' && f !== 'tanque_cheio'
         );
         if (searchable.length > 0) {
-          const clauses = searchable.map(() => `${filters.length > 0 ? '' : ''}`);
           const likeVal = `%${req.query._q}%`;
           filters.push(`(${searchable.map(f => `${f} LIKE ?`).join(' OR ')})`);
           searchable.forEach(() => params.push(likeVal));
@@ -152,6 +184,10 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
       return res.status(403).json({ error: 'Acesso restrito a administradores' });
     }
     const body = req.body || {};
+    const validationErrors = validateFields(body, fields, fileFields, [keyField]);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ error: validationErrors.join('; ') });
+    }
     const values = fields.map((field) => {
       if (fileFields.includes(field)) {
         return filePathFor(field, req) || body[field] || null;
@@ -190,6 +226,10 @@ function createRoutesFor(app, { name, tableName, keyField, fields, fileFields = 
       return res.status(403).json({ error: 'Acesso restrito a administradores' });
     }
     const body = req.body || {};
+    const validationErrors = validateFields(body, fields, fileFields, [keyField]);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ error: validationErrors.join('; ') });
+    }
     let existing;
     try {
       existing = await get(`SELECT * FROM ${tableName} WHERE ${keyField} = ?`, [req.params[keyField]]);

@@ -20,6 +20,8 @@ function switchToSqlite(error) {
     sqliteDriver = require('./connection-sqlite');
   }
 
+  pgDriver.closeDb().catch(err => console.warn('Could not close PG pool on fallback:', err.message || err));
+
   fallbackApplied = true;
   activeDriver = sqliteDriver;
   console.warn('PostgreSQL indisponível; usando SQLite como fallback para evitar falha de login.', error.message || error);

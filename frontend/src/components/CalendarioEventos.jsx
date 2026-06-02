@@ -26,7 +26,7 @@ const TYPE_LABELS = {
   pagamento_seguro: 'Pgto Seguro',
 };
 
-export default function CalendarioEventos() {
+export default function CalendarioEventos({ token }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [veiculos, setVeiculos] = useState([]);
@@ -37,11 +37,11 @@ export default function CalendarioEventos() {
   const [selectedDay, setSelectedDay] = useState(null);
 
   useEffect(() => {
-    fetch('/api/veiculos', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+    fetch('/api/veiculos', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => setVeiculos(Array.isArray(d) ? d : []))
       .catch(() => {});
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     const start = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
@@ -52,7 +52,7 @@ export default function CalendarioEventos() {
     const params = new URLSearchParams({ start, end });
     if (filtroVeiculo) params.set('veiculo_id', filtroVeiculo);
     fetch(`/api/calendario/eventos?${params}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
       .then(data => { setEvents(data || []); setLoading(false); })

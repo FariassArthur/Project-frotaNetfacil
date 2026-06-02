@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config');
+const { isBlacklisted } = require('../services/tokenBlacklist');
 
 function getTokenFromCookie(req) {
   const raw = req.headers.cookie || '';
@@ -21,6 +22,10 @@ const verifyAuth = async (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+    const blacklisted = await isBlacklisted(token);
+    if (blacklisted) {
+      return res.status(401).json({ error: 'Token revogado' });
+    }
     req.user = payload;
     return next();
   } catch (err) {

@@ -55,7 +55,7 @@ export default function HistoricoMotorista({ token }) {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6" style={{ background: 'var(--bg-primary)' }}>
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
         <FaHistory style={{ color: 'var(--orange)' }} /> Histórico do Motorista
       </h1>

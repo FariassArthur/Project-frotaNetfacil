@@ -43,15 +43,19 @@ async function sendAlert(subject, html) {
   }
 }
 
+function escHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 async function notifyVencimentos(items) {
   if (items.length === 0) return;
   const rows = items.map(i => `
     <tr>
-      <td style="padding:8px;border-bottom:1px solid #ddd;color:${i.dias_atraso > 0 ? '#dc3545' : '#cc7a00'}">${i.tipo}</td>
-      <td style="padding:8px;border-bottom:1px solid #ddd">${i.titulo || '-'}</td>
-      <td style="padding:8px;border-bottom:1px solid #ddd">${i.veiculo_id || '-'}</td>
-      <td style="padding:8px;border-bottom:1px solid #ddd">${i.data}</td>
-      <td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">${i.dias_atraso > 0 ? `${i.dias_atraso} dia(s) atrasado` : 'Vence em breve'}</td>
+      <td style="padding:8px;border-bottom:1px solid #ddd;color:${i.dias_atraso > 0 ? '#dc3545' : '#cc7a00'}">${escHtml(i.tipo)}</td>
+      <td style="padding:8px;border-bottom:1px solid #ddd">${escHtml(i.titulo || '-')}</td>
+      <td style="padding:8px;border-bottom:1px solid #ddd">${escHtml(i.veiculo_id || '-')}</td>
+      <td style="padding:8px;border-bottom:1px solid #ddd">${escHtml(i.data)}</td>
+      <td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold">${i.dias_atraso > 0 ? `${escHtml(i.dias_atraso)} dia(s) atrasado` : 'Vence em breve'}</td>
     </tr>
   `).join('');
 

@@ -8,6 +8,7 @@ export default function EntityForm({
   onChange,
   onSubmit,
   onCancel,
+  token,
   vehicles,
   cidades,
   isNew,
@@ -24,7 +25,7 @@ export default function EntityForm({
   const visibleFields = fields.filter(f => !f.tableOnly);
 
   useEffect(() => {
-    fetchList('cnhs', { _limit: 999 })
+    fetchList('/api/cnhs', token)
       .then(data => setMotoristas(data || []))
       .catch(() => {});
   }, []);

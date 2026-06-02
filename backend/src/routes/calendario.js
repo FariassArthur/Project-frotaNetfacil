@@ -1,5 +1,6 @@
 const { verifyAuth } = require('../middleware/auth');
 const { all } = require('../database/connection');
+const { handleError } = require('../services/errorHandler');
 
 function registerCalendarioRoutes(app) {
   app.get('/api/calendario/eventos', verifyAuth, async (req, res) => {
@@ -8,16 +9,17 @@ function registerCalendarioRoutes(app) {
       if (!start || !end) {
         return res.status(400).json({ error: 'Parâmetros start e end são obrigatórios' });
       }
-      const veiculoFilter = (campo) => veiculo_id ? `AND ${campo} = '${veiculo_id.replace(/'/g, "''")}'` : '';
+      const veiculoWhere = veiculo_id ? 'AND veiculo_id = ?' : '';
+      const veiculoParams = veiculo_id ? [veiculo_id] : [];
       const events = [];
 
       // Manutenções
       const manutencoes = await all(`
         SELECT m.id, m.data, m.descricao, m.valor, m.veiculo_id, v.placa AS veiculo_placa
         FROM manutencoes m LEFT JOIN veiculos v ON m.veiculo_id = v.placa
-        WHERE m.data BETWEEN ? AND ? ${veiculoFilter('m.veiculo_id')}
+        WHERE m.data BETWEEN ? AND ? ${veiculoWhere}
         ORDER BY m.data
-      `, [start, end]);
+      `, [start, end, ...veiculoParams]);
       for (const m of manutencoes) {
         events.push({
           id: `manut-${m.id}`, title: `Manutenção${m.descricao ? ': ' + m.descricao : ''}`,
@@ -30,9 +32,9 @@ function registerCalendarioRoutes(app) {
       const multas = await all(`
         SELECT id, data_vencimento, local_ocorrencia, valor, veiculo_id
         FROM multas
-        WHERE data_vencimento BETWEEN ? AND ? ${veiculoFilter('veiculo_id')}
+        WHERE data_vencimento BETWEEN ? AND ? ${veiculoWhere}
         ORDER BY data_vencimento
-      `, [start, end]);
+      `, [start, end, ...veiculoParams]);
       for (const m of multas) {
         events.push({
           id: `multa-${m.id}`, title: `Multa${m.local_ocorrencia ? ' - ' + m.local_ocorrencia : ''}`,
@@ -59,9 +61,9 @@ function registerCalendarioRoutes(app) {
       const seguros = await all(`
         SELECT cs.id, cs.data_final_contrato, cs.numero_apolice, cs.veiculo_id, v.placa AS veiculo_placa
         FROM contratos_seguro cs LEFT JOIN veiculos v ON cs.veiculo_id = v.placa
-        WHERE cs.data_final_contrato BETWEEN ? AND ? ${veiculoFilter('cs.veiculo_id')}
+        WHERE cs.data_final_contrato BETWEEN ? AND ? ${veiculoWhere}
         ORDER BY cs.data_final_contrato
-      `, [start, end]);
+      `, [start, end, ...veiculoParams]);
       for (const s of seguros) {
         events.push({
           id: `seguro-${s.id}`,
@@ -73,11 +75,11 @@ function registerCalendarioRoutes(app) {
 
       // Vistorias
       const vistorias = await all(`
-        SELECT v.id, v.data, v.status, v.veiculo_id, vei.placa AS veiculo_placa
+        SELECT v.id, v.data, v.status, v.tipo, v.veiculo_id, vei.placa AS veiculo_placa
         FROM vistorias v LEFT JOIN veiculos vei ON v.veiculo_id = vei.placa
-        WHERE v.data BETWEEN ? AND ? ${veiculoFilter('v.veiculo_id')}
+        WHERE v.data BETWEEN ? AND ? ${veiculoWhere}
         ORDER BY v.data
-      `, [start, end]);
+      `, [start, end, ...veiculoParams]);
       for (const v of vistorias) {
         events.push({
           id: `vistoria-${v.id}`,
@@ -91,9 +93,9 @@ function registerCalendarioRoutes(app) {
       const abastecimentos = await all(`
         SELECT a.id, a.data, a.valor, a.quantidade, a.veiculo_id, v.placa AS veiculo_placa
         FROM abastecimentos a LEFT JOIN veiculos v ON a.veiculo_id = v.placa
-        WHERE a.data BETWEEN ? AND ? ${veiculoFilter('a.veiculo_id')}
+        WHERE a.data BETWEEN ? AND ? ${veiculoWhere}
         ORDER BY a.data
-      `, [start, end]);
+      `, [start, end, ...veiculoParams]);
       for (const a of abastecimentos) {
         events.push({
           id: `abast-${a.id}`,
@@ -107,9 +109,9 @@ function registerCalendarioRoutes(app) {
       const documentos = await all(`
         SELECT pd.id, pd.data_vencimento, pd.descricao, pd.valor, pd.veiculo_id
         FROM pagamento_documentos pd
-        WHERE pd.data_vencimento BETWEEN ? AND ? ${veiculoFilter('pd.veiculo_id')}
+        WHERE pd.data_vencimento BETWEEN ? AND ? ${veiculoWhere}
         ORDER BY pd.data_vencimento
-      `, [start, end]);
+      `, [start, end, ...veiculoParams]);
       for (const d of documentos) {
         events.push({
           id: `doc-${d.id}`,
@@ -123,9 +125,9 @@ function registerCalendarioRoutes(app) {
       const pagSeguros = await all(`
         SELECT ps.id, ps.data_pagamento, ps.valor, ps.veiculo_id, v.placa AS veiculo_placa
         FROM pagamentos_seguro ps LEFT JOIN veiculos v ON ps.veiculo_id = v.placa
-        WHERE ps.data_pagamento BETWEEN ? AND ? ${veiculoFilter('ps.veiculo_id')}
+        WHERE ps.data_pagamento BETWEEN ? AND ? ${veiculoWhere}
         ORDER BY ps.data_pagamento
-      `, [start, end]);
+      `, [start, end, ...veiculoParams]);
       for (const p of pagSeguros) {
         events.push({
           id: `pagseg-${p.id}`,
@@ -138,8 +140,7 @@ function registerCalendarioRoutes(app) {
       events.sort((a, b) => a.date < b.date ? -1 : 1);
       res.json(events);
     } catch (err) {
-      console.error('Erro ao buscar eventos do calendário:', err);
-      res.status(500).json({ error: 'Erro interno ao buscar eventos' });
+      handleError(res, err, 'calendario.eventos');
     }
   });
 }

@@ -282,6 +282,7 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
               onChange={handleFieldChange}
               onSubmit={handleSubmit}
               onCancel={closeForm}
+              token={token}
               vehicles={vehicles || []}
               cidades={cidades || []}
               isNew={!selectedItem}

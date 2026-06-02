@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaGasPump } from 'react-icons/fa';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import Skeleton from './Skeleton';
 
 export default function ConsumoVeiculos({ token }) {
   const [data, setData] = useState([]);
@@ -15,7 +16,7 @@ export default function ConsumoVeiculos({ token }) {
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-6">Carregando...</div>;
+  if (loading) return <div className="p-6"><Skeleton type="card" rows={4} /></div>;
 
   const chartColors = ['#ff7f1e', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6'];
 

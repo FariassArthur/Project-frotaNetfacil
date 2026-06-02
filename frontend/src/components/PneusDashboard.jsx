@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaTachometerAlt, FaDollarSign, FaWarehouse, FaCheckCircle } from 'react-icons/fa';
+import Skeleton from './Skeleton';
 
 export default function PneusDashboard({ token }) {
   const [data, setData] = useState([]);
@@ -18,7 +19,7 @@ export default function PneusDashboard({ token }) {
   const totalInstalados = data.reduce((s, r) => s + r.instalados, 0);
 
   if (loading) {
-    return <div className="p-6 text-center" style={{ color: 'var(--text-muted)' }}>Carregando...</div>;
+    return <div className="p-6"><Skeleton type="card" rows={4} /></div>;
   }
 
   return (
