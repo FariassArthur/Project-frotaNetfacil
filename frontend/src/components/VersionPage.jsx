@@ -1,6 +1,30 @@
 import React from 'react';
 
 const changelog = [
+  ['1.1.2 — 2026', [
+    'Comparativo de veículos: km/L ponderado, km_percorrido, R$/km, ordens de serviço, indicador "Melhor" por campo, barras visuais, formatação pt-BR',
+    'Rebranding: Zênite — cores, logo, e-mail, CSV, logs',
+    'Suporte a prefers-color-scheme (tema escuro automático do sistema)',
+    'Modal reutilizável com focus trap e animação fade/slide',
+    'Dashboard: modais de pagamento refatorados com Modal; aviso de exportação acima de 5.000 linhas',
+    'Destaque visual de veículos ativos/inativos na tabela (borda verde/opacidade)',
+    'Correção: rota /api/veiculos/comparativo registrada antes de /api/veiculos/:placa (404)',
+    'Correção: coluna tanque_cheio faltando no SELECT de gastos',
+    'Correção: query duplicada de km/L no dashboard',
+    'Correção: ternário betterVal (nunca retornava -1)',
+    'Correção: memory leak URL.createObjectURL em EntityForm',
+    'Correção: vazamento de arquivo temporário no importarCSV (try/finally)',
+    'Tratamento de erros: ConsumoVeiculos, CustoKm, MotoristaMultas, ComparativoVeiculos com feedback visual',
+    'console.error em todos os catches silenciosos (CalendarioEventos, PneusDashboard, RelatorioCustos, LogsAuditoria, etc.)',
+    'Cleanup de setTimeout em Header, LoginForm e EntityForm (segurança em unmount)',
+    'Migração de fetch() cru para fetchList() compartilhado em 7 componentes',
+    'UsuariosPage refatorada para usar api client compartilhado',
+    'ImportarCSV com apiBase para compatibilidade Electron',
+    'Empty states em CustoKm, ConsumoVeiculos, MotoristaMultas, HistoricoMotoristaConsolidado',
+    'Acessibilidade: aria-label em botões de ícone (Modal, Calendario, GenericModule)',
+    'prefers-reduced-motion: animações respeitam preferência do usuário',
+    'Remoção de imports não utilizados em EntityTable, config.js, App.jsx',
+  ]],
   ['1.1.1 — 2026', [
     'Alerta de manutenção preventiva no Dashboard com KM e data',
     'Diário de bordo: Check-in/Check-out de viagens com km e motorista',
@@ -35,7 +59,7 @@ const changelog = [
 export default function VersionPage() {
   return (
     <div className="p-6" style={{ background: 'var(--bg-primary)' }}>
-      <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Versão 1.1.1</h2>
+      <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Versão 1.1.2</h2>
       <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Zênite — Sistema de Gestão de Frota</p>
 
       <div className="rounded-xl border p-6" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>

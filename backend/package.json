@@ -1,7 +1,7 @@
 {
   "name": "gestaofrota-backend",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "API REST + SQLite + uploads para GestaoFrota",
   "main": "src/app.js",
   "scripts": {
