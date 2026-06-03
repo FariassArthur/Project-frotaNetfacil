@@ -255,11 +255,11 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
           borderColor: 'var(--border-light)',
         }}>
           <span>{error}</span>
-          <button className="ml-auto bg-transparent border-none cursor-pointer text-sm font-bold" style={{ color: 'var(--danger)' }} onClick={() => setError('')}>&times;</button>
+          <button className="ml-auto bg-transparent border-none cursor-pointer text-sm font-bold" style={{ color: 'var(--danger)' }} onClick={() => setError('')} aria-label="Fechar">&times;</button>
         </div>
       )}
 
-      <div className="grid gap-6" style={{ gridTemplateColumns: formOpen ? '1fr 1fr' : '1fr' }}>
+      <div className={`grid-responsive-cols ${formOpen ? 'two-col' : 'single-col'}`}>
         {formOpen && (
           <div>
             <button
@@ -332,17 +332,19 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
           {loading ? (
             <Skeleton rows={5} cols={moduleConfig.fields.filter(f => f.tableOnly !== false).length} />
           ) : (
-            <EntityTable
-              items={items}
-              fields={moduleConfig.fields}
-              onSelect={handleSelectItem}
-              onDelete={handleDelete}
-              onBatchDelete={handleBatchDelete}
-              totalCount={totalCount}
-              page={page}
-              pageSize={pageSize}
-              onPageChange={handlePageChange}
-            />
+            <div className="table-responsive-wrap">
+              <EntityTable
+                items={items}
+                fields={moduleConfig.fields}
+                onSelect={handleSelectItem}
+                onDelete={handleDelete}
+                onBatchDelete={handleBatchDelete}
+                totalCount={totalCount}
+                page={page}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+              />
+            </div>
           )}
         </div>
       </div>

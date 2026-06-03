@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaHistory, FaCar, FaExclamationTriangle, FaGasPump, FaRoad } from 'react-icons/fa';
-import { exportPDF, exportMultipleTables } from '../utils/pdf';
+import { exportMultipleTables } from '../utils/pdf';
 import { fetchList } from '../api/client';
 import Skeleton from './Skeleton';
 
@@ -14,17 +14,15 @@ export default function HistoricoMotorista({ token }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchList('/api/cnhs', token).then(d => setMotoristas(d || [])).catch(() => {});
+    fetchList('/api/cnhs', token).then(d => setMotoristas(d || [])).catch(e => console.error('Erro ao carregar motoristas:', e));
   }, []);
 
   const loadHistorico = async () => {
     if (!selectedReg) return;
     setLoading(true);
     try {
-      const r = await fetch(`/api/motorista/historico/${selectedReg}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setData(await r.json());
+      const r = await fetchList(`/api/motorista/historico/${selectedReg}`, token);
+      setData(r);
     } catch (err) { console.error(err); }
     setLoading(false);
   };
@@ -89,6 +87,10 @@ export default function HistoricoMotorista({ token }) {
       </div>
 
       {loading && <Skeleton type="card" rows={4} />}
+
+      {!loading && !data && selectedReg && (
+        <div className="p-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Nenhum histórico encontrado para este motorista.</div>
+      )}
 
       {data && !loading && (
         <>

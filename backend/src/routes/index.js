@@ -18,6 +18,8 @@ const { registerImportarCSVRoutes } = require('./importarCSV');
 
 function registerRoutes(app) {
   registerAuthRoutes(app);
+  // register comparativo BEFORE veiculos (/:placa) to avoid Express matching "comparativo" as :placa
+  registerComparativoVeiculosRoutes(app);
   registerVeiculosRoutes(app);
   registerUsuariosRoutes(app);
   registerDashboardRoutes(app);
@@ -30,7 +32,6 @@ function registerRoutes(app) {
   registerOrdensServicoRoutes(app);
   registerMotoristaMultasRoutes(app);
   registerMotoristaHistoricoRoutes(app);
-  registerComparativoVeiculosRoutes(app);
   registerImportarCSVRoutes(app);
 
   // Generic CRUD entities

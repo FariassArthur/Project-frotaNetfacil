@@ -111,7 +111,7 @@ export default function ConfiguracoesPage({ token, user: currentUser }) {
   const handleEditUser = (u) => {
     const perms = u.permissoes;
     let parsedPerms = perms;
-    try { parsedPerms = JSON.parse(perms); } catch (_) {}
+    try { parsedPerms = JSON.parse(perms); } catch (e) { console.error('Erro ao parsear permissões:', e); }
     setUserForm({ username: u.username, password: '', role: u.role, ativo: !!u.ativo, permissoes: parsedPerms });
     setEditUserId(u.id);
     setShowUserForm(true);

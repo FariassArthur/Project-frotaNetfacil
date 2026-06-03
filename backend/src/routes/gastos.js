@@ -36,7 +36,7 @@ function registerGastosRoutes(app) {
       const [manutencoes, multas, abastecimentos, pagamentosSeguro, pagamentoDocumentos] = await Promise.all([
         all(`SELECT id, data, valor, descricao, km, classificacao FROM manutencoes WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
         all(`SELECT id, data_ocorrencia, valor, local_ocorrencia, pagamento_realizado, motorista_id FROM multas WHERE veiculo_id = ? ${multasDateClause} ORDER BY data_ocorrencia`, multasDateParams),
-        all(`SELECT id, data, valor, quantidade, km FROM abastecimentos WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
+        all(`SELECT id, data, valor, quantidade, km, tanque_cheio FROM abastecimentos WHERE veiculo_id = ? ${dateClause} ORDER BY data`, dateParams),
         all(`SELECT id, data_pagamento, valor FROM pagamentos_seguro WHERE veiculo_id = ? ${pgtoDateClause} ORDER BY data_pagamento`, pgtoDateParams),
         all(`SELECT id, data_pagamento, valor, descricao FROM pagamento_documentos WHERE veiculo_id = ? ${pgtoDocDateClause} ORDER BY data_pagamento`, pgtoDocDateParams),
       ]);

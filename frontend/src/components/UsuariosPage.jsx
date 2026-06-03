@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaUserPlus, FaTrash, FaSave } from 'react-icons/fa';
+import { fetchUsers, createUser, updateUser, deleteUser } from '../api/client';
 import Skeleton from './Skeleton';
 
 export default function UsuariosPage({ token }) {
@@ -8,21 +9,16 @@ export default function UsuariosPage({ token }) {
   const [form, setForm] = useState({ username: '', password: '', role: 'user', ativo: true, permissoes: 'all' });
   const [editId, setEditId] = useState(null);
 
-  const api = (path, opts = {}) => fetch(`/api/usuarios${path}`, {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...opts.headers },
-    ...opts,
-  });
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api('');
-      setUsers(await r.json());
+      const data = await fetchUsers(token);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (e) { console.error(e); }
     setLoading(false);
-  };
+  }, [token]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const handleSave = async () => {
     if (!form.username) return;
@@ -30,9 +26,9 @@ export default function UsuariosPage({ token }) {
     if (!body.password) { delete body.password; }
     try {
       if (editId) {
-        await api(`/${editId}`, { method: 'PUT', body: JSON.stringify(body) });
+        await updateUser(editId, body, token);
       } else {
-        await api('', { method: 'POST', body: JSON.stringify(body) });
+        await createUser(body, token);
       }
       setForm({ username: '', password: '', role: 'user', ativo: true, permissoes: 'all' });
       setEditId(null);
@@ -43,7 +39,7 @@ export default function UsuariosPage({ token }) {
   const handleDelete = async (id) => {
     if (!confirm('Excluir usuário?')) return;
     try {
-      await api(`/${id}`, { method: 'DELETE' });
+      await deleteUser(id, token);
       load();
     } catch (e) { console.error(e); }
   };

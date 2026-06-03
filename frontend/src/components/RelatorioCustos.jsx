@@ -39,7 +39,7 @@ export default function RelatorioCustos({ token }) {
     setLoading(true);
     fetchList('/api/dashboard/relatorio-custos', token)
       .then(r => setData(Array.isArray(r) ? r : []))
-      .catch(() => {})
+      .catch(e => console.error('Erro ao carregar custos:', e))
       .finally(() => setLoading(false));
   }, [token]);
 

@@ -26,7 +26,7 @@ export default function ManutencaoPreventivaConfig({ token, veiculoId, veiculos 
     loadConfigs();
     fetchList('/api/tipo-manutencao', token).then(r => {
       if (Array.isArray(r)) setTipos(r);
-    }).catch(err => console.error('Audit log error:', err));
+    }).catch(err => console.error('Erro ao carregar tipo de manutenção:', err));
   }, [veiculoId]);
 
   const loadConfigs = async () => {

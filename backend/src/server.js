@@ -36,7 +36,7 @@ function shutdown(signal) {
 initDb()
   .then(() => {
     const server = app.listen(PORT, () => {
-      console.log(`GestaoFrota backend running on http://localhost:${PORT}`);
+      console.log(`Zênite backend running on http://localhost:${PORT}`);
       startCron();
       startTokenCleanup();
     });

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, lazy, Suspense, useRef } from 
 import LoginForm from './components/LoginForm';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-import { MODULES, getByKey } from './modules/config';
+import { getByKey } from './modules/config';
 import { fetchList, logout, setOnUnauthorized } from './api/client';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -145,7 +145,7 @@ export default function App() {
 
   useEffect(() => {
     const current = getByKey(currentKey);
-    document.title = current?.label ? `GestaoFrota — ${current.label}` : 'GestaoFrota';
+    document.title = current?.label ? `Zênite — ${current.label}` : 'Zênite';
   }, [currentKey]);
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));

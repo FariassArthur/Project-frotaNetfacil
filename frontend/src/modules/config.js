@@ -1,4 +1,4 @@
-import { FaChartBar, FaTruck, FaTools, FaBuilding, FaCity, FaGlobeAmericas, FaCog, FaInfoCircle, FaClipboardList, FaDollarSign, FaCalendarAlt, FaClipboardCheck, FaUserCheck, FaTachometerAlt, FaGasPump, FaHistory, FaExchangeAlt, FaUpload, FaUserPlus, FaUsers, FaWrench, FaCar, FaBalanceScale } from 'react-icons/fa';
+import { FaChartBar, FaTruck, FaTools, FaBuilding, FaCity, FaGlobeAmericas, FaCog, FaInfoCircle, FaClipboardList, FaDollarSign, FaCalendarAlt, FaClipboardCheck, FaUserCheck, FaTachometerAlt, FaGasPump, FaHistory, FaExchangeAlt, FaUpload, FaUserPlus, FaUsers } from 'react-icons/fa';
 
 export const CATEGORIES = [
   { key: 'frota', label: 'Frota', icon: FaTruck },

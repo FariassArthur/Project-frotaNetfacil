@@ -36,7 +36,7 @@ export default function VersionPage() {
   return (
     <div className="p-6" style={{ background: 'var(--bg-primary)' }}>
       <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Versão 1.1.1</h2>
-      <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Sistema de Gestão de Frota</p>
+      <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Zênite — Sistema de Gestão de Frota</p>
 
       <div className="rounded-xl border p-6" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
         <h3 className="text-base font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Log de Mudanças</h3>

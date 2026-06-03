@@ -33,7 +33,7 @@ async function sendAlert(subject, html) {
     await t.sendMail({
       from: SMTP_FROM || SMTP_USER,
       to: NOTIFY_EMAIL,
-      subject: `[Gestão de Frota] ${subject}`,
+      subject: `[Zênite] ${subject}`,
       html,
     });
     return true;

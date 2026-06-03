@@ -253,13 +253,8 @@ export default function VeiculoGastos({ token }) {
                 <p className="text-sm py-12 text-center" style={{ color: 'var(--text-muted)' }}>Nenhum gasto encontrado para o período.</p>
               )}
             </div>
-            <div className="w-full lg:w-auto min-w-[250px]">
+            <div className="w-full lg:w-auto min-w-[250px] table-responsive-wrap">
               <div className="flex justify-end gap-2 mb-1">
-                <span className="text-xs cursor-pointer hover:opacity-80" style={{ color: 'var(--orange)' }}
-                  onClick={() => {
-                    const rows = data.categorias.map(c => [c.categoria, rawMoney(c.valor), (data.total > 0 ? ((c.valor / data.total) * 100).toFixed(1) : '0') + '%']);
-                    downloadCSV('resumo_categorias.csv', ['Categoria', 'Valor', '%'], rows);
-                  }} title="Download CSV"><FaDownload size={14} className="mr-1" /> CSV</span>
                 <span className="text-xs cursor-pointer hover:opacity-80" style={{ color: 'var(--orange)' }}
                   onClick={() => {
                     const rows = data.categorias.map(c => [c.categoria, `R$ ${rawMoney(c.valor)}`, (data.total > 0 ? ((c.valor / data.total) * 100).toFixed(1) : '0') + '%']);

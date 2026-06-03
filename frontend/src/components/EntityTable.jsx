@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { FaPaperclip, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { getFileUrl, getItemValue } from '../api/client';
-import { formatHeader, getSortValue, FilterDropdown } from '../utils/tableUtils.jsx';
+import { getSortValue, FilterDropdown } from '../utils/tableUtils.jsx';
 
 export default function EntityTable({ items, fields, onSelect, onDelete, totalCount, page, pageSize, onPageChange, onBatchDelete }) {
   const [columnFilters, setColumnFilters] = useState({});
@@ -156,8 +156,16 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
           </thead>
           <tbody>
               {processedItems.length > 0 ? (
-                processedItems.map((item, idx) => (
-                  <tr key={idx} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)' }}>
+                processedItems.map((item, idx) => {
+                  const hasAtivo = 'ativo' in item;
+                  const isAtivo = hasAtivo && (item.ativo === true || item.ativo === 1 || item.ativo === '1' || item.ativo === 'true');
+                  return (
+                  <tr key={idx} className="hover:[background:var(--table-row-hover)]"
+                    style={{
+                      color: 'var(--text-secondary)',
+                      ...(hasAtivo && isAtivo ? { background: 'rgba(34, 197, 94, 0.04)', borderLeft: '3px solid #22c55e' } : {}),
+                      ...(hasAtivo && !isAtivo ? { opacity: 0.45 } : {}),
+                    }}>
                     {onBatchDelete && (
                       <td className={tdClass} style={{ width: 36 }}>
                         <input type="checkbox" className="w-4 h-4 accent-[var(--orange)] cursor-pointer"
@@ -212,8 +220,9 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
                       Deletar
                     </button>
                   </td>
-                </tr>
-              ))
+                  </tr>
+                  );
+                })
             ) : (
               <tr>
                 <td className="text-center py-8" style={{ color: 'var(--text-muted)' }} colSpan={displayFields.length + 1 + (onBatchDelete ? 1 : 0)}>

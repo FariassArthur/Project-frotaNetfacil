@@ -49,7 +49,7 @@ function registerDashboardRoutes(app) {
       if (veiculoFilter) baseParams.push(veiculoFilter);
       const veiculoWhere = veiculoFilter ? ' AND veiculo_id = ?' : '';
 
-      const [manutencao, combustivel, multas, seguroDocs] = await Promise.all([
+      const [manutencao, combustivel, multas, seguroDocs, kmlRows] = await Promise.all([
         gastoMes('manutencoes', 'data'),
         gastoMes('abastecimentos', 'data'),
         gastoMes('multas', 'data_ocorrencia'),
@@ -80,12 +80,6 @@ function registerDashboardRoutes(app) {
       const segMap = {};
       for (const r of seguroDocs) segMap[r.mes] = (segMap[r.mes] || 0) + Number(r.total);
 
-      const kmlRows = await all(`
-        SELECT substr(a.data, 6, 2) as mes, AVG(CASE WHEN a.km > 0 THEN CAST(a.km AS REAL) / a.quantidade ELSE NULL END) as media_km_l
-        FROM abastecimentos a
-        WHERE a.data LIKE ? AND a.km > 0 AND a.quantidade > 0${veiculoWhere}
-        GROUP BY mes ORDER BY mes
-      `, [...baseParams]);
       const kmlMap = {};
       for (const r of kmlRows) kmlMap[r.mes] = r.media_km_l;
 

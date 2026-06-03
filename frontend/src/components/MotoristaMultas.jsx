@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaUserCheck, FaDownload, FaSearch } from 'react-icons/fa';
+import { fetchList } from '../api/client';
 import Skeleton from './Skeleton';
 
 export default function MotoristaMultas({ token }) {
@@ -8,12 +9,9 @@ export default function MotoristaMultas({ token }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/motorista-multas', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
+    fetchList('/api/motorista-multas', token)
       .then(d => { setData(d || { motoristas: [], total_geral: 0 }); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(e => { console.error('Erro ao carregar dados:', e); setLoading(false); });
   }, []);
 
   const loadDetail = async (registro) => {
@@ -21,7 +19,9 @@ export default function MotoristaMultas({ token }) {
       const r = await fetch(`/api/motorista-multas/${registro}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setDetail(await r.json());
+      if (!r.ok) { const errData = await r.json().catch(() => ({})); throw new Error(errData.error || 'Erro ao carregar detalhes'); }
+      const data = await r.json();
+      setDetail(data);
     } catch (err) {
       console.error(err);
     }
@@ -91,7 +91,9 @@ export default function MotoristaMultas({ token }) {
               </tr>
             </thead>
             <tbody>
-              {data.motoristas.map(m => (
+              {data.motoristas.length === 0 ? (
+                <tr><td className="px-3.5 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={8}>Nenhum motorista encontrado.</td></tr>
+              ) : data.motoristas.map(m => (
                 <tr key={m.numero_registro} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)' }}>
                   <td className={tdClass} style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.motorista_nome}</td>
                   <td className={tdClass} style={{ color: 'var(--text-muted)' }}>{m.numero_registro}</td>
@@ -119,7 +121,7 @@ export default function MotoristaMultas({ token }) {
           <div className="w-full max-w-3xl max-h-[80vh] flex flex-col rounded-xl border overflow-hidden" onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
             <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border-light)' }}>
               <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Multas — {detail.motorista?.nome || 'Motorista'}</h3>
-              <button className="bg-transparent border-none cursor-pointer text-xl font-bold" style={{ color: 'var(--text-muted)' }} onClick={() => setDetail(null)}>✕</button>
+              <button className="bg-transparent border-none cursor-pointer text-xl font-bold" style={{ color: 'var(--text-muted)' }} onClick={() => setDetail(null)} aria-label="Fechar">✕</button>
             </div>
             <div className="p-3 border-b flex gap-4 text-sm" style={{ borderColor: 'var(--border-light)' }}>
               <span style={{ color: 'var(--text-muted)' }}>Registro: <strong style={{ color: 'var(--text-primary)' }}>{detail.motorista?.numero_registro}</strong></span>

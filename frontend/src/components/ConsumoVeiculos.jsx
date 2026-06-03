@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { FaGasPump } from 'react-icons/fa';
+import { fetchList } from '../api/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import Skeleton from './Skeleton';
 
 export default function ConsumoVeiculos({ token }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/dashboard/consumo', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(d => { setData(d || []); setLoading(false); })
-      .catch(() => setLoading(false));
+    fetchList('/api/dashboard/consumo', token)
+      .then(d => { setData(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(e => { setError(e.message || 'Erro ao carregar'); setLoading(false); });
   }, []);
 
   if (loading) return <div className="p-6"><Skeleton type="card" rows={4} /></div>;
+  if (error) return <div className="p-6"><div className="text-center py-3 px-4 rounded-xl" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}><p className="text-sm font-semibold" style={{ color: '#dc2626' }}>{error}</p></div></div>;
 
   const chartColors = ['#ff7f1e', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6'];
 
@@ -78,7 +78,9 @@ export default function ConsumoVeiculos({ token }) {
               </tr>
             </thead>
             <tbody>
-              {data.map(r => (
+              {data.length === 0 ? (
+                <tr><td className="px-3.5 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={7}>Nenhum veículo encontrado.</td></tr>
+              ) : data.map(r => (
                 <tr key={r.placa} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)' }}>
                   <td className="px-3.5 py-3 text-sm border-b font-semibold" style={{ borderColor: 'var(--border-light)', color: 'var(--text-primary)' }}>{r.placa}</td>
                   <td className="px-3.5 py-3 text-sm border-b" style={{ borderColor: 'var(--border-light)' }}>{r.modelo || '-'}</td>

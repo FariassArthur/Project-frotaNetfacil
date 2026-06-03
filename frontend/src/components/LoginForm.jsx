@@ -16,10 +16,15 @@ export default function LoginForm({ onLoginSuccess }) {
   const [successMsg, setSuccessMsg] = useState('');
   const usernameRef = useRef(null);
   const currentPasswordRef = useRef(null);
+  const successTimerRef = useRef(null);
 
   useEffect(() => {
     (showChangePassword ? currentPasswordRef : usernameRef).current?.focus();
   }, [showChangePassword]);
+
+  useEffect(() => {
+    return () => clearTimeout(successTimerRef.current);
+  }, []);
 
   const handleCapsLock = (e) => {
     setCapsLock(e.getModifierState?.('CapsLock') ?? false);
@@ -65,7 +70,7 @@ export default function LoginForm({ onLoginSuccess }) {
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        setTimeout(() => {
+        successTimerRef.current = setTimeout(() => {
           setShowChangePassword(false);
           setSuccessMsg('');
         }, 2500);
@@ -95,7 +100,15 @@ export default function LoginForm({ onLoginSuccess }) {
         borderColor: 'var(--border-light)',
         boxShadow: 'var(--card-shadow)',
       }}>
-        <h1 className="m-0 mb-2 text-center text-[1.8rem] font-bold" style={{ color: 'var(--orange)' }}>GestaoFrota</h1>
+        <div className="flex flex-col items-center gap-2 mb-4">
+          <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14" stroke="#ff7f1e" strokeWidth="1.5"/>
+            <path d="M6 24 L12 14 L16 19 L20 14 L26 24" stroke="#ff7f1e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="16" cy="13" r="2" fill="#ff7f1e"/>
+            <path d="M9 9 A9 9 0 0 1 23 9" stroke="#ff7f1e" strokeWidth="1" strokeDasharray="2 2"/>
+          </svg>
+          <h1 className="m-0 text-center text-[1.8rem] font-bold" style={{ color: 'var(--orange)' }}>Zênite</h1>
+        </div>
         {!showChangePassword ? (
           <>
             <p className="text-center text-sm mb-8" style={{ color: 'var(--text-muted)' }}>Faça login para continuar</p>

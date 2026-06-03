@@ -40,7 +40,7 @@ export default function CalendarioEventos({ token }) {
     fetch('/api/veiculos', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => setVeiculos(Array.isArray(d) ? d : []))
-      .catch(() => {});
+      .catch(e => console.error('Erro ao carregar veículos:', e));
   }, [token]);
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function CalendarioEventos({ token }) {
     })
       .then(r => r.json())
       .then(data => { setEvents(data || []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(e => { console.error('Erro ao carregar eventos:', e); setLoading(false); });
   }, [currentMonth, currentYear, filtroVeiculo]);
 
   const dayEvents = useMemo(() => {
@@ -113,7 +113,7 @@ export default function CalendarioEventos({ token }) {
           {/* Header */}
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <button onClick={prevMonth} className="p-2 rounded-lg border-none cursor-pointer hover:opacity-80"
-              style={{ background: 'var(--orange-bg)', color: 'var(--orange)' }}>
+              style={{ background: 'var(--orange-bg)', color: 'var(--orange)' }} aria-label="Mês anterior">
               <FaChevronLeft size={16} />
             </button>
             <div className="flex items-center gap-3 flex-wrap">
@@ -132,7 +132,7 @@ export default function CalendarioEventos({ token }) {
               </select>
             </div>
             <button onClick={nextMonth} className="p-2 rounded-lg border-none cursor-pointer hover:opacity-80"
-              style={{ background: 'var(--orange-bg)', color: 'var(--orange)' }}>
+              style={{ background: 'var(--orange-bg)', color: 'var(--orange)' }} aria-label="Próximo mês">
               <FaChevronRight size={16} />
             </button>
           </div>

@@ -71,7 +71,7 @@ export default function PneusPage({ token }) {
   useEffect(() => {
     fetchListPaginated('/api/veiculos', token)
       .then(r => setVehicles(Array.isArray(r.data) ? r.data : []))
-      .catch(() => {});
+      .catch(e => console.error('Erro ao carregar veículos:', e));
   }, [token]);
 
   const loadTires = useCallback(() => {
@@ -134,7 +134,7 @@ export default function PneusPage({ token }) {
           Selecione um veículo para gerenciar os pneus.
         </div>
       ) : (
-        <div className="grid gap-6" style={{ gridTemplateColumns: showForm ? '1fr 1fr' : '1fr' }}>
+        <div className={`grid-responsive-cols ${showForm ? 'two-col' : 'single-col'}`}>
           {showForm && (
             <div>
               <div className="p-4 rounded-xl border mb-4" style={{ background: 'var(--orange-bg)', borderColor: 'var(--border-light)' }}>

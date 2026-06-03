@@ -51,7 +51,7 @@ export default function LogsAuditoria({ token, user }) {
 
   const fetchUsers = async () => {
     try { const data = await fetchList('/api/usuarios', token); setUsers(Array.isArray(data) ? data : []); }
-    catch (_) {}
+    catch (e) { console.error('Erro ao carregar usuários:', e); }
   };
 
   const loadLogs = async () => {
@@ -130,24 +130,26 @@ export default function LogsAuditoria({ token, user }) {
     const changes = diffObjects(log.dados_antigos, log.dados_novos);
     if (!changes) return null;
     return (
-      <table className="w-full border-collapse text-xs mb-3">
-        <thead>
-          <tr style={{ background: 'var(--bg-secondary)' }}>
-            <th className="px-3 py-2 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Campo</th>
-            <th className="px-3 py-2 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Valor Antigo</th>
-            <th className="px-3 py-2 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Valor Novo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {changes.map((c, i) => (
-            <tr key={i} style={{ color: 'var(--text-secondary)' }}>
-              <td className="px-3 py-2 border-b font-medium">{c.field}</td>
-              <td className="px-3 py-2 border-b" style={{ color: 'var(--danger)' }}>{renderValue(c.old)}</td>
-              <td className="px-3 py-2 border-b" style={{ color: 'var(--success)' }}>{renderValue(c.new)}</td>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-xs mb-3">
+          <thead>
+            <tr style={{ background: 'var(--bg-secondary)' }}>
+              <th className="px-3 py-2 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Campo</th>
+              <th className="px-3 py-2 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Valor Antigo</th>
+              <th className="px-3 py-2 text-left font-bold border-b" style={{ color: 'var(--text-primary)' }}>Valor Novo</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {changes.map((c, i) => (
+              <tr key={i} style={{ color: 'var(--text-secondary)' }}>
+                <td className="px-3 py-2 border-b font-medium">{c.field}</td>
+                <td className="px-3 py-2 border-b" style={{ color: 'var(--danger)' }}>{renderValue(c.old)}</td>
+                <td className="px-3 py-2 border-b" style={{ color: 'var(--success)' }}>{renderValue(c.new)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   };
 

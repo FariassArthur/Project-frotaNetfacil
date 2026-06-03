@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaTachometerAlt, FaDollarSign, FaWarehouse, FaCheckCircle } from 'react-icons/fa';
+import { fetchList } from '../api/client';
 import Skeleton from './Skeleton';
 
 export default function PneusDashboard({ token }) {
@@ -7,10 +8,9 @@ export default function PneusDashboard({ token }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/dashboard/pneus', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(d => setData(d || []))
-      .catch(() => {})
+    fetchList('/api/dashboard/pneus', token)
+      .then(d => setData(Array.isArray(d) ? d : []))
+      .catch(e => console.error('Erro ao carregar pneus:', e))
       .finally(() => setLoading(false));
   }, []);
 

@@ -4,6 +4,7 @@ import { FaDownload, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { fetchList } from '../api/client';
 import { formatHeader, FilterDropdown } from '../utils/tableUtils.jsx';
 import { requestNotificationPermission, notifyOverdue } from '../utils/notifications';
+import Modal from './Modal';
 import Skeleton from './Skeleton';
 
 const MODULE_ORDER = [
@@ -278,6 +279,9 @@ export default function Dashboard({ token, onModuleSelect }) {
   const hasActiveFilters = Object.keys(columnFilters).length > 0 || search.length > 0;
 
   const exportCSV = () => {
+    const totalRows = tabs.reduce((s, t) => s + (t.rows?.length || 0), 0);
+    if (totalRows > 5000 && !window.confirm(`Exportando ${totalRows} linhas. Isso pode travar o navegador. Deseja continuar?`)) return;
+
     const lines = [];
     for (const tab of tabs) {
       const rows = sanitizeRows(tab.rows);
@@ -299,7 +303,7 @@ export default function Dashboard({ token, onModuleSelect }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'gestao_frota_completo.csv';
+      a.download = 'zenite_completo.csv';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -426,63 +430,111 @@ export default function Dashboard({ token, onModuleSelect }) {
         </div>
       )}
 
-      {showPagamentoModal === 'atrasados' && pagamentos?.atrasados?.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Pagamentos em atraso" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowPagamentoModal(null)}>
-          <div className="w-full max-w-4xl max-h-[80vh] flex flex-col rounded-xl border overflow-hidden" onClick={(e) => e.stopPropagation()} style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
-            <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border-light)' }}>
-              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Pagamentos em Atraso</h3>
-              <div className="flex items-center gap-3">
-                <button className="px-4 py-2 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg inline-flex items-center gap-1.5" style={{ background: 'var(--orange)' }} onClick={() => {
-                  const headers = ['Tipo', 'Veículo', 'Descrição', 'Valor', 'Vencimento', 'Dias Atraso'];
-                  const rows = pagamentos.atrasados.map(i => [
-                    i.tipo, i.veiculo_id, i.descricao || '',
-                    `R$ ${(i.valor || 0).toFixed(2).replace('.', ',')}`,
-                    i.data_vencimento ? i.data_vencimento.split('-').reverse().join('/') : '',
-                    `${i.dias_atraso} dia(s)`,
-                  ]);
-                  downloadCSV('pagamentos_em_atraso.csv', headers, rows);
-                }}><FaDownload size={14} /> CSV</button>
-                <button className="bg-transparent border-none cursor-pointer text-xl font-bold" style={{ color: 'var(--text-muted)' }} onClick={() => setShowPagamentoModal(null)}>✕</button>
-              </div>
-            </div>
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr style={{ background: 'var(--table-header-bg)' }}>
-                    <th className={thClass}>Tipo</th>
-                    <th className={thClass}>Veículo</th>
-                    <th className={thClass}>Descrição</th>
-                    <th className={thClass}>Valor</th>
-                    <th className={thClass}>Vencimento</th>
-                    <th className={thClass}>Dias</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagamentos.atrasados.map((item, i) => (
-                    <tr key={`${item.tipo}-${item.id}`} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)', background: i % 2 === 0 ? 'rgba(239, 68, 68, 0.04)' : 'rgba(239, 68, 68, 0.09)' }}>
-                      <td className={tdClass}>
-                        <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{
-                          background: item.tipo === 'Multa' ? 'var(--danger-bg)' : 'var(--orange-bg)',
-                          color: item.tipo === 'Multa' ? 'var(--danger)' : 'var(--orange-dark)',
-                        }}>
-                          {item.tipo}
-                        </span>
-                      </td>
-                      <td className={tdClass} style={{ color: 'var(--danger)' }}>{item.veiculo_id}</td>
-                      <td className={tdClass}>{item.descricao || '-'}</td>
-                      <td className={tdClass} style={{ color: 'var(--danger)', fontWeight: 600 }}>
-                        R$ {(item.valor || 0).toFixed(2).replace('.', ',')}
-                      </td>
-                      <td className={tdClass} style={{ color: 'var(--danger)' }}>{item.data_vencimento ? item.data_vencimento.split('-').reverse().join('/') : '-'}</td>
-                      <td className={tdClass} style={{ color: 'var(--danger)', fontWeight: 700 }}>{item.dias_atraso} dia(s)</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+      <Modal open={showPagamentoModal === 'atrasados'} onClose={() => setShowPagamentoModal(null)} title="Pagamentos em Atraso" wide>
+        <div className="flex justify-end px-4 pt-3 pb-1">
+          <button className="px-4 py-2 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg inline-flex items-center gap-1.5" style={{ background: 'var(--orange)' }} onClick={() => {
+            const headers = ['Tipo', 'Veículo', 'Descrição', 'Valor', 'Vencimento', 'Dias Atraso'];
+            const rows = pagamentos.atrasados.map(i => [
+              i.tipo, i.veiculo_id, i.descricao || '',
+              `R$ ${(i.valor || 0).toFixed(2).replace('.', ',')}`,
+              i.data_vencimento ? i.data_vencimento.split('-').reverse().join('/') : '',
+              `${i.dias_atraso} dia(s)`,
+            ]);
+            downloadCSV('pagamentos_em_atraso.csv', headers, rows);
+          }}><FaDownload size={14} /> CSV</button>
         </div>
-      )}
+        <div className="overflow-x-auto px-4 pb-4">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr style={{ background: 'var(--table-header-bg)' }}>
+                <th className={thClass}>Tipo</th>
+                <th className={thClass}>Veículo</th>
+                <th className={thClass}>Descrição</th>
+                <th className={thClass}>Valor</th>
+                <th className={thClass}>Vencimento</th>
+                <th className={thClass}>Dias</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagamentos.atrasados.map((item, i) => (
+                <tr key={`${item.tipo}-${item.id}`} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)', background: i % 2 === 0 ? 'rgba(239, 68, 68, 0.04)' : 'rgba(239, 68, 68, 0.09)' }}>
+                  <td className={tdClass}>
+                    <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{
+                      background: item.tipo === 'Multa' ? 'var(--danger-bg)' : 'var(--orange-bg)',
+                      color: item.tipo === 'Multa' ? 'var(--danger)' : 'var(--orange-dark)',
+                    }}>
+                      {item.tipo}
+                    </span>
+                  </td>
+                  <td className={tdClass} style={{ color: 'var(--danger)' }}>{item.veiculo_id}</td>
+                  <td className={tdClass}>{item.descricao || '-'}</td>
+                  <td className={tdClass} style={{ color: 'var(--danger)', fontWeight: 600 }}>
+                    R$ {(item.valor || 0).toFixed(2).replace('.', ',')}
+                  </td>
+                  <td className={tdClass} style={{ color: 'var(--danger)' }}>{item.data_vencimento ? item.data_vencimento.split('-').reverse().join('/') : '-'}</td>
+                  <td className={tdClass} style={{ color: 'var(--danger)', fontWeight: 700 }}>{item.dias_atraso} dia(s)</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Modal>
+
+      <Modal open={showPagamentoModal === 'noPrazo'} onClose={() => setShowPagamentoModal(null)} title="Pagamentos em Dia" wide>
+        <div className="flex justify-end px-4 pt-3 pb-1">
+          <button className="px-4 py-2 rounded-[12px] font-semibold text-sm text-white border-none cursor-pointer shadow-lg inline-flex items-center gap-1.5" style={{ background: 'var(--orange)' }} onClick={() => {
+            const headers = ['Tipo', 'Veículo', 'Descrição', 'Valor', 'Vencimento', 'Situação'];
+            const rows = pagamentos.noPrazoList.map(i => [
+              i.tipo, i.veiculo_id, i.descricao || '',
+              `R$ ${(i.valor || 0).toFixed(2).replace('.', ',')}`,
+              i.data_vencimento ? i.data_vencimento.split('-').reverse().join('/') : '',
+              i.situacao,
+            ]);
+            downloadCSV('pagamentos_no_prazo.csv', headers, rows);
+          }}><FaDownload size={14} /> CSV</button>
+        </div>
+        <div className="overflow-x-auto px-4 pb-4">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr style={{ background: 'var(--table-header-bg)' }}>
+                <th className={thClass}>Tipo</th>
+                <th className={thClass}>Veículo</th>
+                <th className={thClass}>Descrição</th>
+                <th className={thClass}>Valor</th>
+                <th className={thClass}>Vencimento</th>
+                <th className={thClass}>Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagamentos.noPrazoList.map((item, i) => (
+                <tr key={`${item.tipo}-${item.id}`} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)', background: i % 2 === 0 ? 'rgba(34, 197, 94, 0.04)' : 'rgba(34, 197, 94, 0.09)' }}>
+                  <td className={tdClass}>
+                    <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{
+                      background: item.tipo === 'Multa' ? 'var(--danger-bg)' : 'var(--orange-bg)',
+                      color: item.tipo === 'Multa' ? 'var(--danger)' : 'var(--orange-dark)',
+                    }}>
+                      {item.tipo}
+                    </span>
+                  </td>
+                  <td className={tdClass} style={{ color: 'var(--success)' }}>{item.veiculo_id}</td>
+                  <td className={tdClass}>{item.descricao || '-'}</td>
+                  <td className={tdClass} style={{ color: 'var(--success)', fontWeight: 600 }}>
+                    R$ {(item.valor || 0).toFixed(2).replace('.', ',')}
+                  </td>
+                  <td className={tdClass}>{item.data_vencimento ? item.data_vencimento.split('-').reverse().join('/') : '-'}</td>
+                  <td className={tdClass}>
+                    {item.situacao === 'Pago' ? (
+                      <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>&#10003; Pago</span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ background: 'var(--info-bg)', color: '#0056b3' }}>&#128197; A vencer</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Modal>
 
       {showPagamentoModal === 'noPrazo' && pagamentos?.noPrazoList?.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Pagamentos em dia" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowPagamentoModal(null)}>

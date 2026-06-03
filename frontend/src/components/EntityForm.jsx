@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { FaPaperclip, FaSearch } from 'react-icons/fa';
 import { getFileUrl, getItemValue, fetchList } from '../api/client';
 
@@ -16,18 +16,24 @@ export default function EntityForm({
 }) {
   const [errors, setErrors] = useState({});
   const [filePreviews, setFilePreviews] = useState({});
+  const previewUrlsRef = useRef({});
   const [motoristas, setMotoristas] = useState([]);
   const [motoristaSuggestions, setMotoristaSuggestions] = useState([]);
   const [showMotoristaDropdown, setShowMotoristaDropdown] = useState(false);
   const firstFieldRef = useRef(null);
   const motoristaRef = useRef(null);
+  const blurTimerRef = useRef(null);
 
   const visibleFields = fields.filter(f => !f.tableOnly);
 
   useEffect(() => {
     fetchList('/api/cnhs', token)
       .then(data => setMotoristas(data || []))
-      .catch(() => {});
+      .catch(e => console.error('Erro ao carregar motoristas:', e));
+  }, []);
+
+  useEffect(() => {
+    return () => clearTimeout(blurTimerRef.current);
   }, []);
 
   useEffect(() => {
@@ -40,12 +46,14 @@ export default function EntityForm({
   }, [motoristas, formData.motorista_id]);
 
   useEffect(() => {
-    if (firstFieldRef.current) {
-      const el = firstFieldRef.current;
-      if (typeof el.focus === 'function') {
-        setTimeout(() => el.focus(), 50);
-      }
-    }
+    firstFieldRef.current?.focus?.();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      Object.values(previewUrlsRef.current).forEach(url => { if (url) URL.revokeObjectURL(url); });
+      previewUrlsRef.current = {};
+    };
   }, []);
 
   const validateField = (name, value) => {
@@ -88,11 +96,11 @@ export default function EntityForm({
   const inputBase = 'w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors';
   const labelBase = 'text-sm font-medium';
 
-  const setRef = (field, el) => {
-    if (field === visibleFields[0] && el) {
+  const setRef = useCallback((field, el) => {
+    if (field === visibleFields[0]) {
       firstFieldRef.current = el;
     }
-  };
+  }, [visibleFields]);
 
   const renderField = (field) => {
     const hasError = errors[field.name];
@@ -155,8 +163,14 @@ export default function EntityForm({
         const file = e.target.files[0];
         onChange(field.name, file);
         setErrors((p) => ({ ...p, [field.name]: undefined }));
+        if (previewUrlsRef.current[field.name]) {
+          URL.revokeObjectURL(previewUrlsRef.current[field.name]);
+          delete previewUrlsRef.current[field.name];
+        }
         if (file && isImage(file.name)) {
-          setFilePreviews(prev => ({ ...prev, [field.name]: URL.createObjectURL(file) }));
+          const url = URL.createObjectURL(file);
+          previewUrlsRef.current[field.name] = url;
+          setFilePreviews(prev => ({ ...prev, [field.name]: url }));
         } else {
           setFilePreviews(prev => ({ ...prev, [field.name]: null }));
         }
@@ -264,7 +278,7 @@ export default function EntityForm({
               style={inpStyle}
               type="text" value={value}
               onFocus={() => setShowMotoristaDropdown(true)}
-              onBlur={() => setTimeout(() => setShowMotoristaDropdown(false), 200)}
+               onBlur={() => { blurTimerRef.current = setTimeout(() => setShowMotoristaDropdown(false), 200); }}
               placeholder="Digite o número do registro"
               onChange={(e) => handleMotoristaChange(e.target.value)}
             />

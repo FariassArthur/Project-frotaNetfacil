@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        netfacil: {
+        zenite: {
           DEFAULT: '#ff7f1e',
           light: '#ffa85a',
           dark: '#cc5d12',
