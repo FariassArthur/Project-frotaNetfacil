@@ -393,7 +393,10 @@ async function initDb() {
       password TEXT NOT NULL,
       role TEXT DEFAULT 'user',
       ativo INTEGER DEFAULT 1,
-      permissoes TEXT DEFAULT 'all'
+      permissoes TEXT DEFAULT 'all',
+      nome_completo TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      telefone TEXT DEFAULT ''
     )
   `);
 
@@ -402,8 +405,17 @@ async function initDb() {
     if (!hasColumn(userCols, 'permissoes')) {
       await run("ALTER TABLE usuarios ADD COLUMN permissoes TEXT DEFAULT 'all'");
     }
+    if (!hasColumn(userCols, 'nome_completo')) {
+      await run("ALTER TABLE usuarios ADD COLUMN nome_completo TEXT DEFAULT ''");
+    }
+    if (!hasColumn(userCols, 'email')) {
+      await run("ALTER TABLE usuarios ADD COLUMN email TEXT DEFAULT ''");
+    }
+    if (!hasColumn(userCols, 'telefone')) {
+      await run("ALTER TABLE usuarios ADD COLUMN telefone TEXT DEFAULT ''");
+    }
   } catch (err) {
-    console.warn('Could not ensure usuarios.permissoes column', err.message || err);
+    console.warn('Could not ensure usuarios columns', err.message || err);
   }
 
   try {

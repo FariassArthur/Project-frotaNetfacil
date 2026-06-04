@@ -29,10 +29,39 @@ function cleanData(data) {
   return cleaned;
 }
 
+const USER_FIELDS = 'id, username, nome_completo, email, telefone, role, ativo, permissoes';
+
 function registerUsuariosRoutes(app) {
   app.get('/api/usuarios', requireRole('admin', 'root'), async (req, res) => {
     try {
-      const rows = await all('SELECT id, username, role, ativo, permissoes FROM usuarios ORDER BY username');
+      const page = parseInt(req.query._page, 10) || null;
+      const limit = parseInt(req.query._limit, 10) || null;
+      const q = (req.query._q || '').trim();
+
+      const conditions = [];
+      const params = [];
+
+      if (q) {
+        conditions.push('(username LIKE ? OR nome_completo LIKE ? OR email LIKE ?)');
+        const like = `%${q}%`;
+        params.push(like, like, like);
+      }
+
+      const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+      if (page && limit) {
+        const countRow = await all(`SELECT COUNT(*) as cnt FROM usuarios ${where}`, params);
+        const total = countRow[0]?.cnt || 0;
+        const offset = (page - 1) * limit;
+        const rows = await all(
+          `SELECT ${USER_FIELDS} FROM usuarios ${where} ORDER BY username LIMIT ? OFFSET ?`,
+          [...params, limit, offset]
+        );
+        res.set('X-Total-Count', String(total));
+        return res.json(rows);
+      }
+
+      const rows = await all(`SELECT ${USER_FIELDS} FROM usuarios ORDER BY username`);
       res.json(rows);
     } catch (error) {
       handleError(res, error, 'usuarios');
@@ -41,7 +70,7 @@ function registerUsuariosRoutes(app) {
 
   app.get('/api/usuarios/:id', requireRole('admin', 'root'), async (req, res) => {
     try {
-      const row = await get('SELECT id, username, role, ativo, permissoes FROM usuarios WHERE id = ?', [req.params.id]);
+      const row = await get(`SELECT ${USER_FIELDS} FROM usuarios WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ error: 'Usuário não encontrado' });
       res.json(row);
     } catch (error) {
@@ -50,15 +79,15 @@ function registerUsuariosRoutes(app) {
   });
 
   app.post('/api/usuarios', requireRole('admin', 'root'), async (req, res) => {
-    const { username, password, role, ativo, permissoes } = req.body || {};
+    const { username, password, role, ativo, permissoes, nome_completo, email, telefone } = req.body || {};
     try {
       if (!username || !password) return res.status(400).json({ error: 'username e password são obrigatórios' });
       const pwError = validatePasswordStrength(password);
       if (pwError) return res.status(400).json({ error: pwError });
       const hash = await bcrypt.hash(password, 10);
       const result = await run(
-        'INSERT INTO usuarios (username, password, role, ativo, permissoes) VALUES (?, ?, ?, ?, ?)',
-        [username, hash, role || 'user', ativo !== false ? 1 : 0, permissoes || 'all']
+        'INSERT INTO usuarios (username, password, role, ativo, permissoes, nome_completo, email, telefone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [username, hash, role || 'user', ativo !== false ? 1 : 0, permissoes || 'all', nome_completo || '', email || '', telefone || '']
       );
       const userId = String(result.lastID || result.rows?.[0]?.id || '');
       res.status(201).json({ ok: true, id: userId });
@@ -114,7 +143,7 @@ function registerUsuariosRoutes(app) {
   });
 
   app.put('/api/usuarios/:id', requireRole('admin', 'root'), async (req, res) => {
-    const { username, password, role, ativo, permissoes } = req.body || {};
+    const { username, password, role, ativo, permissoes, nome_completo, email, telefone } = req.body || {};
     try {
       const exists = await get('SELECT * FROM usuarios WHERE id = ?', [req.params.id]);
       if (!exists) return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -126,6 +155,9 @@ function registerUsuariosRoutes(app) {
       if (role !== undefined) { updates.push('role = ?'); params.push(role); }
       if (ativo !== undefined) { updates.push('ativo = ?'); params.push(ativo ? 1 : 0); }
       if (permissoes !== undefined) { updates.push('permissoes = ?'); params.push(permissoes); }
+      if (nome_completo !== undefined) { updates.push('nome_completo = ?'); params.push(nome_completo); }
+      if (email !== undefined) { updates.push('email = ?'); params.push(email); }
+      if (telefone !== undefined) { updates.push('telefone = ?'); params.push(telefone); }
       if (password !== undefined && password !== '') {
         const pwError = validatePasswordStrength(password);
         if (pwError) return res.status(400).json({ error: pwError });

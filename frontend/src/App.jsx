@@ -329,7 +329,7 @@ export default function App() {
             ) : currentKey === 'pneus-dashboard' ? (
               <PneusDashboard token={token} />
             ) : currentKey === 'usuarios' ? (
-              <UsuariosPage token={token} />
+              <UsuariosPage token={token} user={user} />
             ) : (
               <GenericModule
                 moduleConfig={currentModule}
