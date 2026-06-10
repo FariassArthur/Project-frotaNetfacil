@@ -1,5 +1,6 @@
 const crypto = require('crypto');
-const { run, all } = require('../database/connection');
+const { Op } = require('sequelize');
+const { TokenBlacklist } = require('../database/models');
 
 const CLEANUP_INTERVAL = 60 * 60 * 1000;
 let cleanupTimer = null;
@@ -23,10 +24,10 @@ async function add(token) {
   const exp = extractExp(token);
   const expiresAt = exp * 1000;
   try {
-    await run(
-      'INSERT OR IGNORE INTO token_blacklist (token_hash, expires_at) VALUES (?, ?)',
-      [tokenHash, expiresAt]
-    );
+    await TokenBlacklist.findOrCreate({
+      where: { token_hash: tokenHash },
+      defaults: { token_hash: tokenHash, expires_at: expiresAt },
+    });
   } catch (err) {
     console.error('TokenBlacklist add error:', err.message || err);
   }
@@ -36,8 +37,8 @@ async function isBlacklisted(token) {
   if (!token) return false;
   const tokenHash = hashToken(token);
   try {
-    const row = await all('SELECT 1 FROM token_blacklist WHERE token_hash = ?', [tokenHash]);
-    return row.length > 0;
+    const row = await TokenBlacklist.findByPk(tokenHash);
+    return row !== null;
   } catch {
     return false;
   }
@@ -45,8 +46,9 @@ async function isBlacklisted(token) {
 
 async function cleanup() {
   try {
-    const now = Date.now();
-    await run('DELETE FROM token_blacklist WHERE expires_at < ?', [now]);
+    await TokenBlacklist.destroy({
+      where: { expires_at: { [Op.lt]: Date.now() } },
+    });
   } catch (err) {
     console.error('TokenBlacklist cleanup error:', err.message || err);
   }

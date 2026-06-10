@@ -1,8 +1,19 @@
-const { all, run, sqlDate } = require('../database/connection');
+const { sequelize } = require('../database/sequelize');
 const { notifyVencimentos, isConfigured } = require('./email');
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let intervalId = null;
+
+function dateExpr(expr) {
+  const dialect = sequelize.getDialect();
+  if (dialect === 'postgres') {
+    if (expr === 'CURRENT_DATE') return 'CURRENT_DATE';
+    const m = expr.match(/\?,\s*'\+(\d+)\s+(\w+)'/);
+    if (m) return `?::date + INTERVAL '${m[1]} ${m[2]}'`;
+    return expr.replace('?', '?::date');
+  }
+  return `date(${expr})`;
+}
 
 async function checkVencimentos() {
   try {
@@ -11,37 +22,39 @@ async function checkVencimentos() {
 
     const items = [];
 
-    // CNHs vencendo em 7 dias
-    const cnhs = await all(`SELECT nome, validade FROM cnhs WHERE validade BETWEEN ? AND ?`, [hoje, daqui7]);
+    const cnhs = await sequelize.query(
+      `SELECT nome, validade FROM cnhs WHERE validade BETWEEN ? AND ?`,
+      { replacements: [hoje, daqui7], type: sequelize.QueryTypes.SELECT }
+    );
     for (const c of cnhs) {
       items.push({ tipo: 'CNH', titulo: c.nome, veiculo_id: null, data: c.validade, dias_atraso: 0 });
     }
 
-    // Seguros vencendo
-    const seguros = await all(`
-      SELECT cs.numero_apolice, cs.data_final_contrato, v.placa
-      FROM contratos_seguro cs LEFT JOIN veiculos v ON cs.veiculo_id = v.placa
-      WHERE cs.ativo = 1 AND cs.data_final_contrato BETWEEN ? AND ?
-    `, [hoje, daqui7]);
+    const seguros = await sequelize.query(
+      `SELECT cs.numero_apolice, cs.data_final_contrato, v.placa
+       FROM contratos_seguro cs LEFT JOIN veiculos v ON cs.veiculo_id = v.placa
+       WHERE cs.ativo = 1 AND cs.data_final_contrato BETWEEN ? AND ?`,
+      { replacements: [hoje, daqui7], type: sequelize.QueryTypes.SELECT }
+    );
     for (const s of seguros) {
       items.push({ tipo: 'Seguro', titulo: `Apólice ${s.numero_apolice}`, veiculo_id: s.placa, data: s.data_final_contrato, dias_atraso: 0 });
     }
 
-    // Multas vencidas
-    const multas = await all(`
-      SELECT id, veiculo_id, valor, data_vencimento FROM multas
-      WHERE data_vencimento < ? AND (pagamento_realizado IS NULL OR pagamento_realizado = 0)
-    `, [hoje]);
+    const multas = await sequelize.query(
+      `SELECT id, veiculo_id, valor, data_vencimento FROM multas
+       WHERE data_vencimento < ? AND (pagamento_realizado IS NULL OR pagamento_realizado = 0)`,
+      { replacements: [hoje], type: sequelize.QueryTypes.SELECT }
+    );
     for (const m of multas) {
       const dias = Math.floor((new Date(hoje) - new Date(m.data_vencimento)) / (1000 * 60 * 60 * 24));
       items.push({ tipo: 'Multa', titulo: `R$ ${Number(m.valor).toFixed(2)}`, veiculo_id: m.veiculo_id, data: m.data_vencimento, dias_atraso: dias });
     }
 
-    // Documentos vencidos
-    const docs = await all(`
-      SELECT id, veiculo_id, descricao, valor, data_vencimento FROM pagamento_documentos
-      WHERE data_vencimento < ? AND data_pagamento IS NULL
-    `, [hoje]);
+    const docs = await sequelize.query(
+      `SELECT id, veiculo_id, descricao, valor, data_vencimento FROM pagamento_documentos
+       WHERE data_vencimento < ? AND data_pagamento IS NULL`,
+      { replacements: [hoje], type: sequelize.QueryTypes.SELECT }
+    );
     for (const d of docs) {
       const dias = Math.floor((new Date(hoje) - new Date(d.data_vencimento)) / (1000 * 60 * 60 * 24));
       items.push({ tipo: 'Documento', titulo: d.descricao || 'Documento', veiculo_id: d.veiculo_id, data: d.data_vencimento, dias_atraso: dias });
@@ -61,17 +74,18 @@ async function checkManutencaoPreventiva() {
   try {
     const hoje = new Date().toISOString().slice(0, 10);
 
-    const alertas = await all(`
-      SELECT c.*, v.placa, v.fipe_modelo, v.km as km_atual
-      FROM config_manutencao_preventiva c
-      JOIN veiculos v ON c.veiculo_id = v.placa
-      WHERE c.ativo = 1
-        AND (
-          (c.km_proxima IS NOT NULL AND v.km >= c.km_proxima)
-          OR
-          (c.data_proxima IS NOT NULL AND c.data_proxima <= ?)
-        )
-    `, [hoje]);
+    const alertas = await sequelize.query(
+      `SELECT c.*, v.placa, v.fipe_modelo, v.km as km_atual
+       FROM config_manutencao_preventiva c
+       JOIN veiculos v ON c.veiculo_id = v.placa
+       WHERE c.ativo = 1
+         AND (
+           (c.km_proxima IS NOT NULL AND v.km >= c.km_proxima)
+           OR
+           (c.data_proxima IS NOT NULL AND c.data_proxima <= ?)
+         )`,
+      { replacements: [hoje], type: sequelize.QueryTypes.SELECT }
+    );
 
     if (alertas.length > 0) {
       console.log(`[Cron] Manutenção preventiva: ${alertas.length} veículo(s) precisam de manutenção.`);
@@ -80,17 +94,18 @@ async function checkManutencaoPreventiva() {
       }
     }
 
-    const proximos = await all(`
-      SELECT c.*, v.placa, v.fipe_modelo, v.km as km_atual
-      FROM config_manutencao_preventiva c
-      JOIN veiculos v ON c.veiculo_id = v.placa
-      WHERE c.ativo = 1
-        AND (
-          (c.km_proxima IS NOT NULL AND v.km >= (c.km_proxima - COALESCE(c.km_intervalo, 10000) * 0.1) AND v.km < c.km_proxima)
-          OR
-          (c.data_proxima IS NOT NULL AND c.data_proxima > ? AND c.data_proxima <= ${sqlDate("?,'+7 days'")})
-        )
-    `, [hoje, hoje]);
+    const proximos = await sequelize.query(
+      `SELECT c.*, v.placa, v.fipe_modelo, v.km as km_atual
+       FROM config_manutencao_preventiva c
+       JOIN veiculos v ON c.veiculo_id = v.placa
+       WHERE c.ativo = 1
+         AND (
+           (c.km_proxima IS NOT NULL AND v.km >= (c.km_proxima - COALESCE(c.km_intervalo, 10000) * 0.1) AND v.km < c.km_proxima)
+           OR
+           (c.data_proxima IS NOT NULL AND c.data_proxima > ? AND c.data_proxima <= ${dateExpr("?,'+7 days'")})
+         )`,
+      { replacements: [hoje, hoje], type: sequelize.QueryTypes.SELECT }
+    );
 
     if (proximos.length > 0) {
       console.log(`[Cron] ${proximos.length} veículo(s) próximos da manutenção preventiva.`);
@@ -102,30 +117,32 @@ async function checkManutencaoPreventiva() {
 
 async function checkAbastecimentoAlertas() {
   try {
-    const rows = await all(`
-      SELECT a.veiculo_id, v.placa, v.fipe_modelo,
-             AVG(a.quantidade) as media_quantidade,
-             COUNT(a.id) as total_abastecimentos
-      FROM abastecimentos a
-      JOIN veiculos v ON a.veiculo_id = v.placa
-      WHERE a.quantidade > 0
-      GROUP BY a.veiculo_id
-      HAVING COUNT(a.id) >= 3
-    `);
+    const rows = await sequelize.query(
+      `SELECT a.veiculo_id, v.placa, v.fipe_modelo,
+              AVG(a.quantidade) as media_quantidade,
+              COUNT(a.id) as total_abastecimentos
+       FROM abastecimentos a
+       JOIN veiculos v ON a.veiculo_id = v.placa
+       WHERE a.quantidade > 0
+       GROUP BY a.veiculo_id
+       HAVING COUNT(a.id) >= 3`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
 
     for (const row of rows) {
-      const consumos = await all(`
-        SELECT a1.km as km_atual, a2.km as km_anterior,
-               a1.quantidade, a1.data
-        FROM abastecimentos a1
-        JOIN abastecimentos a2 ON a2.id = (
-          SELECT MAX(id) FROM abastecimentos
-          WHERE veiculo_id = a1.veiculo_id AND id < a1.id AND km IS NOT NULL
-        )
-        WHERE a1.veiculo_id = ? AND a1.km IS NOT NULL AND a2.km IS NOT NULL
-          AND a1.quantidade > 0
-        ORDER BY a1.data DESC LIMIT 5
-      `, [row.veiculo_id]);
+      const consumos = await sequelize.query(
+        `SELECT a1.km as km_atual, a2.km as km_anterior,
+                a1.quantidade, a1.data
+         FROM abastecimentos a1
+         JOIN abastecimentos a2 ON a2.id = (
+           SELECT MAX(id) FROM abastecimentos
+           WHERE veiculo_id = a1.veiculo_id AND id < a1.id AND km IS NOT NULL
+         )
+         WHERE a1.veiculo_id = ? AND a1.km IS NOT NULL AND a2.km IS NOT NULL
+           AND a1.quantidade > 0
+         ORDER BY a1.data DESC LIMIT 5`,
+        { replacements: [row.veiculo_id], type: sequelize.QueryTypes.SELECT }
+      );
 
       if (consumos.length < 2) continue;
 

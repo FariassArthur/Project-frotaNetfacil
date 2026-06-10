@@ -10,7 +10,7 @@ const fs = require('fs');
 const { PUBLIC_DIR, CORS_ORIGIN, NODE_ENV } = require('./config');
 const { parseUpload } = require('./middleware/upload');
 const { verifyAuth } = require('./middleware/auth');
-const { registerRoutes } = require('./routes');
+const { registerRoutes } = require('./api/routes');
 const { sanitizeError } = require('./services/errorHandler');
 
 const app = express();

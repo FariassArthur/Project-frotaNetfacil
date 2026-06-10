@@ -10,9 +10,14 @@ beforeAll(async () => {
   process.env.DATABASE_URL = '';
   process.env.ADMIN_PASSWORD = 'admin';
   process.env.JWT_SECRET = 'test-secret';
-  const { initDb } = await import('../database/schema');
-  app = (await import('../app')).default;
-  await initDb();
+  const bcrypt = require('bcryptjs');
+  const { sequelize, authenticate } = require('../database/sequelize');
+  const { Usuario } = require('../database/models');
+  app = require('../app');
+  await authenticate();
+  await sequelize.sync();
+  const hash = bcrypt.hashSync('admin', 10);
+  await Usuario.create({ id: 1, username: 'admin', password: hash, role: 'root', ativo: 1 });
 });
 
 describe('GET /api/health', () => {
@@ -20,7 +25,7 @@ describe('GET /api/health', () => {
     const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
-    expect(res.body.version).toBe('1.1.1');
+    expect(res.body.version).toBe('1.1.2');
   });
 });
 

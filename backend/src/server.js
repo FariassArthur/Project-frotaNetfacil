@@ -1,8 +1,7 @@
 require('dotenv/config');
 const app = require('./app');
 const { PORT } = require('./config');
-const { initDb } = require('./database/schema');
-const { closeDb } = require('./database/connection');
+const { sequelize, authenticate } = require('./database/sequelize');
 const { startCron, stopCron } = require('./services/cron');
 const { startCleanup: startTokenCleanup, stopCleanup: stopTokenCleanup } = require('./services/tokenBlacklist');
 
@@ -18,22 +17,21 @@ process.on('uncaughtException', (error) => {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-function shutdown(signal) {
+async function shutdown(signal) {
   console.log(`\nReceived ${signal}. Shutting down gracefully...`);
   stopCron();
   stopTokenCleanup();
-  closeDb()
-    .then(() => {
-      console.log('Database connection closed.');
-      process.exit(0);
-    })
-    .catch((err) => {
-      console.error('Error during shutdown:', err.message || err);
-      process.exit(1);
-    });
+  try {
+    await sequelize.close();
+    console.log('Database connection closed.');
+  } catch (err) {
+    console.error('Error during shutdown:', err.message || err);
+  }
+  process.exit(0);
 }
 
-initDb()
+authenticate()
+  .then(() => sequelize.sync())
   .then(() => {
     const server = app.listen(PORT, () => {
       console.log(`Zênite backend running on http://localhost:${PORT}`);
