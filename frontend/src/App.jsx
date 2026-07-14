@@ -3,7 +3,7 @@ import LoginForm from './components/LoginForm';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import { getByKey } from './modules/config';
-import { fetchList, logout, setOnUnauthorized } from './api/client';
+import { fetchList, fetchMe, logout, setOnUnauthorized } from './api/client';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const GenericModule = lazy(() => import('./components/GenericModule'));
@@ -74,16 +74,21 @@ export default function App() {
   useEffect(() => {
     if (!token) {
       setSessionLoading(true);
-      fetch('/api/me', { credentials: 'include' })
-        .then((r) => r.json())
+      fetchMe()
         .then((data) => {
-          if (data.username) {
+          if (data && !data.error && data.username) {
             setUser({ username: data.username, role: data.role });
+            setToken('session');
+          } else {
+            setUser(null);
+            setToken(null);
           }
           setSessionLoading(false);
         })
         .catch((err) => {
           console.error('Erro ao verificar sessão:', err);
+          setUser(null);
+          setToken(null);
           setSessionLoading(false);
         });
     }
@@ -150,8 +155,8 @@ export default function App() {
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
-  const handleLoginSuccess = (newToken, userData) => {
-    setToken(newToken);
+  const handleLoginSuccess = (_newToken, userData) => {
+    setToken('session');
     setUser(userData || { username: 'admin' });
     setCurrentKey('dashboard');
     loadVehicles();

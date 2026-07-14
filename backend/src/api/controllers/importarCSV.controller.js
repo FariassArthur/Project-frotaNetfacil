@@ -44,6 +44,7 @@ const FIELD_SYNONYMS = {
   endereco: ['endereco', 'logradouro', 'rua', 'end', 'endereco_completo'],
   telefone1: ['telefone1', 'telefone', 'tel', 'fone', 'contato', 'telefone_contato'],
   email: ['email', 'e-mail', 'mail', 'correio', 'email_contato'],
+  veiculo_id: ['veiculo_id', 'placa_veiculo', 'veiculo_placa', 'placa', 'codigo_veiculo', 'identificador_veiculo'],
 };
 
 function normalizeFieldName(name) {
@@ -79,37 +80,81 @@ function resolveFieldMapping(csvHeaders, allowedFields) {
 function parseCSV(text) {
   let cleanText = text;
   if (cleanText.charCodeAt(0) === 0xFEFF) cleanText = cleanText.slice(1);
-  const rows = []; let current = ''; let inQuotes = false; let lineNum = 1; const fields = [];
+  const rows = [];
+  let current = '';
+  let inQuotes = false;
+  let lineNum = 1;
+  let fields = [];
+
+  const pushField = () => {
+    fields.push({ value: current, lineNum });
+    current = '';
+  };
+
+  const pushRow = () => {
+    rows.push({ fields: fields.map((f) => f.value), lineNum });
+    fields = [];
+  };
+
   for (let i = 0; i < cleanText.length; i++) {
     const ch = cleanText[i];
-    if (ch === '"') { inQuotes = !inQuotes; continue; }
-    if (ch === ',' && !inQuotes) { fields.push({ value: current.trim(), lineNum }); current = ''; continue; }
-    if ((ch === '\n' || ch === '\r') && !inQuotes) {
-      if (current.trim() || fields.length > 0) fields.push({ value: current.trim(), lineNum });
-      if (fields.length > 0) rows.push({ fields: fields.map(f => f.value), lineNum });
-      current = ''; fields.length = 0; lineNum++;
-      if (ch === '\r' && cleanText[i + 1] === '\n') i++;
+    if (ch === '"') {
+      if (inQuotes && cleanText[i + 1] === '"') {
+        current += '"';
+        i += 1;
+        continue;
+      }
+      inQuotes = !inQuotes;
       continue;
     }
+
+    if (ch === ',' && !inQuotes) {
+      pushField();
+      continue;
+    }
+
+    if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      pushField();
+      pushRow();
+      lineNum += 1;
+      if (ch === '\r' && cleanText[i + 1] === '\n') i += 1;
+      continue;
+    }
+
     current += ch;
   }
-  if (current.trim() || fields.length > 0) fields.push({ value: current.trim(), lineNum });
-  if (fields.length > 0) rows.push({ fields: fields.map(f => f.value), lineNum });
+
+  if (current.length > 0 || fields.length > 0) {
+    pushField();
+    pushRow();
+  }
+
   return rows;
 }
 
 function csvRowsToObjects(rows) {
   if (rows.length < 2) return [];
   const headers = rows[0].fields;
-  const result = [];
-  for (let i = 1; i < rows.length; i++) {
-    const vals = rows[i].fields;
-    if (vals.length !== headers.length) continue;
-    const obj = {};
-    for (let j = 0; j < headers.length; j++) obj[headers[j]] = vals[j] || null;
-    result.push(obj);
+  return rows.slice(1).map((row) => {
+    const obj = { __lineNum: row.lineNum };
+    if (row.fields.length !== headers.length) {
+      obj.__badRow = true;
+      return obj;
+    }
+    for (let j = 0; j < headers.length; j++) {
+      obj[headers[j]] = row.fields[j] || null;
+    }
+    return obj;
+  });
+}
+
+function mapCsvRow(row, mapping) {
+  const mapped = {};
+  for (const [header, field] of Object.entries(mapping)) {
+    if (!field) continue;
+    mapped[field] = row[header] != null ? row[header] : null;
   }
-  return result;
+  return mapped;
 }
 
 function createModelCSV(tabela) {
@@ -151,7 +196,13 @@ async function previewImport(req, res) {
     const allowedFields = ALLOWED_TABLES_CSV[tabela];
     const { mapping, mappedFields, ignoredFields, missingFields } = resolveFieldMapping(headers, allowedFields);
     const dataRows = csvRowsToObjects(parsed);
-    const sample = dataRows.slice(0, 5).map(row => { const mappedRow = {}; for (const [orig, mapped] of Object.entries(mapping)) { if (mapped) mappedRow[mapped] = row[orig] || null; } return mappedRow; });
+    const sample = dataRows.slice(0, 5).map((row) => {
+      const mappedRow = {};
+      for (const [orig, mapped] of Object.entries(mapping)) {
+        if (mapped) mappedRow[mapped] = row[orig] != null ? row[orig] : null;
+      }
+      return mappedRow;
+    });
     res.json({ ok: true, tabela, total_linhas: dataRows.length, mapeamento: mapping, campos_mapeados: mappedFields, campos_ignorados: ignoredFields, campos_nao_encontrados: missingFields, amostra: sample });
   } catch (error) { handleError(res, error, 'importar.csv.preview'); }
 }
@@ -170,13 +221,36 @@ async function doImport(req, res) {
     const { mapping, mappedFields, ignoredFields, missingFields } = resolveFieldMapping(headers, allowedFields);
     if (mappedFields.length === 0) return res.status(400).json({ error: 'Nenhum campo reconhecido. Verifique os cabeçalhos do CSV.', campos_esperados: allowedFields });
     const dataRows = csvRowsToObjects(parsed);
-    let importados = 0; let erros = 0; const detalhesErros = [];
-    for (const row of dataRows) {
-      const vals = mappedFields.map(f => row[f] !== undefined ? row[f] : null);
-      const cols = mappedFields.map(f => `"${f}"`).join(', ');
+    let importados = 0;
+    let erros = 0;
+    const detalhesErros = [];
+    for (let index = 0; index < dataRows.length; index += 1) {
+      const row = dataRows[index];
+      const linha = row.__lineNum || index + 2;
+      if (row.__badRow) {
+        erros += 1;
+        detalhesErros.push({ linha, motivo: 'Linha com número incorreto de colunas' });
+        if (detalhesErros.length > 100) {
+          detalhesErros.push({ linha: '...', motivo: `Mais erros não listados (total: ${erros})` });
+          break;
+        }
+        continue;
+      }
+      const mappedRow = mapCsvRow(row, mapping);
+      const vals = mappedFields.map((f) => mappedRow[f] != null ? mappedRow[f] : null);
+      const cols = mappedFields.map((f) => `"${f}"`).join(', ');
       const placeholders = mappedFields.map(() => '?').join(', ');
-      try { await sequelize.query(`INSERT INTO ${tabela} (${cols}) VALUES (${placeholders})`, { replacements: vals }); importados++; }
-      catch (err) { erros++; const linha = parsed[dataRows.indexOf(row) + 1]?.lineNum || '?'; detalhesErros.push({ linha, motivo: err.message }); if (detalhesErros.length > 100) { detalhesErros.push({ linha: '...', motivo: `Mais erros não listados (total: ${erros})` }); break; } }
+      try {
+        await sequelize.query(`INSERT INTO ${tabela} (${cols}) VALUES (${placeholders})`, { replacements: vals });
+        importados += 1;
+      } catch (err) {
+        erros += 1;
+        detalhesErros.push({ linha, motivo: err.message });
+        if (detalhesErros.length > 100) {
+          detalhesErros.push({ linha: '...', motivo: `Mais erros não listados (total: ${erros})` });
+          break;
+        }
+      }
     }
     res.json({ ok: true, tabela, total: dataRows.length, importados, erros, campos_mapeados: mappedFields, campos_ignorados: ignoredFields, ...(detalhesErros.length > 0 && { detalhes_erros: detalhesErros }) });
   } catch (error) { handleError(res, error, 'importar.csv'); }

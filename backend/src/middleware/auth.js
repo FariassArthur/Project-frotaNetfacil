@@ -9,11 +9,12 @@ function getTokenFromCookie(req) {
 }
 
 const verifyAuth = async (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
   let token = getTokenFromCookie(req);
 
   if (!token) {
     const authHeader = req.headers['authorization'] || '';
-    token = authHeader.replace('Bearer ', '').trim();
+    token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
   }
 
   if (!token) {

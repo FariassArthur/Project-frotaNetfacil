@@ -5,6 +5,9 @@ const { DATABASE_URL } = require('../config');
 
 const isPostgres = Boolean(DATABASE_URL && (DATABASE_URL.startsWith('postgresql://') || DATABASE_URL.startsWith('postgres://')));
 const allowSqliteFallback = process.env.DB_FALLBACK_TO_SQLITE === 'true' || (process.env.NODE_ENV !== 'production' && process.env.DB_FALLBACK_TO_SQLITE !== 'false');
+const DB_PATH = process.env.DB_PATH === ':memory:'
+  ? ':memory:'
+  : path.resolve(process.env.DB_PATH || path.join(path.resolve(__dirname, '..', '..'), 'data', 'gestaofrota.sqlite'));
 
 let sequelize;
 let isSqliteFallback = false;
@@ -17,7 +20,6 @@ if (isPostgres) {
     dialectOptions: process.env.PG_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {},
   });
 } else {
-  const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, '../../data/gestaofrota.sqlite');
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: DB_PATH,
@@ -36,7 +38,6 @@ async function authenticate() {
   } catch (error) {
     if (isPostgres && allowSqliteFallback) {
       console.warn('PostgreSQL unavailable, falling back to SQLite via Sequelize:', error.message);
-      const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, '../../data/gestaofrota.sqlite');
       sequelize = new Sequelize({
         dialect: 'sqlite',
         storage: DB_PATH,

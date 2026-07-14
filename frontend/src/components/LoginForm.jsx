@@ -36,8 +36,8 @@ export default function LoginForm({ onLoginSuccess }) {
     setLoading(true);
     try {
       const response = await login(username, password);
-      if (response.token) {
-        onLoginSuccess(response.token, response.user);
+      if (response.user) {
+        onLoginSuccess('session', response.user);
       } else {
         setError(response.error || 'Falha na autenticação');
       }
@@ -59,12 +59,12 @@ export default function LoginForm({ onLoginSuccess }) {
     setLoading(true);
     try {
       const loginRes = await login(username, currentPassword);
-      if (!loginRes.token) {
+      if (!loginRes.user) {
         setError(loginRes.error || 'Usuário ou senha atual incorretos');
         setLoading(false);
         return;
       }
-      const res = await changePassword(currentPassword, newPassword, loginRes.token);
+      const res = await changePassword(currentPassword, newPassword, null);
       if (res.ok) {
         setSuccessMsg('Senha alterada com sucesso!');
         setCurrentPassword('');

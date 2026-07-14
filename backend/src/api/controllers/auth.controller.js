@@ -50,15 +50,18 @@ async function login(req, res) {
       { expiresIn: '8h', algorithm: 'HS256' }
     );
 
-    const ONE_DAY = 24 * 60 * 60 * 1000;
-    const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
+    const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
     res.cookie('token', token, {
-      httpOnly: true, secure: isSecure,
-      sameSite: isSecure ? 'strict' : 'lax', maxAge: ONE_DAY, path: '/',
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: isSecure ? 'strict' : 'lax',
+      maxAge: SESSION_TTL_MS,
+      path: '/',
     });
 
     res.json({
-      ok: true, token,
+      ok: true,
       user: { id: user.id, username: user.username, role: user.role, permissoes: user.permissoes },
     });
 
@@ -76,15 +79,16 @@ async function me(req, res) {
 
 async function logout(req, res) {
   const authHeader = req.headers['authorization'] || '';
-  const bearerToken = authHeader.replace('Bearer ', '').trim();
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
   const cookieToken = (() => {
     const raw = req.headers.cookie || '';
     const m = raw.match(/(?:^|;\s*)token=([^;]*)/);
     return m ? decodeURIComponent(m[1]) : null;
   })();
   const token = bearerToken || cookieToken;
+  const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
   if (token) await blacklistToken(token);
-  res.clearCookie('token', { path: '/' });
+  res.clearCookie('token', { path: '/', httpOnly: true, secure: isSecure, sameSite: isSecure ? 'strict' : 'lax' });
   res.json({ ok: true });
   if (req.user) {
     logAudit({

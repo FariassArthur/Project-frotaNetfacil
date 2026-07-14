@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchList, createItem, updateItem, deleteItem } from '../api/client';
+import { apiBase, fetchList, createItem, updateItem, deleteItem, fetchOptions, getHeaders } from '../api/client';
 import { useToast } from './Toast';
 
 const inputBase = 'w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors';
@@ -9,6 +9,7 @@ export default function ManutencaoPreventivaConfig({ token, veiculoId, veiculos 
   const [configs, setConfigs] = useState([]);
   const [tipos, setTipos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [checkinLoading, setCheckinLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
@@ -109,12 +110,12 @@ export default function ManutencaoPreventivaConfig({ token, veiculoId, veiculos 
 
   const handleCheckin = async () => {
     if (!window.confirm('Confirmar manutenção realizada? As próximas datas/KM serão recalculados.')) return;
-    setLoading(true);
+    setCheckinLoading(true);
     try {
-      const res = await fetch('/api/manutencao-preventiva/checkin', {
+      const res = await fetch(`${apiBase}/api/manutencao-preventiva/checkin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        credentials: 'include',
+        headers: getHeaders(token),
+        ...fetchOptions(token),
       });
       const data = await res.json();
       if (data.ok) {
@@ -143,15 +144,22 @@ export default function ManutencaoPreventivaConfig({ token, veiculoId, veiculos 
                 onClick={() => { resetForm(); setFormOpen(true); }}>
                 + Nova Config
               </button>
-              <button className="px-4 py-2 rounded-[12px] font-semibold text-xs text-white border-none cursor-pointer"
+              <button className="px-4 py-2 rounded-[12px] font-semibold text-xs text-white border-none cursor-pointer disabled:opacity-60"
                 style={{ background: '#28a745' }}
-                onClick={handleCheckin}>
-                ✓ Confirmar Realizadas
+                onClick={handleCheckin}
+                disabled={checkinLoading}>
+                {checkinLoading ? 'Aguarde...' : '✓ Confirmar Realizadas'}
               </button>
             </>
           )}
         </div>
       </div>
+
+      {!loading && !formOpen && configs.length === 0 && (
+        <div className="rounded-xl border px-4 py-6 text-sm text-center" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)', color: 'var(--text-muted)' }}>
+          Nenhuma configuração cadastrada para este veículo ainda.
+        </div>
+      )}
 
       {formOpen && (
         <form onSubmit={handleSubmit} className="p-4 rounded-xl border mb-4"

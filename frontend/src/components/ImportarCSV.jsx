@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FaUpload, FaCheckCircle, FaExclamationCircle, FaDownload, FaEye, FaArrowRight, FaTimesCircle } from 'react-icons/fa';
-import { apiBase } from '../api/client';
+import { apiBase, fetchOptions } from '../api/client';
 
 const TABELAS = [
   { key: 'veiculos', label: 'Veículos' },
@@ -43,7 +43,7 @@ export default function ImportarCSV({ token }) {
     try {
       const r = await fetch(`${apiBase}/api/importar/csv/preview`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        ...fetchOptions(token),
         body: formData,
       });
       const d = await r.json();
@@ -69,7 +69,7 @@ export default function ImportarCSV({ token }) {
     try {
       const r = await fetch(`${apiBase}/api/importar/csv`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        ...fetchOptions(token),
         body: formData,
       });
       const d = await r.json();
@@ -112,7 +112,7 @@ export default function ImportarCSV({ token }) {
 
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Arquivo CSV</label>
-        <input type="file" accept=".csv" onChange={e => setFile(e.target.files[0])}
+        <input type="file" accept=".csv" onChange={e => { setFile(e.target.files[0]); setError(''); setPreview(null); setResult(null); }}
           className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-none file:text-xs file:font-semibold file:cursor-pointer"
           style={{
             background: 'var(--input-bg)',
@@ -140,7 +140,11 @@ export default function ImportarCSV({ token }) {
 
   const renderPreview = () => {
     if (!preview) return null;
-    const hasMappingIssues = preview.campos_ignorados?.length > 0 || preview.campos_nao_encontrados?.length > 0;
+    const mapping = preview.mapeamento || {};
+    const camposMapeados = Array.isArray(preview.campos_mapeados) ? preview.campos_mapeados : [];
+    const camposIgnorados = Array.isArray(preview.campos_ignorados) ? preview.campos_ignorados : [];
+    const camposNaoEncontrados = Array.isArray(preview.campos_nao_encontrados) ? preview.campos_nao_encontrados : [];
+    const hasMappingIssues = camposIgnorados.length > 0 || camposNaoEncontrados.length > 0;
 
     return (
       <div className="space-y-5">
@@ -156,7 +160,7 @@ export default function ImportarCSV({ token }) {
 
         <div className="p-4 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
           <h4 className="text-xs font-bold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Mapeamento de Colunas</h4>
-          {Object.entries(preview.mapeamento).map(([header, mapped]) => (
+          {Object.entries(mapping).map(([header, mapped]) => (
             <div key={header} className="flex items-center gap-2 py-1.5 border-b text-xs" style={{ borderColor: 'var(--border-light)' }}>
               <span className="font-mono font-semibold" style={{ color: 'var(--text-primary)', minWidth: 180 }}>{header}</span>
               <FaArrowRight size={9} style={{ color: 'var(--text-muted)' }} />
@@ -173,29 +177,29 @@ export default function ImportarCSV({ token }) {
 
         {hasMappingIssues && (
           <div className="flex gap-4 text-xs">
-            {preview.campos_ignorados?.length > 0 && (
+            {camposIgnorados.length > 0 && (
               <div className="p-3 rounded-lg border flex-1" style={{ background: '#fef2f2', borderColor: '#fca5a5', color: '#dc2626' }}>
-                <strong>{preview.campos_ignorados.length} coluna(s) ignorada(s):</strong>{' '}
-                {preview.campos_ignorados.join(', ')}
+                <strong>{camposIgnorados.length} coluna(s) ignorada(s):</strong>{' '}
+                {camposIgnorados.join(', ')}
               </div>
             )}
-            {preview.campos_nao_encontrados?.length > 0 && (
+            {camposNaoEncontrados.length > 0 && (
               <div className="p-3 rounded-lg border flex-1" style={{ background: '#fff7ed', borderColor: '#fed7aa', color: '#c2410c' }}>
-                <strong>{preview.campos_nao_encontrados.length} campo(s) não encontrado(s):</strong>{' '}
-                {preview.campos_nao_encontrados.join(', ')}
+                <strong>{camposNaoEncontrados.length} campo(s) não encontrado(s):</strong>{' '}
+                {camposNaoEncontrados.join(', ')}
               </div>
             )}
           </div>
         )}
 
-        {preview.amostra?.length > 0 && (
+        {Array.isArray(preview.amostra) && preview.amostra.length > 0 && (
           <div className="p-4 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
             <h4 className="text-xs font-bold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Amostra (primeiras {preview.amostra.length} linhas)</h4>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr>
-                    {preview.campos_mapeados.map(f => (
+                    {camposMapeados.map(f => (
                       <th key={f} className="text-left px-2 py-1 font-semibold border-b" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-light)' }}>{f}</th>
                     ))}
                   </tr>
@@ -203,7 +207,7 @@ export default function ImportarCSV({ token }) {
                 <tbody>
                   {preview.amostra.map((row, i) => (
                     <tr key={i}>
-                      {preview.campos_mapeados.map(f => (
+                      {camposMapeados.map(f => (
                         <td key={f} className="px-2 py-1 border-b truncate max-w-[200px]" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-light)' }}>
                           {row[f] || <span style={{ color: 'var(--text-muted)' }}>—</span>}
                         </td>
@@ -222,7 +226,7 @@ export default function ImportarCSV({ token }) {
             style={{ background: 'transparent', borderColor: 'var(--border-light)', color: 'var(--text-secondary)' }}>
             Voltar
           </button>
-          <button onClick={handleImport} disabled={loading || preview.campos_mapeados.length === 0}
+          <button onClick={handleImport} disabled={loading || camposMapeados.length === 0}
             className="px-6 py-2.5 rounded-xl font-semibold text-sm text-white border-none cursor-pointer shadow-lg disabled:opacity-50 inline-flex items-center gap-2 transition-opacity"
             style={{ background: 'var(--orange)' }}>
             <FaUpload size={14} /> {loading ? 'Importando...' : `Importar ${preview.total_linhas} linha(s)`}

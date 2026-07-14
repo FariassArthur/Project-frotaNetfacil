@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { FaChevronLeft, FaChevronRight, FaCalendarAlt } from 'react-icons/fa';
+import { apiBase, fetchOptions } from '../api/client';
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -35,12 +36,13 @@ export default function CalendarioEventos({ token }) {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDay, setSelectedDay] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/veiculos', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${apiBase}/api/veiculos`, fetchOptions(token))
       .then(r => r.json())
       .then(d => setVeiculos(Array.isArray(d) ? d : []))
-      .catch(e => console.error('Erro ao carregar veículos:', e));
+      .catch(e => { console.error('Erro ao carregar veículos:', e); setError('Não foi possível carregar os veículos.'); });
   }, [token]);
 
   useEffect(() => {
@@ -49,15 +51,15 @@ export default function CalendarioEventos({ token }) {
     const end = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
     setLoading(true);
+    setError('');
+    setSelectedDay(null);
     const params = new URLSearchParams({ start, end });
     if (filtroVeiculo) params.set('veiculo_id', filtroVeiculo);
-    fetch(`/api/calendario/eventos?${params}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    fetch(`${apiBase}/api/calendario/eventos?${params}`, fetchOptions(token))
       .then(r => r.json())
       .then(data => { setEvents(data || []); setLoading(false); })
-      .catch(e => { console.error('Erro ao carregar eventos:', e); setLoading(false); });
-  }, [currentMonth, currentYear, filtroVeiculo]);
+      .catch(e => { console.error('Erro ao carregar eventos:', e); setError('Não foi possível carregar os eventos do mês.'); setLoading(false); });
+  }, [currentMonth, currentYear, filtroVeiculo, token]);
 
   const dayEvents = useMemo(() => {
     const map = {};
@@ -137,6 +139,12 @@ export default function CalendarioEventos({ token }) {
             </button>
           </div>
 
+          {error && (
+            <div className="mb-3 rounded-lg border px-3 py-2 text-sm" style={{ background: '#fef2f2', borderColor: '#fca5a5', color: '#b91c1c' }}>
+              {error}
+            </div>
+          )}
+
           {/* Day names */}
           <div className="grid grid-cols-7 mb-2">
             {DAYS.map(d => (
@@ -200,7 +208,10 @@ export default function CalendarioEventos({ token }) {
             {selectedDay ? `Eventos em ${formatDate(selectedDay)}` : 'Selecione um dia'}
           </h2>
           {loading && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Carregando...</p>}
-          {!loading && selectedEvents.length === 0 && selectedDay && (
+          {!loading && !selectedDay && (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Selecione um dia para ver os eventos.</p>
+          )}
+          {!loading && selectedDay && selectedEvents.length === 0 && (
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nenhum evento neste dia.</p>
           )}
           <div className="flex flex-col gap-2">

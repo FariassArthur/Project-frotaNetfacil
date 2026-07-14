@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 
@@ -6,15 +7,18 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 function requireEnv(name, defaultValue) {
   const value = process.env[name];
-  if (!value && !defaultValue) {
+  if (!value && defaultValue === undefined) {
     throw new Error(`FATAL: Environment variable ${name} is required but not set.`);
   }
   return value || defaultValue;
 }
 
 const PORT = Number(process.env.PORT) || 3001;
-const JWT_SECRET = requireEnv('JWT_SECRET');
-const DB_PATH = process.env.DB_PATH || path.join(ROOT_DIR, 'data', 'gestaofrota.sqlite');
+const JWT_SECRET = requireEnv('JWT_SECRET', NODE_ENV === 'production' ? undefined : 'dev-only-jwt-secret-change-me');
+if (!process.env.JWT_SECRET && NODE_ENV === 'production') {
+  throw new Error('FATAL: Environment variable JWT_SECRET is required in production.');
+}
+const DB_PATH = path.resolve(process.env.DB_PATH || path.join(ROOT_DIR, 'data', 'gestaofrota.sqlite'));
 
 function buildDatabaseUrl() {
   const host = process.env.PGHOST || process.env.DB_HOST;
@@ -34,7 +38,7 @@ const DATABASE_URL = NODE_ENV === 'test'
   ? ''
   : (process.env.DATABASE_URL || buildDatabaseUrl());
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
-const UPLOADS_BASE = process.env.UPLOADS_BASE || path.join(PUBLIC_DIR, 'uploads');
+const UPLOADS_BASE = path.resolve(process.env.UPLOADS_BASE || path.join(PUBLIC_DIR, 'uploads'));
 const CORS_ORIGIN = NODE_ENV === 'production'
   ? (process.env.CORS_ORIGIN || '')
   : (process.env.CORS_ORIGIN || 'http://localhost:4173');

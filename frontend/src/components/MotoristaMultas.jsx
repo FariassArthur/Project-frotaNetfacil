@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaUserCheck, FaDownload, FaSearch } from 'react-icons/fa';
-import { fetchList } from '../api/client';
+import { apiBase, fetchList, fetchOptions } from '../api/client';
 import Skeleton from './Skeleton';
 
 export default function MotoristaMultas({ token }) {
@@ -12,13 +12,11 @@ export default function MotoristaMultas({ token }) {
     fetchList('/api/motorista-multas', token)
       .then(d => { setData(d || { motoristas: [], total_geral: 0 }); setLoading(false); })
       .catch(e => { console.error('Erro ao carregar dados:', e); setLoading(false); });
-  }, []);
+  }, [token]);
 
   const loadDetail = async (registro) => {
     try {
-      const r = await fetch(`/api/motorista-multas/${registro}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const r = await fetch(`${apiBase}/api/motorista-multas/${registro}`, fetchOptions(token));
       if (!r.ok) { const errData = await r.json().catch(() => ({})); throw new Error(errData.error || 'Erro ao carregar detalhes'); }
       const data = await r.json();
       setDetail(data);
@@ -48,6 +46,7 @@ export default function MotoristaMultas({ token }) {
 
   if (loading) return <div className="p-6"><Skeleton type="card" rows={4} /></div>;
 
+  const totalGeral = Number(data?.total_geral || 0);
   const thClass = 'px-3.5 py-3 text-left text-sm font-bold border-b';
   const tdClass = 'px-3.5 py-3 text-sm border-b';
 
@@ -65,7 +64,7 @@ export default function MotoristaMultas({ token }) {
           </div>
           <div className="px-4 py-2 rounded-lg border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border-light)' }}>
             <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Total Multas</span>
-            <span className="text-lg font-bold ml-2" style={{ color: 'var(--danger)' }}>R$ {data.total_geral.toFixed(2).replace('.', ',')}</span>
+            <span className="text-lg font-bold ml-2" style={{ color: 'var(--danger)' }}>R$ {totalGeral.toFixed(2).replace('.', ',')}</span>
           </div>
         </div>
         <button onClick={downloadCSV}
@@ -140,7 +139,9 @@ export default function MotoristaMultas({ token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {detail.multas.map(m => (
+                  {detail.multas.length === 0 ? (
+                    <tr><td className="px-3.5 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={5}>Nenhuma multa registrada para este motorista.</td></tr>
+                  ) : detail.multas.map(m => (
                     <tr key={m.id} className="hover:[background:var(--table-row-hover)]" style={{ color: 'var(--text-secondary)' }}>
                       <td className={tdClass}>{m.local_ocorrencia || '-'}</td>
                       <td className={`${tdClass} text-right font-semibold`}>R$ {(m.valor || 0).toFixed(2).replace('.',',')}</td>

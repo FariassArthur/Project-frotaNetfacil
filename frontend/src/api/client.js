@@ -6,18 +6,29 @@ export function setOnUnauthorized(cb) {
   onUnauthorized = cb;
 }
 
+function hasBearerToken(token) {
+  const normalized = typeof token === 'string' ? token.trim() : '';
+  return normalized.length > 0 && normalized !== 'session';
+}
+
+function getSafeToken(token) {
+  return token && typeof token === 'string' && token.trim() ? token : null;
+}
+
 export const getHeaders = (token) => {
   const headers = { 'Content-Type': 'application/json' };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  const safeToken = getSafeToken(token);
+  if (hasBearerToken(safeToken)) {
+    headers['Authorization'] = `Bearer ${safeToken}`;
   }
   return headers;
 };
 
-const fetchOptions = (token, extra = {}) => {
+export const fetchOptions = (token, extra = {}) => {
   const options = { credentials: 'include', ...extra };
-  if (token) {
-    options.headers = { ...options.headers, ...getHeaders(token) };
+  const safeToken = getSafeToken(token);
+  if (hasBearerToken(safeToken)) {
+    options.headers = { ...options.headers, ...getHeaders(safeToken) };
   }
   return options;
 };
@@ -50,7 +61,8 @@ export const buildRequest = (formData, token) => {
 
   if (hasFile) {
     const headers = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const safeToken = getSafeToken(token);
+    if (hasBearerToken(safeToken)) headers['Authorization'] = `Bearer ${safeToken}`;
     return { body: form, headers };
   }
 
@@ -83,7 +95,11 @@ export async function login(username, password) {
       credentials: 'include',
       body: JSON.stringify({ username, password }),
     });
-    return handleResponse(response);
+    const data = await handleResponse(response);
+    if (data && typeof data === 'object') {
+      delete data.token;
+    }
+    return data;
   } catch (err) {
     return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
   }

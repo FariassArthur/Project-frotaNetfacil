@@ -48,18 +48,20 @@ const apiLimiter = rateLimit({
 
 app.use((req, res, next) => {
   const contentType = req.headers['content-type'] || '';
-  if (contentType.startsWith('multipart/form-data')) {
+  const requestPath = String(req.originalUrl || req.url || '');
+  const skipUploadMiddleware = requestPath.startsWith('/api/importar/csv');
+  if (contentType.startsWith('multipart/form-data') && !skipUploadMiddleware) {
     return parseUpload(req, res, next);
   }
   return next();
 });
 
-// Auth guard: /api/login and /api/health are public
+// Auth guard: /api/login, /api/health and import model templates are public
 app.use('/api/', (req, res, next) => {
   if (req.path === '/login') {
     return loginLimiter(req, res, next);
   }
-  if (req.path === '/health') {
+  if (req.path === '/health' || req.path.startsWith('/importar/csv/modelo')) {
     return next();
   }
   if (req.path.startsWith('/files/')) {

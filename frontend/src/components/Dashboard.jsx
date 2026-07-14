@@ -136,16 +136,27 @@ export default function Dashboard({ token, onModuleSelect }) {
 
     fetchList('/api/dashboard/pagamentos', token).then((r) => {
       if (r && !r.error) {
-        setPagamentos(r);
+        const safeResult = {
+          noPrazo: { total: r.noPrazo?.total || 0, ...r.noPrazo },
+          emAtraso: { total: r.emAtraso?.total || 0, ...r.emAtraso },
+          atrasados: Array.isArray(r.atrasados) ? r.atrasados : [],
+          noPrazoList: Array.isArray(r.noPrazoList) ? r.noPrazoList : [],
+        };
+        setPagamentos(safeResult);
         const prevIds = JSON.parse(localStorage.getItem('atrasadosIds') || '[]');
-        const currIds = r.atrasados.map(a => `${a.tipo}-${a.id}`);
-        const newOnes = r.atrasados.filter(a => !prevIds.includes(`${a.tipo}-${a.id}`));
+        const currIds = safeResult.atrasados.map(a => `${a.tipo}-${a.id}`);
+        const newOnes = safeResult.atrasados.filter(a => !prevIds.includes(`${a.tipo}-${a.id}`));
         if (newOnes.length > 0) {
           notifyOverdue(newOnes);
         }
         localStorage.setItem('atrasadosIds', JSON.stringify(currIds));
+      } else {
+        setPagamentos({ noPrazo: { total: 0 }, emAtraso: { total: 0 }, atrasados: [], noPrazoList: [] });
       }
-    }).catch((err) => console.error('Erro ao carregar pagamentos:', err));
+    }).catch((err) => {
+      console.error('Erro ao carregar pagamentos:', err);
+      setPagamentos({ noPrazo: { total: 0 }, emAtraso: { total: 0 }, atrasados: [], noPrazoList: [] });
+    });
 
     fetchList('/api/gastos', token).then((r) => {
       if (r && !r.error && Array.isArray(r)) {
@@ -325,10 +336,10 @@ export default function Dashboard({ token, onModuleSelect }) {
   const COLORS = ['#ff7f1e', '#28a745', '#dc3545', '#007bff', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'];
 
   const chartData = useMemo(() => {
-    if (!pagamentos) return null;
+    if (!pagamentos || !pagamentos.noPrazo || !pagamentos.emAtraso) return null;
     return [
-      { name: 'No prazo', value: pagamentos.noPrazo.total, color: '#28a745' },
-      { name: 'Em atraso', value: pagamentos.emAtraso.total, color: '#dc3545' },
+      { name: 'No prazo', value: pagamentos.noPrazo.total || 0, color: '#28a745' },
+      { name: 'Em atraso', value: pagamentos.emAtraso.total || 0, color: '#dc3545' },
     ];
   }, [pagamentos]);
 
@@ -403,7 +414,7 @@ export default function Dashboard({ token, onModuleSelect }) {
         </div>
       )}
 
-      {pagamentos && (
+      {pagamentos && pagamentos.noPrazo && pagamentos.emAtraso && (
         <div className="flex gap-4 mb-6">
           <button
             className="flex-1 p-4 rounded-xl border text-left cursor-pointer transition-transform hover:scale-[1.02]"
@@ -413,7 +424,7 @@ export default function Dashboard({ token, onModuleSelect }) {
             }}
             onClick={() => setShowPagamentoModal('noPrazo')}
           >
-            <span className="text-2xl font-bold block" style={{ color: 'var(--success)' }}>{pagamentos.noPrazo.total}</span>
+            <span className="text-2xl font-bold block" style={{ color: 'var(--success)' }}>{pagamentos.noPrazo.total || 0}</span>
             <span className="text-sm" style={{ color: 'var(--text-muted)' }}>No prazo</span>
           </button>
           <button
@@ -424,7 +435,7 @@ export default function Dashboard({ token, onModuleSelect }) {
             }}
             onClick={() => setShowPagamentoModal('atrasados')}
           >
-            <span className="text-2xl font-bold block" style={{ color: 'var(--danger)' }}>{pagamentos.emAtraso.total}</span>
+            <span className="text-2xl font-bold block" style={{ color: 'var(--danger)' }}>{pagamentos.emAtraso.total || 0}</span>
             <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Em atraso</span>
           </button>
         </div>

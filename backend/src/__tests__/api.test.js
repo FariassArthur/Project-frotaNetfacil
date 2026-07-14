@@ -15,7 +15,7 @@ beforeAll(async () => {
   const { Usuario } = require('../database/models');
   app = require('../app');
   await authenticate();
-  await sequelize.sync();
+  await sequelize.sync({ force: true });
   const hash = bcrypt.hashSync('admin', 10);
   await Usuario.create({ id: 1, username: 'admin', password: hash, role: 'root', ativo: 1 });
 });
@@ -45,7 +45,7 @@ describe('POST /api/login', () => {
   it('accepts valid credentials and sets cookie', async () => {
     const res = await request(app).post('/api/login').send({ username: 'admin', password: 'admin' });
     expect(res.status).toBe(200);
-    expect(res.body.token).toBeTruthy();
+    expect(res.body.token).toBeUndefined();
     expect(res.body.user.username).toBe('admin');
     expect(res.headers['set-cookie']).toBeDefined();
     expect(res.headers['set-cookie'][0]).toContain('token=');
@@ -65,10 +65,10 @@ describe('Auth guard', () => {
     expect(res.body.error).toBe('Autorização requerida');
   });
 
-  it('accepts /api/veiculos with valid token', async () => {
+  it('accepts /api/veiculos with a valid session cookie', async () => {
     const loginRes = await request(app).post('/api/login').send({ username: 'admin', password: 'admin' });
-    const token = loginRes.body.token;
-    const res = await request(app).get('/api/veiculos').set('Authorization', `Bearer ${token}`);
+    const cookie = loginRes.headers['set-cookie'][0].split(';')[0];
+    const res = await request(app).get('/api/veiculos').set('Cookie', cookie);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
@@ -77,8 +77,8 @@ describe('Auth guard', () => {
 describe('DELETE with requireRole', () => {
   it('returns 404 for non-existent vehicle (admin role passes)', async () => {
     const loginRes = await request(app).post('/api/login').send({ username: 'admin', password: 'admin' });
-    const token = loginRes.body.token;
-    const res = await request(app).delete('/api/veiculos/NONEXISTENT').set('Authorization', `Bearer ${token}`);
+    const cookie = loginRes.headers['set-cookie'][0].split(';')[0];
+    const res = await request(app).delete('/api/veiculos/NONEXISTENT').set('Cookie', cookie);
     expect(res.status).toBe(404);
   });
 });
@@ -86,11 +86,11 @@ describe('DELETE with requireRole', () => {
 describe('Upload validation', () => {
   it('rejects invalid file types', async () => {
     const loginRes = await request(app).post('/api/login').send({ username: 'admin', password: 'admin' });
-    const token = loginRes.body.token;
+    const cookie = loginRes.headers['set-cookie'][0].split(';')[0];
 
     const res = await request(app)
       .post('/api/multas')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .attach('path_anexo_multa_pdf', Buffer.from('fake exe'), 'virus.exe');
 
     expect(res.status).toBe(500);
@@ -100,11 +100,11 @@ describe('Upload validation', () => {
 describe('SQL injection protection', () => {
   it('parameterized queries prevent injection', async () => {
     const loginRes = await request(app).post('/api/login').send({ username: 'admin', password: 'admin' });
-    const token = loginRes.body.token;
+    const cookie = loginRes.headers['set-cookie'][0].split(';')[0];
 
     const res = await request(app)
       .get("/api/veiculos?placa='; DROP TABLE veiculos;--")
-      .set('Authorization', `Bearer ${token}`);
+      .set('Cookie', cookie);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);

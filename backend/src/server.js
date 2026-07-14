@@ -1,6 +1,6 @@
 require('dotenv/config');
 const app = require('./app');
-const { PORT } = require('./config');
+const { PORT, NODE_ENV } = require('./config');
 const { sequelize, authenticate } = require('./database/sequelize');
 const { startCron, stopCron } = require('./services/cron');
 const { startCleanup: startTokenCleanup, stopCleanup: stopTokenCleanup } = require('./services/tokenBlacklist');
@@ -31,7 +31,14 @@ async function shutdown(signal) {
 }
 
 authenticate()
-  .then(() => sequelize.sync())
+  .then(async () => {
+    const shouldAutoSync = NODE_ENV !== 'production' || process.env.DB_AUTO_SYNC === 'true';
+    if (shouldAutoSync) {
+      await sequelize.sync({ alter: process.env.DB_SYNC_ALTER === 'true', force: false });
+    } else {
+      console.log('Database sync skipped in production; ensure migrations are applied.');
+    }
+  })
   .then(() => {
     const server = app.listen(PORT, () => {
       console.log(`Zênite backend running on http://localhost:${PORT}`);

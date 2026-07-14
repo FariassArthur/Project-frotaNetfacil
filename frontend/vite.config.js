@@ -7,8 +7,8 @@ export default defineConfig({
     port: 4173,
     strictPort: true,
     proxy: {
-      '/api': 'http://localhost:3002',
-      '/files': 'http://localhost:3002'
+      '/api': 'http://localhost:3001',
+      '/files': 'http://localhost:3001'
     }
   },
   test: {

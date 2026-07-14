@@ -71,7 +71,8 @@ describe('client.js API module', () => {
     const { login } = await import('../api/client');
     const result = await login('admin', 'senha123');
 
-    expect(result.token).toBe('abc');
+    expect(result.token).toBeUndefined();
+    expect(result.user).toEqual({ id: 1 });
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/login',
       expect.objectContaining({
