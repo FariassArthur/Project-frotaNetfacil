@@ -1,6 +1,7 @@
 const { sequelize } = require('../../database/sequelize');
 const { handleError } = require('../../services/errorHandler');
 const fs = require('fs');
+const { Veiculo, Cnh, Combustivel, Cidade, Mecanica, Seguradora, TipoManutencao } = require('../../database/models');
 
 const ALLOWED_TABLES_CSV = {
   veiculos: ['placa', 'numero', 'tipo', 'fipe_name_marca', 'fipe_modelo', 'renavam', 'chassi', 'km', 'cor', 'uf', 'cidade', 'observacao'],
@@ -203,8 +204,117 @@ async function previewImport(req, res) {
       }
       return mappedRow;
     });
-    res.json({ ok: true, tabela, total_linhas: dataRows.length, mapeamento: mapping, campos_mapeados: mappedFields, campos_ignorados: ignoredFields, campos_nao_encontrados: missingFields, amostra: sample });
-  } catch (error) { handleError(res, error, 'importar.csv.preview'); }
+    // Checar referências ausentes para campos mapeados
+    const referencias_faltantes = {};
+    try {
+      if (mappedFields.includes('veiculo_id')) {
+        const valores = Array.from(new Set(dataRows.map((r) => mapCsvRow(r, mapping).veiculo_id).filter(Boolean)));
+        if (valores.length > 0) {
+          const encontrados = await Veiculo.findAll({ where: { placa: valores }, attributes: ['placa'] });
+          const encontradosSet = new Set(encontrados.map((v) => v.placa));
+          const faltantes = valores.filter((v) => !encontradosSet.has(v));
+          referencias_faltantes.veiculo_id = { total_unicos: valores.length, faltantes_count: faltantes.length, faltantes_sample: faltantes.slice(0, 20) };
+        }
+      }
+      if (mappedFields.includes('motorista_id')) {
+        const valores = Array.from(new Set(dataRows.map((r) => mapCsvRow(r, mapping).motorista_id).filter(Boolean)));
+        if (valores.length > 0) {
+          const encontrados = await Cnh.findAll({ where: { numero_registro: valores }, attributes: ['numero_registro'] });
+          const encontradosSet = new Set(encontrados.map((c) => c.numero_registro));
+          const faltantes = valores.filter((v) => !encontradosSet.has(v));
+          referencias_faltantes.motorista_id = { total_unicos: valores.length, faltantes_count: faltantes.length, faltantes_sample: faltantes.slice(0, 20) };
+        }
+      }
+      if (mappedFields.includes('combustivel')) {
+        const valores = Array.from(new Set(dataRows.map((r) => mapCsvRow(r, mapping).combustivel).filter(Boolean)));
+        if (valores.length > 0) {
+          const encontrados = [];
+          for (const v of valores) {
+            if (/^\d+$/.test(String(v))) {
+              const e = await Combustivel.findByPk(Number(v)); if (e) encontrados.push(String(v));
+            } else {
+              const e = await Combustivel.findOne({ where: { tipo: String(v) } }); if (e) encontrados.push(String(v));
+            }
+          }
+          const encontradosSet = new Set(encontrados);
+          const faltantes = valores.filter((v) => !encontradosSet.has(String(v)));
+          referencias_faltantes.combustivel = { total_unicos: valores.length, faltantes_count: faltantes.length, faltantes_sample: faltantes.slice(0, 20) };
+        }
+      }
+      if (mappedFields.includes('cidade') || mappedFields.includes('cidade_id')) {
+        const valores = Array.from(new Set(dataRows.map((r) => {
+          const m = mapCsvRow(r, mapping);
+          return m.cidade_id || m.cidade;
+        }).filter(Boolean)));
+        if (valores.length > 0) {
+          const encontrados = [];
+          for (const v of valores) {
+            if (/^\d+$/.test(String(v))) {
+              const e = await Cidade.findByPk(Number(v)); if (e) encontrados.push(String(v));
+            } else {
+              const e = await Cidade.findOne({ where: { nome: String(v) } }); if (e) encontrados.push(String(v));
+            }
+          }
+          const encontradosSet = new Set(encontrados);
+          const faltantes = valores.filter((v) => !encontradosSet.has(String(v)));
+          referencias_faltantes.cidade = { total_unicos: valores.length, faltantes_count: faltantes.length, faltantes_sample: faltantes.slice(0, 20) };
+        }
+      }
+      if (mappedFields.includes('mecanica_id')) {
+        const valores = Array.from(new Set(dataRows.map((r) => mapCsvRow(r, mapping).mecanica_id).filter(Boolean)));
+        if (valores.length > 0) {
+          const encontrados = [];
+          for (const v of valores) {
+            if (/^\d+$/.test(String(v))) {
+              const e = await Mecanica.findByPk(Number(v)); if (e) encontrados.push(String(v));
+            } else {
+              const e = await Mecanica.findOne({ where: { nome: String(v) } }); if (e) encontrados.push(String(v));
+            }
+          }
+          const encontradosSet = new Set(encontrados);
+          const faltantes = valores.filter((v) => !encontradosSet.has(String(v)));
+          referencias_faltantes.mecanica_id = { total_unicos: valores.length, faltantes_count: faltantes.length, faltantes_sample: faltantes.slice(0, 20) };
+        }
+      }
+      if (mappedFields.includes('seguradora_id')) {
+        const valores = Array.from(new Set(dataRows.map((r) => mapCsvRow(r, mapping).seguradora_id).filter(Boolean)));
+        if (valores.length > 0) {
+          const encontrados = [];
+          for (const v of valores) {
+            if (/^\d+$/.test(String(v))) {
+              const e = await Seguradora.findByPk(Number(v)); if (e) encontrados.push(String(v));
+            } else {
+              const e = await Seguradora.findOne({ where: { nome: String(v) } }); if (e) encontrados.push(String(v));
+            }
+          }
+          const encontradosSet = new Set(encontrados);
+          const faltantes = valores.filter((v) => !encontradosSet.has(String(v)));
+          referencias_faltantes.seguradora_id = { total_unicos: valores.length, faltantes_count: faltantes.length, faltantes_sample: faltantes.slice(0, 20) };
+        }
+      }
+      if (mappedFields.includes('tipo_manutencao_id')) {
+        const valores = Array.from(new Set(dataRows.map((r) => mapCsvRow(r, mapping).tipo_manutencao_id).filter(Boolean)));
+        if (valores.length > 0) {
+          const encontrados = [];
+          for (const v of valores) {
+            if (/^\d+$/.test(String(v))) {
+              const e = await TipoManutencao.findByPk(Number(v)); if (e) encontrados.push(String(v));
+            } else {
+              const e = await TipoManutencao.findOne({ where: { descricao: String(v) } }); if (e) encontrados.push(String(v));
+            }
+          }
+          const encontradosSet = new Set(encontrados);
+          const faltantes = valores.filter((v) => !encontradosSet.has(String(v)));
+          referencias_faltantes.tipo_manutencao_id = { total_unicos: valores.length, faltantes_count: faltantes.length, faltantes_sample: faltantes.slice(0, 20) };
+        }
+      }
+    } catch (e) {
+      // ignore preview reference check errors
+    }
+
+    const response = { ok: true, tabela, total_linhas: dataRows.length, mapeamento: mapping, campos_mapeados: mappedFields, campos_ignorados: ignoredFields, campos_nao_encontrados: missingFields, amostra: sample };
+    if (Object.keys(referencias_faltantes).length > 0) response.referencias_faltantes = referencias_faltantes;
+    res.json(response);
 }
 
 async function doImport(req, res) {
@@ -237,6 +347,63 @@ async function doImport(req, res) {
         continue;
       }
       const mappedRow = mapCsvRow(row, mapping);
+
+      // Auto-cria registros referenciados mínimos quando possível
+      try {
+        if (mappedFields.includes('veiculo_id') && mappedRow.veiculo_id) {
+          const v = mappedRow.veiculo_id;
+          const exists = await Veiculo.findByPk(v);
+          if (!exists) await Veiculo.create({ placa: v, ativo: 1 });
+        }
+        if (mappedFields.includes('motorista_id') && mappedRow.motorista_id) {
+          const m = mappedRow.motorista_id;
+          const exists = await Cnh.findByPk(m);
+          if (!exists) await Cnh.create({ numero_registro: m, nome: null });
+        }
+        if (mappedFields.includes('combustivel') && mappedRow.combustivel) {
+          const v = mappedRow.combustivel;
+          if (/^\d+$/.test(String(v))) {
+            const exists = await Combustivel.findByPk(Number(v)); if (!exists) await Combustivel.create({ tipo: String(v) });
+          } else {
+            const exists = await Combustivel.findOne({ where: { tipo: String(v) } }); if (!exists) await Combustivel.create({ tipo: String(v) });
+          }
+        }
+        if ((mappedFields.includes('cidade_id') && mappedRow.cidade_id) || (mappedFields.includes('cidade') && mappedRow.cidade && tabela === 'veiculos')) {
+          const val = mappedRow.cidade_id || mappedRow.cidade;
+          if (/^\d+$/.test(String(val))) {
+            const exists = await Cidade.findByPk(Number(val)); if (!exists) await Cidade.create({ nome: String(val), uf: mappedRow.uf || null });
+          } else {
+            const exists = await Cidade.findOne({ where: { nome: String(val) } }); if (!exists) await Cidade.create({ nome: String(val), uf: mappedRow.uf || null });
+          }
+        }
+        if (mappedFields.includes('mecanica_id') && mappedRow.mecanica_id) {
+          const val = mappedRow.mecanica_id;
+          if (/^\d+$/.test(String(val))) {
+            const exists = await Mecanica.findByPk(Number(val)); if (!exists) await Mecanica.create({ nome: String(val) });
+          } else {
+            const exists = await Mecanica.findOne({ where: { nome: String(val) } }); if (!exists) await Mecanica.create({ nome: String(val) });
+          }
+        }
+        if (mappedFields.includes('seguradora_id') && mappedRow.seguradora_id) {
+          const val = mappedRow.seguradora_id;
+          if (/^\d+$/.test(String(val))) {
+            const exists = await Seguradora.findByPk(Number(val)); if (!exists) await Seguradora.create({ nome: String(val) });
+          } else {
+            const exists = await Seguradora.findOne({ where: { nome: String(val) } }); if (!exists) await Seguradora.create({ nome: String(val) });
+          }
+        }
+        if (mappedFields.includes('tipo_manutencao_id') && mappedRow.tipo_manutencao_id) {
+          const val = mappedRow.tipo_manutencao_id;
+          if (/^\d+$/.test(String(val))) {
+            const exists = await TipoManutencao.findByPk(Number(val)); if (!exists) await TipoManutencao.create({ descricao: String(val) });
+          } else {
+            const exists = await TipoManutencao.findOne({ where: { descricao: String(val) } }); if (!exists) await TipoManutencao.create({ descricao: String(val) });
+          }
+        }
+      } catch (e) {
+        // ignore individual creation errors
+      }
+
       const vals = mappedFields.map((f) => mappedRow[f] != null ? mappedRow[f] : null);
       const cols = mappedFields.map((f) => `"${f}"`).join(', ');
       const placeholders = mappedFields.map(() => '?').join(', ');
