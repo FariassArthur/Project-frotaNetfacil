@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaDownload } from 'react-icons/fa';
+import { FaDownload, FaSpinner } from 'react-icons/fa';
 import { fetchListPaginated, createItem, updateItem, deleteItem } from '../api/client';
 import EntityForm from './EntityForm';
 import EntityTable from './EntityTable';
 import Skeleton from './Skeleton';
+import ConfirmModal from './ConfirmModal';
 import { useToast } from './Toast';
 
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -26,6 +27,12 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dateFilters, setDateFilters] = useState({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState('');
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmDanger, setConfirmDanger] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const isPaginating = useRef(false);
   const searchTimer = useRef(null);
 
@@ -106,9 +113,38 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
     if (onItemSelect) onItemSelect(item);
   };
 
-  const closeForm = useCallback(() => {
+  const confirmRef = useRef(null);
+
+  const showConfirm = (title, message, action, danger = false) => {
+    return new Promise((resolve) => {
+      confirmRef.current = () => { resolve(true); };
+      setConfirmTitle(title);
+      setConfirmMessage(message);
+      setConfirmDanger(danger);
+      setConfirmOpen(true);
+    });
+  };
+
+  const handleConfirmClose = () => {
+    setConfirmOpen(false);
+    confirmRef.current = null;
+  };
+
+  const handleConfirm = () => {
+    confirmRef.current?.();
+    setConfirmOpen(false);
+    confirmRef.current = null;
+  };
+
+  const closeForm = useCallback(async () => {
     if (isDirty) {
-      if (!window.confirm('Há alterações não salvas. Deseja realmente descartá-las?')) return;
+      const confirmed = await showConfirm(
+        'Alterações não salvas',
+        'Há alterações não salvas. Deseja realmente descartá-las?',
+        null,
+        true
+      );
+      if (!confirmed) return;
     }
     setFormOpen(false);
     setSelectedItem(null);
@@ -175,10 +211,18 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
 
   const handleDelete = async (item) => {
     const itemLabel = item[moduleConfig.fields.find(f => f.required)?.name] || item[moduleConfig.keyField] || item.id || 'registro';
-    if (!window.confirm(`Deseja deletar "${itemLabel}"? Esta ação não pode ser desfeita.`)) return;
+    const confirmed = await showConfirm(
+      'Excluir registro',
+      `Deseja deletar "${itemLabel}"? Esta ação não pode ser desfeita.`,
+      null,
+      true
+    );
+    if (!confirmed) return;
+    const itemId = item[moduleConfig.keyField] || item.id;
+    setDeletingId(itemId);
     setLoading(true);
     try {
-      await deleteItem(moduleConfig.endpoint, item[moduleConfig.keyField], token);
+      await deleteItem(moduleConfig.endpoint, itemId, token);
       toast.success('Registro excluído com sucesso');
       await loadItems();
     } catch (err) {
@@ -187,6 +231,7 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
       console.error(err);
     } finally {
       setLoading(false);
+      setDeletingId(null);
     }
   };
 
@@ -343,11 +388,21 @@ export default function GenericModule({ moduleConfig, token, vehicles, cidades, 
                 page={page}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
+                loadingId={deletingId}
               />
             </div>
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={handleConfirmClose}
+        onConfirm={handleConfirm}
+        title={confirmTitle}
+        message={confirmMessage}
+        danger={confirmDanger}
+      />
     </div>
   );
 }

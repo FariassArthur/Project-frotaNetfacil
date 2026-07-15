@@ -17,7 +17,12 @@ if (isPostgres) {
     dialect: 'postgres',
     logging: false,
     pool: { max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 },
-    dialectOptions: process.env.PG_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {},
+    dialectOptions: process.env.PG_SSL === 'true' ? {
+      ssl: {
+        rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false',
+        ...(process.env.PG_SSL_CA ? { ca: require('fs').readFileSync(process.env.PG_SSL_CA) } : {}),
+      },
+    } : {},
   });
 } else {
   sequelize = new Sequelize({

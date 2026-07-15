@@ -83,18 +83,30 @@ async function list(req, res) {
   try {
     const veiculos = await sequelize.query('SELECT placa, fipe_modelo, tipo FROM veiculos ORDER BY placa', { type: sequelize.QueryTypes.SELECT });
     const dateWhere = []; const dateParams = [];
-    if (data_inicio) { dateWhere.push('AND m.data >= ?'); dateParams.push(data_inicio); }
-    if (data_fim) { dateWhere.push('AND m.data <= ?'); dateParams.push(data_fim + ' 23:59:59'); }
-    const dateClause = dateWhere.join(' ');
+    if (data_inicio) { dateWhere.push('AND data >= ?'); dateParams.push(data_inicio); }
+    if (data_fim) { dateWhere.push('AND data <= ?'); dateParams.push(data_fim + ' 23:59:59'); }
+    const defaultDateClause = dateWhere.join(' ');
+
+    const multasWhere = []; const multasParams = [];
+    if (data_inicio) { multasWhere.push('AND data_ocorrencia >= ?'); multasParams.push(data_inicio); }
+    if (data_fim) { multasWhere.push('AND data_ocorrencia <= ?'); multasParams.push(data_fim + ' 23:59:59'); }
+    const multasDateClause = multasWhere.join(' ');
+
+    const pgtoWhere = []; const pgtoParams = [];
+    if (data_inicio) { pgtoWhere.push('AND data_pagamento >= ?'); pgtoParams.push(data_inicio); }
+    if (data_fim) { pgtoWhere.push('AND data_pagamento <= ?'); pgtoParams.push(data_fim + ' 23:59:59'); }
+    const pgtoDateClause = pgtoWhere.join(' ');
+
+    const allParams = [...dateParams, ...multasParams, ...pgtoParams, ...pgtoParams];
     const rows = await sequelize.query(`
       SELECT veiculo_id, SUM(valor) as total FROM (
-        SELECT veiculo_id, valor FROM manutencoes WHERE veiculo_id IS NOT NULL ${dateClause}
-        UNION ALL SELECT veiculo_id, valor FROM multas WHERE veiculo_id IS NOT NULL ${dateClause}
-        UNION ALL SELECT veiculo_id, valor FROM abastecimentos WHERE veiculo_id IS NOT NULL ${dateClause}
-        UNION ALL SELECT veiculo_id, valor FROM pagamentos_seguro WHERE veiculo_id IS NOT NULL ${dateClause}
-        UNION ALL SELECT veiculo_id, valor FROM pagamento_documentos WHERE veiculo_id IS NOT NULL ${dateClause}
+        SELECT veiculo_id, valor FROM manutencoes WHERE veiculo_id IS NOT NULL ${defaultDateClause}
+        UNION ALL SELECT veiculo_id, valor FROM multas WHERE veiculo_id IS NOT NULL ${multasDateClause}
+        UNION ALL SELECT veiculo_id, valor FROM abastecimentos WHERE veiculo_id IS NOT NULL ${defaultDateClause}
+        UNION ALL SELECT veiculo_id, valor FROM pagamentos_seguro WHERE veiculo_id IS NOT NULL ${pgtoDateClause}
+        UNION ALL SELECT veiculo_id, valor FROM pagamento_documentos WHERE veiculo_id IS NOT NULL ${pgtoDateClause}
       ) GROUP BY veiculo_id ORDER BY total DESC
-    `, { replacements: dateParams, type: sequelize.QueryTypes.SELECT });
+    `, { replacements: allParams, type: sequelize.QueryTypes.SELECT });
 
     const totais = rows.map((r) => {
       const v = veiculos.find((v) => v.placa === r.veiculo_id);

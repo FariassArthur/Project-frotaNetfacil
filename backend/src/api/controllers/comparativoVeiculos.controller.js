@@ -11,7 +11,7 @@ async function comparativo(req, res) {
     ]);
     if (!veiculo1Rows[0] || !veiculo2Rows[0]) return res.status(404).json({ error: 'Um dos veículos não foi encontrado' });
     const custo = async (placa) => {
-      const [manutencao, combustivel, multas, seguro, higienizacao, ordensServico, vRows] = await Promise.all([
+      const [manutencao, combustivel, multas, seguro, higienizacao, ordensServico, vRows, kmRows, consumoRows] = await Promise.all([
         sequelize.query('SELECT COALESCE(SUM(valor), 0) as total FROM manutencoes WHERE veiculo_id = ?', { replacements: [placa], type: sequelize.QueryTypes.SELECT }),
         sequelize.query('SELECT COALESCE(SUM(valor), 0) as total, COALESCE(SUM(quantidade), 0) as litros, COUNT(*) as qtd_abast FROM abastecimentos WHERE veiculo_id = ?', { replacements: [placa], type: sequelize.QueryTypes.SELECT }),
         sequelize.query('SELECT COALESCE(SUM(valor), 0) as total FROM multas WHERE veiculo_id = ?', { replacements: [placa], type: sequelize.QueryTypes.SELECT }),
@@ -19,13 +19,13 @@ async function comparativo(req, res) {
         sequelize.query('SELECT COALESCE(SUM(valor), 0) as total FROM higienizacao WHERE veiculo_id = ?', { replacements: [placa], type: sequelize.QueryTypes.SELECT }),
         sequelize.query('SELECT COALESCE(SUM(COALESCE(valor_mao_obra,0)+COALESCE(valor_pecas,0)),0) as total FROM ordens_servico WHERE veiculo_id = ?', { replacements: [placa], type: sequelize.QueryTypes.SELECT }),
         sequelize.query('SELECT km FROM veiculos WHERE placa = ?', { replacements: [placa], type: sequelize.QueryTypes.SELECT }),
+        sequelize.query('SELECT MIN(km) as km_min, MAX(km) as km_max FROM (SELECT km FROM abastecimentos WHERE veiculo_id = ? AND km IS NOT NULL AND km > 0 UNION ALL SELECT km FROM manutencoes WHERE veiculo_id = ? AND km IS NOT NULL AND km > 0)', { replacements: [placa, placa], type: sequelize.QueryTypes.SELECT }),
+        sequelize.query('SELECT a.km, a.quantidade FROM abastecimentos a WHERE a.veiculo_id = ? AND a.km IS NOT NULL AND a.quantidade > 0 AND a.km > 0 ORDER BY a.data DESC LIMIT 5', { replacements: [placa], type: sequelize.QueryTypes.SELECT }),
       ]);
       const kmAtual = vRows[0]?.km || 0;
-      const kmRows = await sequelize.query('SELECT MIN(km) as km_min, MAX(km) as km_max FROM (SELECT km FROM abastecimentos WHERE veiculo_id = ? AND km IS NOT NULL AND km > 0 UNION ALL SELECT km FROM manutencoes WHERE veiculo_id = ? AND km IS NOT NULL AND km > 0)', { replacements: [placa, placa], type: sequelize.QueryTypes.SELECT });
       const kmMin = kmRows[0]?.km_min || 0;
       const kmMax = kmRows[0]?.km_max || 0;
       const kmPercorrido = kmMax > kmMin ? kmMax - kmMin : 0;
-      const consumoRows = await sequelize.query('SELECT a.km, a.quantidade FROM abastecimentos a WHERE a.veiculo_id = ? AND a.km IS NOT NULL AND a.quantidade > 0 AND a.km > 0 ORDER BY a.data DESC LIMIT 5', { replacements: [placa], type: sequelize.QueryTypes.SELECT });
       let kml = null;
       if (consumoRows.length >= 2) {
         const last = consumoRows[0];

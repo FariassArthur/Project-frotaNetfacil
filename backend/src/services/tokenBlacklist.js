@@ -39,8 +39,9 @@ async function isBlacklisted(token) {
   try {
     const row = await TokenBlacklist.findByPk(tokenHash);
     return row !== null;
-  } catch {
-    return false;
+  } catch (err) {
+    console.error('TokenBlacklist check error (failing closed):', err.message || err);
+    return true;
   }
 }
 

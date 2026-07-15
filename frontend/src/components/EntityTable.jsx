@@ -1,13 +1,15 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { FaPaperclip, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaPaperclip, FaSortUp, FaSortDown, FaSpinner } from 'react-icons/fa';
 import { getFileUrl, getItemValue } from '../api/client';
 import { getSortValue, FilterDropdown } from '../utils/tableUtils.jsx';
+import ConfirmModal from './ConfirmModal';
 
-export default function EntityTable({ items, fields, onSelect, onDelete, totalCount, page, pageSize, onPageChange, onBatchDelete }) {
+export default function EntityTable({ items, fields, onSelect, onDelete, totalCount, page, pageSize, onPageChange, onBatchDelete, loadingId }) {
   const [columnFilters, setColumnFilters] = useState({});
   const [openFilter, setOpenFilter] = useState(null);
   const [filterAnchor, setFilterAnchor] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
   const tableRef = useRef(null);
 
   useEffect(() => {
@@ -95,12 +97,7 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
           <button
             className="text-xs px-3 py-1.5 rounded-lg border-none cursor-pointer font-medium"
             style={{ background: '#dc3545', color: 'white' }}
-            onClick={() => {
-              if (window.confirm(`Deletar ${selectedIds.size} registro(s) selecionado(s)?`)) {
-                onBatchDelete([...selectedIds]);
-                setSelectedIds(new Set());
-              }
-            }}
+            onClick={() => setBatchConfirmOpen(true)}
           >
             Deletar {selectedIds.size} selecionado(s)
           </button>
@@ -214,10 +211,11 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
                     </button>
                     <button
                       className={`${btnBase}`}
-                      style={{ background: 'var(--danger)' }}
+                      style={{ background: 'var(--danger)', opacity: loadingId && loadingId !== item.id ? 0.5 : 1, cursor: loadingId && loadingId !== item.id ? 'not-allowed' : 'pointer' }}
                       onClick={() => onDelete(item)}
+                      disabled={loadingId && loadingId !== item.id}
                     >
-                      Deletar
+                      {loadingId === item.id ? <><FaSpinner className="animate-spin" /> Excluindo...</> : 'Deletar'}
                     </button>
                   </td>
                   </tr>
@@ -265,6 +263,14 @@ export default function EntityTable({ items, fields, onSelect, onDelete, totalCo
           </button>
         </div>
       )}
+      <ConfirmModal
+        open={batchConfirmOpen}
+        onClose={() => setBatchConfirmOpen(false)}
+        onConfirm={() => { onBatchDelete([...selectedIds]); setSelectedIds(new Set()); setBatchConfirmOpen(false); }}
+        title="Excluir selecionados"
+        message={`Deletar ${selectedIds.size} registro(s) selecionado(s)? Esta ação não pode ser desfeita.`}
+        danger
+      />
     </div>
   );
 }

@@ -315,6 +315,7 @@ async function previewImport(req, res) {
     const response = { ok: true, tabela, total_linhas: dataRows.length, mapeamento: mapping, campos_mapeados: mappedFields, campos_ignorados: ignoredFields, campos_nao_encontrados: missingFields, amostra: sample };
     if (Object.keys(referencias_faltantes).length > 0) response.referencias_faltantes = referencias_faltantes;
     res.json(response);
+  } catch (error) { handleError(res, error, 'preview.csv'); }
 }
 
 async function doImport(req, res) {

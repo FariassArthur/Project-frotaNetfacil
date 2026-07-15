@@ -3,5 +3,8 @@ dist/
 .env
 *.sqlite
 *.sqlite3
-backend/public/uploads/*
-!backend/public/uploads/.gitkeep
+backend/pgdata/
+backend/public/uploads/
+data/
+temp_import/
+backend/:memory:

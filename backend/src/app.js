@@ -21,8 +21,12 @@ app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'same-origin' },
 }));
+const corsOrigin = NODE_ENV === 'production'
+  ? (CORS_ORIGIN || (() => { throw new Error('FATAL: CORS_ORIGIN is required in production'); })())
+  : (CORS_ORIGIN || true);
+
 app.use(cors({
-  origin: CORS_ORIGIN || true,
+  origin: corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
