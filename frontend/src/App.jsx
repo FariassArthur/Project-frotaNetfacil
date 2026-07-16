@@ -72,10 +72,12 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
+    let stale = false;
     if (!token) {
       setSessionLoading(true);
       fetchMe()
         .then((data) => {
+          if (stale) return;
           if (data && !data.error && data.username) {
             setUser({ username: data.username, role: data.role });
             setToken('session');
@@ -86,12 +88,14 @@ export default function App() {
           setSessionLoading(false);
         })
         .catch((err) => {
+          if (stale) return;
           console.error('Erro ao verificar sessão:', err);
           setUser(null);
           setToken(null);
           setSessionLoading(false);
         });
     }
+    return () => { stale = true; };
   }, []);
 
   const loadVehicles = async () => {

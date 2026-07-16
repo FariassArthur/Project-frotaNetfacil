@@ -253,7 +253,11 @@ export async function fetchHealth(token) {
 export async function fetchMe() {
   try {
     const response = await fetchWithTimeout(`${apiBase}/api/me`, { credentials: 'include' });
-    return handleResponse(response);
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { error: 'Erro inesperado do servidor' }; }
+    if (!response.ok) return { error: data?.error || 'Sessão inválida' };
+    return data;
   } catch (err) {
     return { error: err.name === 'AbortError' ? 'Tempo limite excedido' : 'Erro de conexão' };
   }

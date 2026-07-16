@@ -55,7 +55,7 @@ async function login(req, res) {
     res.cookie('token', token, {
       httpOnly: true,
       secure: isSecure,
-      sameSite: 'strict',
+      sameSite: isSecure ? 'none' : 'lax',
       maxAge: SESSION_TTL_MS,
       path: '/',
     });
@@ -88,7 +88,7 @@ async function logout(req, res) {
   const token = bearerToken || cookieToken;
   const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
   if (token) await blacklistToken(token);
-  res.clearCookie('token', { path: '/', httpOnly: true, secure: isSecure, sameSite: 'strict' });
+  res.clearCookie('token', { path: '/', httpOnly: true, secure: isSecure, sameSite: isSecure ? 'none' : 'lax' });
   res.json({ ok: true });
   if (req.user) {
     logAudit({
