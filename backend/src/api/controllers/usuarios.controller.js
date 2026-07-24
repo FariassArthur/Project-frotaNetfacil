@@ -3,8 +3,8 @@ const { Op } = require('sequelize');
 const { Usuario } = require('../../database/models');
 const { logAudit } = require('../../services/auditLog');
 const { handleError } = require('../../services/errorHandler');
-
-const SENSITIVE_FIELDS = ['password'];
+const { cleanData, sanitizeSensitiveFields, buildSearchFilter, parseBool } = require('../utils/helpers');
+const { SENSITIVE_FIELDS } = require('../utils/constants');
 
 function validatePasswordStrength(password) {
   if (!password || password.length < 8) return 'A senha deve ter pelo menos 8 caracteres';
@@ -12,13 +12,6 @@ function validatePasswordStrength(password) {
   if (!/[a-z]/.test(password)) return 'A senha deve conter pelo menos uma letra minúscula';
   if (!/[0-9]/.test(password)) return 'A senha deve conter pelo menos um número';
   return null;
-}
-
-function cleanData(data) {
-  if (!data) return null;
-  const cleaned = { ...data };
-  SENSITIVE_FIELDS.forEach((f) => delete cleaned[f]);
-  return cleaned;
 }
 
 const USER_FIELDS = ['id', 'username', 'nome_completo', 'email', 'telefone', 'role', 'ativo', 'permissoes'];
@@ -29,12 +22,9 @@ async function list(req, res) {
     const limit = parseInt(req.query._limit, 10) || null;
     const q = (req.query._q || '').trim();
     const where = {};
-    if (q) {
-      where[Op.or] = [
-        { username: { [Op.like]: `%${q}%` } },
-        { nome_completo: { [Op.like]: `%${q}%` } },
-        { email: { [Op.like]: `%${q}%` } },
-      ];
+    const searchFilter = buildSearchFilter(['username', 'nome_completo', 'email'], q);
+    if (searchFilter) {
+      Object.assign(where, searchFilter);
     }
     if (page && limit) {
       const result = await Usuario.findAndCountAll({ attributes: USER_FIELDS, where, order: [['username', 'ASC']], limit, offset: (page - 1) * limit });
@@ -62,7 +52,7 @@ async function create(req, res) {
     if (pwError) return res.status(400).json({ error: pwError });
     const hash = await bcrypt.hash(password, 10);
     const novo = await Usuario.create({
-      username, password: hash, role: role || 'user', ativo: ativo !== false ? 1 : 0,
+      username, password: hash, role: role || 'user', ativo: parseBool(ativo !== undefined ? ativo : true),
       permissoes: permissoes || 'all', nome_completo: nome_completo || '', email: email || '', telefone: telefone || '',
     });
     res.status(201).json({ ok: true, id: String(novo.id) });
@@ -101,10 +91,14 @@ async function update(req, res) {
   try {
     const user = await Usuario.findByPk(req.params.id);
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (username !== undefined && username !== user.username) {
+      const exists = await Usuario.findOne({ where: { username, id: { [Op.ne]: req.params.id } } });
+      if (exists) return res.status(409).json({ error: 'Username já existe' });
+    }
     const data = {};
     if (username !== undefined) data.username = username;
     if (role !== undefined) data.role = role;
-    if (ativo !== undefined) data.ativo = ativo ? 1 : 0;
+    if (ativo !== undefined) data.ativo = parseBool(ativo);
     if (permissoes !== undefined) data.permissoes = permissoes;
     if (nome_completo !== undefined) data.nome_completo = nome_completo;
     if (email !== undefined) data.email = email;
@@ -133,6 +127,7 @@ async function remove(req, res) {
     const user = await Usuario.findByPk(req.params.id);
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
     if (user.role === 'root') return res.status(403).json({ error: 'Não é possível excluir o usuário root' });
+    if (String(user.id) === String(req.user?.id)) return res.status(403).json({ error: 'Não é possível excluir o próprio usuário' });
     await Usuario.destroy({ where: { id: req.params.id } });
     res.json({ ok: true });
     logAudit({

@@ -1,6 +1,7 @@
 const { sequelize, getActiveDbName } = require('../../database/sequelize');
 const { handleError } = require('../../services/errorHandler');
 const models = require('../../database/models');
+const { parseBool } = require('../utils/helpers');
 
 const { Combustivel, TipoManutencao, Configuracao, Versao } = models;
 
@@ -29,7 +30,8 @@ async function listTiposManutencao(req, res) {
 async function getConfiguracoes(req, res) {
   try {
     const config = await Configuracao.findOne({ where: { id: 1 } });
-    res.json(config || {});
+    if (!config) return res.status(404).json({ error: 'Configuração não encontrada' });
+    res.json(config);
   } catch (error) { handleError(res, error, 'lookup'); }
 }
 

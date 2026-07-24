@@ -9,8 +9,8 @@ async function logAudit({ user_id, username, acao, entidade, entidade_id, descri
       entidade,
       entidade_id: entidade_id || null,
       descricao: descricao || null,
-      dados_antigos: dados_antigos ? JSON.stringify(dados_antigos) : null,
-      dados_novos: dados_novos ? JSON.stringify(dados_novos) : null,
+      dados_antigos: dados_antigos || null,
+      dados_novos: dados_novos || null,
       ip: ip || null,
     });
   } catch (err) {

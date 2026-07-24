@@ -21,11 +21,14 @@ const LogAuditoria = sequelize.define('LogAuditoria', {
     allowNull: false,
   },
   entidade_id: DataTypes.STRING,
-  descricao: DataTypes.STRING,
-  dados_antigos: DataTypes.STRING,
-  dados_novos: DataTypes.STRING,
+  descricao: DataTypes.TEXT,
+  dados_antigos: DataTypes.JSONB,
+  dados_novos: DataTypes.JSONB,
   ip: DataTypes.STRING,
-  created_at: DataTypes.STRING,
+  created_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
 }, {
   modelName: 'LogAuditoria',
   tableName: 'logs_auditoria',

@@ -7,28 +7,20 @@ const Higienizacao = sequelize.define('Higienizacao', {
     primaryKey: true,
     autoIncrement: true,
   },
-  data: {
-    type: DataTypes.STRING,
-  },
-  local: {
-    type: DataTypes.STRING,
-  },
-  valor: {
-    type: DataTypes.REAL,
-  },
-  path_comprovante_pdf: {
-    type: DataTypes.STRING,
-  },
+  data: DataTypes.DATEONLY,
+  local: DataTypes.STRING,
+  valor: DataTypes.REAL,
+  path_comprovante_pdf: DataTypes.STRING,
   veiculo_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    allowNull: false,
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'CASCADE',
   },
 }, {
   modelName: 'Higienizacao',
   tableName: 'higienizacao',
   timestamps: false,
 });
+
 module.exports = Higienizacao;

@@ -19,27 +19,19 @@ const Usuario = sequelize.define('Usuario', {
   role: {
     type: DataTypes.STRING,
     defaultValue: 'user',
+    validate: { isIn: [['user', 'admin', 'root']] },
   },
   ativo: {
-    type: DataTypes.INTEGER,
-    defaultValue: 1,
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
   },
   permissoes: {
-    type: DataTypes.STRING,
-    defaultValue: 'all',
+    type: DataTypes.JSONB,
+    defaultValue: { all: true },
   },
-  nome_completo: {
-    type: DataTypes.STRING,
-    defaultValue: '',
-  },
-  email: {
-    type: DataTypes.STRING,
-    defaultValue: '',
-  },
-  telefone: {
-    type: DataTypes.STRING,
-    defaultValue: '',
-  },
+  nome_completo: DataTypes.STRING,
+  email: DataTypes.STRING,
+  telefone: DataTypes.STRING,
 }, {
   modelName: 'Usuario',
   tableName: 'usuarios',

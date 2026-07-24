@@ -1,30 +1,12 @@
+const { Op } = require('sequelize');
 const { Veiculo } = require('../../database/models');
 const { filePathFor } = require('../../middleware/upload');
 const { logAudit } = require('../../services/auditLog');
 const { handleError } = require('../../services/errorHandler');
-
-const SENSITIVE_FIELDS = ['password'];
-
-function cleanData(data) {
-  if (!data) return null;
-  const cleaned = { ...data };
-  SENSITIVE_FIELDS.forEach((f) => delete cleaned[f]);
-  return cleaned;
-}
+const { cleanData, buildSearchFilter, parseBool, parseInteger } = require('../utils/helpers');
 
 function val(body, camel, snake) {
   return body[camel] !== undefined ? body[camel] : body[snake];
-}
-
-function parseBoolean(value) {
-  if (value === undefined || value === null) return null;
-  if (typeof value === 'boolean') return value;
-  return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
-}
-
-function parseInteger(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
 }
 
 function buildVeiculoData(body, req, includePlaca) {
@@ -57,7 +39,7 @@ function buildVeiculoData(body, req, includePlaca) {
     codigo_postal: val(body, 'codigoPostal', 'codigo_postal') || null,
     path_documento_pdf: pathDocumentoPDF,
     data_vencimento_ipva: val(body, 'dataVencimentoIPVA', 'data_vencimento_ipva') || null,
-    ativo: parseBoolean(val(body, 'ativo', 'ativo')) ? 1 : 0,
+    ativo: parseBool(val(body, 'ativo', 'ativo')),
     ...(includePlaca ? { placa: val(body, 'placa', 'placa') } : {}),
   };
 }
@@ -67,7 +49,22 @@ async function list(req, res) {
     const page = Math.max(1, parseInt(req.query._page, 10) || 1);
     const limit = Math.min(500, Math.max(1, parseInt(req.query._limit, 10) || 200));
     const offset = (page - 1) * limit;
-    const result = await Veiculo.findAndCountAll({ limit, offset, order: [['placa', 'ASC']] });
+    const q = (req.query._q || '').trim();
+    const where = {};
+    const searchFilter = buildSearchFilter(
+      ['placa', 'fipe_modelo', 'fipe_name_marca', 'numero', 'renavam', 'chassi'],
+      q
+    );
+    if (searchFilter) {
+      Object.assign(where, searchFilter);
+    }
+    if (req.query.ativo !== undefined) {
+      where.ativo = parseBool(req.query.ativo);
+    }
+    if (req.query.tipo) {
+      where.tipo = { [Op.iLike]: req.query.tipo };
+    }
+    const result = await Veiculo.findAndCountAll({ where, limit, offset, order: [['placa', 'ASC']] });
     res.set('X-Total-Count', String(result.count));
     res.json(result.rows);
   } catch (error) { handleError(res, error, 'veiculos'); }

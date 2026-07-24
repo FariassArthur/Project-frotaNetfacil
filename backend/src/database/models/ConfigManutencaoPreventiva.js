@@ -9,30 +9,28 @@ const ConfigManutencaoPreventiva = sequelize.define('ConfigManutencaoPreventiva'
   },
   veiculo_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    allowNull: false,
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'CASCADE',
   },
   tipo_manutencao_id: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'tipo_manutencao',
-      key: 'id',
-    },
+    references: { model: 'tipo_manutencao', key: 'id' },
+    onDelete: 'SET NULL',
   },
   descricao: DataTypes.STRING,
   km_intervalo: DataTypes.INTEGER,
   km_proxima: DataTypes.INTEGER,
   meses_intervalo: DataTypes.INTEGER,
-  data_proxima: DataTypes.STRING,
+  data_proxima: DataTypes.DATEONLY,
   ativo: {
-    type: DataTypes.INTEGER,
-    defaultValue: 1,
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
   },
 }, {
   modelName: 'ConfigManutencaoPreventiva',
   tableName: 'config_manutencao_preventiva',
   timestamps: false,
 });
+
 module.exports = ConfigManutencaoPreventiva;

@@ -7,33 +7,34 @@ const Multa = sequelize.define('Multa', {
     primaryKey: true,
     autoIncrement: true,
   },
-  data_ocorrencia: DataTypes.STRING,
+  data_ocorrencia: DataTypes.DATEONLY,
   data_ocorrencia_s: DataTypes.STRING,
   local_ocorrencia: DataTypes.STRING,
-  data_vencimento: DataTypes.STRING,
+  data_vencimento: DataTypes.DATEONLY,
   data_vencimento_s: DataTypes.STRING,
-  data_pagamento: DataTypes.STRING,
+  data_pagamento: DataTypes.DATEONLY,
   data_pagamento_s: DataTypes.STRING,
   valor: DataTypes.REAL,
   path_anexo_multa_pdf: DataTypes.STRING,
-  pagamento_realizado: DataTypes.INTEGER,
+  pagamento_realizado: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
   veiculo_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    allowNull: false,
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'CASCADE',
   },
   motorista_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'cnhs',
-      key: 'numero_registro',
-    },
+    references: { model: 'cnhs', key: 'numero_registro' },
+    onDelete: 'SET NULL',
   },
 }, {
   modelName: 'Multa',
   tableName: 'multas',
   timestamps: false,
 });
+
 module.exports = Multa;

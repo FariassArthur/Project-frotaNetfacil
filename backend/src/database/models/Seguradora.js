@@ -9,58 +9,25 @@ const Seguradora = sequelize.define('Seguradora', {
   },
   nome: {
     type: DataTypes.STRING,
+    allowNull: false,
   },
-  corretor: {
-    type: DataTypes.STRING,
-  },
-  endereco: {
-    type: DataTypes.STRING,
-  },
-  numero: {
-    type: DataTypes.STRING,
-  },
-  complemento: {
-    type: DataTypes.STRING,
-  },
-  cep: {
-    type: DataTypes.STRING,
-  },
-  bairro: {
-    type: DataTypes.STRING,
-  },
-  cidade: {
-    type: DataTypes.STRING,
-  },
-  uf: {
-    type: DataTypes.STRING,
-  },
-  site: {
-    type: DataTypes.STRING,
-  },
-  email: {
-    type: DataTypes.STRING,
-  },
-  telefone1: {
-    type: DataTypes.STRING,
-  },
-  telefone2: {
-    type: DataTypes.STRING,
-  },
-  celular1: {
-    type: DataTypes.STRING,
-  },
-  celular1_operadora: {
-    type: DataTypes.STRING,
-  },
-  celular2: {
-    type: DataTypes.STRING,
-  },
-  celular2_operadora: {
-    type: DataTypes.STRING,
-  },
-  contatos: {
-    type: DataTypes.STRING,
-  },
+  corretor: DataTypes.STRING,
+  endereco: DataTypes.STRING,
+  numero: DataTypes.STRING,
+  complemento: DataTypes.STRING,
+  cep: DataTypes.STRING,
+  bairro: DataTypes.STRING,
+  cidade: DataTypes.STRING,
+  uf: DataTypes.STRING(2),
+  site: DataTypes.STRING,
+  email: DataTypes.STRING,
+  telefone1: DataTypes.STRING,
+  telefone2: DataTypes.STRING,
+  celular1: DataTypes.STRING,
+  celular1_operadora: DataTypes.STRING,
+  celular2: DataTypes.STRING,
+  celular2_operadora: DataTypes.STRING,
+  contatos: DataTypes.TEXT,
 }, {
   modelName: 'Seguradora',
   tableName: 'seguradoras',

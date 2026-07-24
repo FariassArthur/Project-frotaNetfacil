@@ -9,45 +9,27 @@ const Viagem = sequelize.define('Viagem', {
   },
   veiculo_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    allowNull: false,
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'CASCADE',
   },
   motorista_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'cnhs',
-      key: 'numero_registro',
-    },
+    references: { model: 'cnhs', key: 'numero_registro' },
+    onDelete: 'SET NULL',
   },
-  data_saida: {
-    type: DataTypes.STRING,
-  },
-  data_saida_s: {
-    type: DataTypes.STRING,
-  },
-  data_retorno: {
-    type: DataTypes.STRING,
-  },
-  data_retorno_s: {
-    type: DataTypes.STRING,
-  },
-  km_inicial: {
-    type: DataTypes.INTEGER,
-  },
-  km_final: {
-    type: DataTypes.INTEGER,
-  },
-  destino: {
-    type: DataTypes.STRING,
-  },
-  descricao: {
-    type: DataTypes.STRING,
-  },
+  data_saida: DataTypes.DATEONLY,
+  data_saida_s: DataTypes.STRING,
+  data_retorno: DataTypes.DATEONLY,
+  data_retorno_s: DataTypes.STRING,
+  km_inicial: DataTypes.INTEGER,
+  km_final: DataTypes.INTEGER,
+  destino: DataTypes.STRING,
+  descricao: DataTypes.TEXT,
 }, {
   modelName: 'Viagem',
   tableName: 'viagens',
   timestamps: false,
 });
+
 module.exports = Viagem;

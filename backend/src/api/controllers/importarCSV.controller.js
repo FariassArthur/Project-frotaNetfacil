@@ -2,6 +2,7 @@ const { sequelize } = require('../../database/sequelize');
 const { handleError } = require('../../services/errorHandler');
 const fs = require('fs');
 const { Veiculo, Cnh, Combustivel, Cidade, Mecanica, Seguradora, TipoManutencao } = require('../../database/models');
+const { ALLOWED_TABLES } = require('../utils/constants');
 
 const ALLOWED_TABLES_CSV = {
   veiculos: ['placa', 'numero', 'tipo', 'fipe_name_marca', 'fipe_modelo', 'renavam', 'chassi', 'km', 'cor', 'uf', 'cidade', 'observacao'],
@@ -204,7 +205,6 @@ async function previewImport(req, res) {
       }
       return mappedRow;
     });
-    // Checar referências ausentes para campos mapeados
     const referencias_faltantes = {};
     try {
       if (mappedFields.includes('veiculo_id')) {
@@ -309,7 +309,7 @@ async function previewImport(req, res) {
         }
       }
     } catch (e) {
-      // ignore preview reference check errors
+      console.error('[importarCSV] Erro ao verificar referências no preview:', e.message);
     }
 
     const response = { ok: true, tabela, total_linhas: dataRows.length, mapeamento: mapping, campos_mapeados: mappedFields, campos_ignorados: ignoredFields, campos_nao_encontrados: missingFields, amostra: sample };
@@ -349,12 +349,11 @@ async function doImport(req, res) {
       }
       const mappedRow = mapCsvRow(row, mapping);
 
-      // Auto-cria registros referenciados mínimos quando possível
       try {
         if (mappedFields.includes('veiculo_id') && mappedRow.veiculo_id) {
           const v = mappedRow.veiculo_id;
           const exists = await Veiculo.findByPk(v);
-          if (!exists) await Veiculo.create({ placa: v, ativo: 1 });
+          if (!exists) await Veiculo.create({ placa: v, ativo: true });
         }
         if (mappedFields.includes('motorista_id') && mappedRow.motorista_id) {
           const m = mappedRow.motorista_id;
@@ -402,18 +401,30 @@ async function doImport(req, res) {
           }
         }
       } catch (e) {
-        // ignore individual creation errors
+        console.error(`[importarCSV] Erro ao criar registro referenciado na linha ${linha}:`, e.message);
+      }
+
+      if (!ALLOWED_TABLES.has(tabela)) {
+        erros += 1;
+        detalhesErros.push({ linha, motivo: `Tabela '${tabela}' não está na lista de tabelas permitidas` });
+        console.error(`[importarCSV] Tentativa de INSERT em tabela não permitida: ${tabela}`);
+        if (detalhesErros.length > 100) {
+          detalhesErros.push({ linha: '...', motivo: `Mais erros não listados (total: ${erros})` });
+          break;
+        }
+        continue;
       }
 
       const vals = mappedFields.map((f) => mappedRow[f] != null ? mappedRow[f] : null);
       const cols = mappedFields.map((f) => `"${f}"`).join(', ');
-      const placeholders = mappedFields.map(() => '?').join(', ');
+      const placeholders = mappedFields.map((_, i) => `$${i + 1}`).join(', ');
       try {
-        await sequelize.query(`INSERT INTO ${tabela} (${cols}) VALUES (${placeholders})`, { replacements: vals });
+        await sequelize.query(`INSERT INTO "${tabela}" (${cols}) VALUES (${placeholders})`, { bind: vals });
         importados += 1;
       } catch (err) {
         erros += 1;
         detalhesErros.push({ linha, motivo: err.message });
+        console.error(`[importarCSV] Erro ao inserir linha ${linha} na tabela '${tabela}':`, err.message);
         if (detalhesErros.length > 100) {
           detalhesErros.push({ linha: '...', motivo: `Mais erros não listados (total: ${erros})` });
           break;

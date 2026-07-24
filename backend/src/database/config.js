@@ -1,38 +1,36 @@
-const path = require('path');
+function buildDatabaseUrl() {
+  const host = process.env.PGHOST || process.env.DB_HOST;
+  const port = process.env.PGPORT || process.env.DB_PORT || '5432';
+  const name = process.env.PGDATABASE || process.env.DB_NAME;
+  const user = process.env.PGUSER || process.env.DB_USER;
+  const password = process.env.PGPASSWORD || process.env.DB_PASSWORD || '';
 
-const DB_PATH = process.env.DB_PATH === ':memory:'
-  ? ':memory:'
-  : path.resolve(process.env.DB_PATH || path.join(__dirname, '..', '..', 'data', 'gestaofrota.sqlite'));
+  if (!host || !name || !user) {
+    return '';
+  }
 
-const DATABASE_URL = process.env.DATABASE_URL;
+  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${name}`;
+}
+
+const DATABASE_URL = process.env.DATABASE_URL || buildDatabaseUrl();
+
+const baseConfig = {
+  url: DATABASE_URL,
+  dialect: 'postgres',
+  logging: false,
+  dialectOptions: process.env.PG_SSL === 'true' ? {
+    ssl: {
+      rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false',
+    },
+  } : {},
+};
 
 module.exports = {
-  development: {
-    dialect: 'sqlite',
-    storage: DB_PATH,
-    logging: false,
-  },
+  development: { ...baseConfig },
   test: {
-    dialect: 'sqlite',
-    storage: ':memory:',
+    url: DATABASE_URL,
+    dialect: 'postgres',
     logging: false,
   },
-  production: {
-    ...(DATABASE_URL
-      ? {
-          url: DATABASE_URL,
-          dialect: 'postgres',
-          logging: false,
-          dialectOptions: process.env.PG_SSL === 'true' ? {
-            ssl: {
-              rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false',
-            },
-          } : {},
-        }
-      : {
-          dialect: 'sqlite',
-          storage: DB_PATH,
-          logging: false,
-        }),
-  },
+  production: { ...baseConfig },
 };

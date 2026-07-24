@@ -1,6 +1,9 @@
+const { Op } = require('sequelize');
 const { sequelize } = require('../../database/sequelize');
-const { OrdemServico } = require('../../database/models');
+const { OrdemServico, Veiculo } = require('../../database/models');
 const { handleError } = require('../../services/errorHandler');
+const { parseDateToISO } = require('../utils/helpers');
+const { OS_STATUSES } = require('../utils/constants');
 
 async function list(req, res) {
   try {
@@ -35,8 +38,22 @@ async function create(req, res) {
   try {
     const { veiculo_id, numero_os, data_abertura, km_atual, descricao, tipo, prioridade, mecanica_id, valor_mao_obra, valor_pecas, observacoes } = req.body;
     if (!veiculo_id || !data_abertura) return res.status(400).json({ error: 'veiculo_id e data_abertura são obrigatórios' });
+
+    const veiculoExists = await Veiculo.findByPk(veiculo_id);
+    if (!veiculoExists) return res.status(400).json({ error: 'Veículo não encontrado' });
+
+    const dataISO = parseDateToISO(data_abertura);
+    if (data_abertura && !dataISO) return res.status(400).json({ error: 'Formato de data inválido. Use DD/MM/AAAA ou AAAA-MM-DD.' });
+
+    if (tipo && !['corretiva', 'preventiva', 'preditiva'].includes(tipo)) {
+      return res.status(400).json({ error: `Tipo inválido. Valores permitidos: corretiva, preventiva, preditiva` });
+    }
+    if (prioridade && !['baixa', 'normal', 'alta', 'urgente'].includes(prioridade)) {
+      return res.status(400).json({ error: `Prioridade inválida. Valores permitidos: baixa, normal, alta, urgente` });
+    }
+
     const ordem = await OrdemServico.create({
-      veiculo_id, data_abertura, numero_os: numero_os || null, km_atual: km_atual || null,
+      veiculo_id, data_abertura: dataISO, numero_os: numero_os || null, km_atual: km_atual || null,
       descricao: descricao || null, tipo: tipo || 'corretiva', prioridade: prioridade || 'normal',
       mecanica_id: mecanica_id || null, valor_mao_obra: valor_mao_obra || null,
       valor_pecas: valor_pecas || null, observacoes: observacoes || null,
@@ -51,6 +68,26 @@ async function update(req, res) {
     const existing = await OrdemServico.findByPk(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Ordem não encontrada' });
     const b = req.body;
+
+    if (b.data_abertura) {
+      b.data_abertura = parseDateToISO(b.data_abertura);
+      if (!b.data_abertura) return res.status(400).json({ error: 'Formato de data_abertura inválido. Use DD/MM/AAAA ou AAAA-MM-DD.' });
+    }
+    if (b.data_conclusao) {
+      b.data_conclusao = parseDateToISO(b.data_conclusao);
+      if (!b.data_conclusao) return res.status(400).json({ error: 'Formato de data_conclusao inválido. Use DD/MM/AAAA ou AAAA-MM-DD.' });
+    }
+
+    if (b.status && !OS_STATUSES.includes(b.status)) {
+      return res.status(400).json({ error: `Status inválido. Valores permitidos: ${OS_STATUSES.join(', ')}` });
+    }
+    if (b.tipo && !['corretiva', 'preventiva', 'preditiva'].includes(b.tipo)) {
+      return res.status(400).json({ error: `Tipo inválido. Valores permitidos: corretiva, preventiva, preditiva` });
+    }
+    if (b.prioridade && !['baixa', 'normal', 'alta', 'urgente'].includes(b.prioridade)) {
+      return res.status(400).json({ error: `Prioridade inválida. Valores permitidos: baixa, normal, alta, urgente` });
+    }
+
     await existing.update({
       veiculo_id: b.veiculo_id ?? existing.veiculo_id, numero_os: b.numero_os ?? existing.numero_os,
       data_abertura: b.data_abertura ?? existing.data_abertura, data_conclusao: b.data_conclusao ?? existing.data_conclusao,
@@ -66,20 +103,32 @@ async function update(req, res) {
 
 async function updateStatus(req, res) {
   try {
+    const existing = await OrdemServico.findByPk(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Ordem não encontrada' });
+
     const { status, data_conclusao, km_atual } = req.body;
-    const allowed = ['aberta', 'em_andamento', 'concluida', 'cancelada'];
-    if (!allowed.includes(status)) return res.status(400).json({ error: 'Status inválido' });
+    if (!OS_STATUSES.includes(status)) {
+      return res.status(400).json({ error: `Status inválido. Valores permitidos: ${OS_STATUSES.join(', ')}` });
+    }
+
     const updates = { status };
-    if (data_conclusao) updates.data_conclusao = data_conclusao;
+    if (data_conclusao) {
+      const dataISO = parseDateToISO(data_conclusao);
+      if (!dataISO) return res.status(400).json({ error: 'Formato de data_conclusao inválido. Use DD/MM/AAAA ou AAAA-MM-DD.' });
+      updates.data_conclusao = dataISO;
+    }
     if (km_atual) updates.km_atual = km_atual;
-    await OrdemServico.update(updates, { where: { id: req.params.id } });
+
+    await existing.update(updates);
     res.json({ ok: true });
   } catch (error) { handleError(res, error, 'ordens-servico.status'); }
 }
 
 async function remove(req, res) {
   try {
-    await OrdemServico.destroy({ where: { id: req.params.id } });
+    const existing = await OrdemServico.findByPk(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Ordem não encontrada' });
+    await existing.destroy();
     res.json({ ok: true });
   } catch (error) { handleError(res, error, 'ordens-servico.delete'); }
 }

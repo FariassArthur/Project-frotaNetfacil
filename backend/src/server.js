@@ -4,6 +4,7 @@ const { PORT, NODE_ENV } = require('./config');
 const { sequelize, authenticate } = require('./database/sequelize');
 const { startCron, stopCron } = require('./services/cron');
 const { startCleanup: startTokenCleanup, stopCleanup: stopTokenCleanup } = require('./services/tokenBlacklist');
+const { Umzug } = require('umzug');
 
 process.on('unhandledRejection', (reason) => {
   console.error('UNHANDLED REJECTION:', reason instanceof Error ? reason.stack : reason);
@@ -30,18 +31,53 @@ async function shutdown(signal) {
   process.exit(0);
 }
 
+async function runMigrations() {
+  const umzug = new Umzug({
+    sequelize,
+    path: require('path').resolve(__dirname, 'database', 'migrations'),
+    pattern: /\.js$/,
+    storage: {
+      async executed() {
+        const [results] = await sequelize.query(
+          "SELECT name FROM sequeliZemeta WHERE name LIKE '%.js' ORDER BY name"
+        );
+        return results.map((r) => r.name);
+      },
+      async logMigration({ name }) {
+        await sequelize.query(
+          `INSERT INTO sequeliZemeta (name, "createdAt") VALUES (?, NOW())`,
+          { replacements: [name] }
+        );
+      },
+      async unlogMigration({ name }) {
+        await sequelize.query(
+          `DELETE FROM sequeliZemeta WHERE name = ?`,
+          { replacements: [name] }
+        );
+      },
+    },
+    context: { queryInterface: sequelize.getQueryInterface(), Sequelize: require('sequelize') },
+    migrations: { glob: '*.js', resolve: ({ name, path, context }) => require(path) },
+  });
+
+  await umzug.up();
+}
+
 authenticate()
   .then(async () => {
-    const shouldAutoSync = NODE_ENV !== 'production' || process.env.DB_AUTO_SYNC === 'true';
-    if (shouldAutoSync) {
-      await sequelize.sync({ alter: process.env.DB_SYNC_ALTER === 'true', force: false });
-    } else {
-      console.log('Database sync skipped in production; ensure migrations are applied.');
-    }
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS "sequeliZemeta" (
+        "name" VARCHAR(255) PRIMARY KEY,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    console.log('Running migrations...');
+    await runMigrations();
+    console.log('Migrations completed successfully.');
   })
   .then(() => {
     const server = app.listen(PORT, () => {
-      console.log(`Zênite backend running on http://localhost:${PORT}`);
+      console.log(`FrotaNetFacil backend running on http://localhost:${PORT}`);
       startCron();
       startTokenCleanup();
     });

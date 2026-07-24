@@ -7,44 +7,31 @@ const ContratoSeguro = sequelize.define('ContratoSeguro', {
     primaryKey: true,
     autoIncrement: true,
   },
-  numero_apolice: {
-    type: DataTypes.STRING,
-  },
-  data_inicial_contrato: {
-    type: DataTypes.STRING,
-  },
-  data_final_contrato: {
-    type: DataTypes.STRING,
-  },
+  numero_apolice: DataTypes.STRING,
+  data_inicial_contrato: DataTypes.DATEONLY,
+  data_final_contrato: DataTypes.DATEONLY,
   ativo: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
   },
-  path_orcamento_pdf: {
-    type: DataTypes.STRING,
-  },
-  path_contrato_pdf: {
-    type: DataTypes.STRING,
-  },
-  path_cartao_pdf: {
-    type: DataTypes.STRING,
-  },
+  path_orcamento_pdf: DataTypes.STRING,
+  path_contrato_pdf: DataTypes.STRING,
+  path_cartao_pdf: DataTypes.STRING,
   seguradora_id: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'seguradoras',
-      key: 'id',
-    },
+    references: { model: 'seguradoras', key: 'id' },
+    onDelete: 'SET NULL',
   },
   veiculo_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    allowNull: false,
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'CASCADE',
   },
 }, {
   modelName: 'ContratoSeguro',
   tableName: 'contratos_seguro',
   timestamps: false,
 });
+
 module.exports = ContratoSeguro;

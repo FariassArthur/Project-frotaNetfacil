@@ -1,65 +1,37 @@
 const { Sequelize } = require('sequelize');
-const path = require('path');
 
 const { DATABASE_URL } = require('../config');
 
 const isPostgres = Boolean(DATABASE_URL && (DATABASE_URL.startsWith('postgresql://') || DATABASE_URL.startsWith('postgres://')));
-const allowSqliteFallback = process.env.DB_FALLBACK_TO_SQLITE === 'true' || (process.env.NODE_ENV !== 'production' && process.env.DB_FALLBACK_TO_SQLITE !== 'false');
-const DB_PATH = process.env.DB_PATH === ':memory:'
-  ? ':memory:'
-  : path.resolve(process.env.DB_PATH || path.join(path.resolve(__dirname, '..', '..'), 'data', 'gestaofrota.sqlite'));
 
-let sequelize;
-let isSqliteFallback = false;
-
-if (isPostgres) {
-  sequelize = new Sequelize(DATABASE_URL, {
-    dialect: 'postgres',
-    logging: false,
-    pool: { max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 },
-    dialectOptions: process.env.PG_SSL === 'true' ? {
-      ssl: {
-        rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false',
-        ...(process.env.PG_SSL_CA ? { ca: require('fs').readFileSync(process.env.PG_SSL_CA) } : {}),
-      },
-    } : {},
-  });
-} else {
-  sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: DB_PATH,
-    logging: false,
-  });
+if (!isPostgres) {
+  throw new Error('FATAL: DATABASE_URL is required and must start with postgresql://. PostgreSQL is the only supported database.');
 }
 
+const sequelize = new Sequelize(DATABASE_URL, {
+  dialect: 'postgres',
+  logging: process.env.DB_LOGGING === 'true' ? console.log : false,
+  pool: {
+    max: 15,
+    min: 2,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  },
+  dialectOptions: process.env.PG_SSL === 'true' ? {
+    ssl: {
+      rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false',
+      ...(process.env.PG_SSL_CA ? { ca: require('fs').readFileSync(process.env.PG_SSL_CA) } : {}),
+    },
+  } : {},
+});
+
 async function authenticate() {
-  try {
-    await sequelize.authenticate();
-    if (isPostgres) {
-      console.log('PostgreSQL connected via Sequelize');
-    } else {
-      console.log('SQLite connected via Sequelize');
-    }
-  } catch (error) {
-    if (isPostgres && allowSqliteFallback) {
-      console.warn('PostgreSQL unavailable, falling back to SQLite via Sequelize:', error.message);
-      sequelize = new Sequelize({
-        dialect: 'sqlite',
-        storage: DB_PATH,
-        logging: false,
-      });
-      isSqliteFallback = true;
-      await sequelize.authenticate();
-      console.log('SQLite fallback connected via Sequelize');
-    } else {
-      throw error;
-    }
-  }
+  await sequelize.authenticate();
+  console.log('PostgreSQL connected via Sequelize');
 }
 
 function getActiveDbName() {
-  if (isSqliteFallback) return 'sqlite';
-  return isPostgres ? 'postgres' : 'sqlite';
+  return 'postgres';
 }
 
-module.exports = { sequelize, authenticate, getActiveDbName, isPostgres };
+module.exports = { sequelize, authenticate, getActiveDbName, isPostgres: true };

@@ -5,6 +5,7 @@ const Veiculo = sequelize.define('Veiculo', {
   placa: {
     type: DataTypes.STRING,
     primaryKey: true,
+    allowNull: false,
   },
   numero: DataTypes.STRING,
   tipo: DataTypes.STRING,
@@ -15,10 +16,8 @@ const Veiculo = sequelize.define('Veiculo', {
   chassi: DataTypes.STRING,
   combustivel: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'combustiveis',
-      key: 'id',
-    },
+    references: { model: 'combustiveis', key: 'id' },
+    onDelete: 'SET NULL',
   },
   ano_fab: DataTypes.STRING,
   ano_modelo: DataTypes.STRING,
@@ -27,28 +26,30 @@ const Veiculo = sequelize.define('Veiculo', {
   cidade: DataTypes.STRING,
   cidade_id: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'cidades',
-      key: 'id',
-    },
+    references: { model: 'cidades', key: 'id' },
+    onDelete: 'SET NULL',
   },
   uf: DataTypes.STRING,
   cpfcnpj: DataTypes.STRING,
   categoria: DataTypes.STRING,
   km: DataTypes.INTEGER,
   nome_endereco: DataTypes.STRING,
-  data_aquisicao: DataTypes.STRING,
-  observacao: DataTypes.STRING,
+  data_aquisicao: DataTypes.DATEONLY,
+  observacao: DataTypes.TEXT,
   potencia: DataTypes.STRING,
   culture_info: DataTypes.STRING,
   medidas_pneus: DataTypes.STRING,
   codigo_postal: DataTypes.STRING,
   path_documento_pdf: DataTypes.STRING,
-  data_vencimento_ipva: DataTypes.STRING,
-  ativo: DataTypes.INTEGER,
+  data_vencimento_ipva: DataTypes.DATEONLY,
+  ativo: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
 }, {
   modelName: 'Veiculo',
   tableName: 'veiculos',
   timestamps: false,
 });
+
 module.exports = Veiculo;

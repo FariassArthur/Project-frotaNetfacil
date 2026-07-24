@@ -1,19 +1,12 @@
 {
   "name": "gestaofrota-backend",
   "private": true,
-  "version": "1.1.2",
-  "description": "API REST + SQLite + uploads para GestaoFrota",
+  "version": "1.2.0",
+  "description": "API REST + PostgreSQL + uploads para GestaoFrota",
   "main": "src/app.js",
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "pg:init": "bash scripts/init-pg-data.sh",
-    "pg:start": "pg_ctl -D pgdata -l pgdata/pg.log start",
-    "pg:stop": "pg_ctl -D pgdata stop",
-    "pg:status": "pg_ctl -D pgdata status",
-    "start:pg": "bash scripts/init-pg-data.sh && node src/server.js",
-    "setup:nginx": "bash scripts/setup-nginx.sh",
-    "setup:full": "bash scripts/init-pg-data.sh && bash scripts/setup-nginx.sh && node src/server.js",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
     "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
@@ -39,8 +32,7 @@
     "nodemailer": "^8.0.10",
     "morgan": "^1.10.1",
     "pg": "^8.13.1",
-    "sequelize": "^6.37.8",
-    "sqlite3": "^6.0.1"
+    "sequelize": "^6.37.8"
   },
   "devDependencies": {
     "sequelize-cli": "^6.6.5",

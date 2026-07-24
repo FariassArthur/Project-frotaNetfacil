@@ -7,32 +7,25 @@ const PagamentoSeguro = sequelize.define('PagamentoSeguro', {
     primaryKey: true,
     autoIncrement: true,
   },
-  data_pagamento: {
-    type: DataTypes.STRING,
-  },
-  valor: {
-    type: DataTypes.REAL,
-  },
-  path_pagamento_pdf: {
-    type: DataTypes.STRING,
-  },
+  data_pagamento: DataTypes.DATEONLY,
+  valor: DataTypes.REAL,
+  path_pagamento_pdf: DataTypes.STRING,
   contrato_seguro_id: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'contratos_seguro',
-      key: 'id',
-    },
+    allowNull: false,
+    references: { model: 'contratos_seguro', key: 'id' },
+    onDelete: 'CASCADE',
   },
   veiculo_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    allowNull: false,
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'CASCADE',
   },
 }, {
   modelName: 'PagamentoSeguro',
   tableName: 'pagamentos_seguro',
   timestamps: false,
 });
+
 module.exports = PagamentoSeguro;

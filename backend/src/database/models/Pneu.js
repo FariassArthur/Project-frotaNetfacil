@@ -9,10 +9,8 @@ const Pneu = sequelize.define('Pneu', {
   },
   veiculo_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'SET NULL',
   },
   identificacao: DataTypes.STRING,
   marca: DataTypes.STRING,
@@ -21,20 +19,22 @@ const Pneu = sequelize.define('Pneu', {
   dot: DataTypes.STRING,
   posicao: DataTypes.STRING,
   km_instalacao: DataTypes.INTEGER,
-  data_instalacao: DataTypes.STRING,
+  data_instalacao: DataTypes.DATEONLY,
   km_retirada: DataTypes.INTEGER,
-  data_retirada: DataTypes.STRING,
+  data_retirada: DataTypes.DATEONLY,
   status: {
     type: DataTypes.STRING,
-    defaultValue: 'ativo',
+    defaultValue: 'estoque',
+    validate: { isIn: [['instalado', 'retirado', 'estoque', 'em_manutencao']] },
   },
   nf: DataTypes.STRING,
   valor: DataTypes.REAL,
-  observacoes: DataTypes.STRING,
+  observacoes: DataTypes.TEXT,
   path_foto: DataTypes.STRING,
 }, {
   modelName: 'Pneu',
   tableName: 'pneus',
   timestamps: false,
 });
+
 module.exports = Pneu;

@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const models = require('../../database/models');
 const { sequelize } = require('../../database/sequelize');
 const { handleError } = require('../../services/errorHandler');
+const { parseDateToISO, parseBool } = require('../utils/helpers');
 
 const { ConfigManutencaoPreventiva, TipoManutencao, Veiculo } = models;
 
@@ -23,11 +24,23 @@ async function listConfig(req, res) {
 async function createConfig(req, res) {
   try {
     const { veiculo_id, tipo_manutencao_id, descricao, km_intervalo, km_proxima, meses_intervalo, data_proxima, ativo } = req.body;
+
+    if (!veiculo_id) return res.status(400).json({ error: 'veiculo_id é obrigatório' });
+
+    const veiculoExists = await Veiculo.findByPk(veiculo_id);
+    if (!veiculoExists) return res.status(400).json({ error: 'Veículo não encontrado' });
+
+    let dataProximaISO = data_proxima;
+    if (data_proxima) {
+      dataProximaISO = parseDateToISO(data_proxima);
+      if (!dataProximaISO) return res.status(400).json({ error: 'Formato de data_proxima inválido. Use DD/MM/AAAA ou AAAA-MM-DD.' });
+    }
+
     const created = await ConfigManutencaoPreventiva.create({
       veiculo_id, tipo_manutencao_id: tipo_manutencao_id || null, descricao: descricao || null,
       km_intervalo: km_intervalo || null, km_proxima: km_proxima || null,
-      meses_intervalo: meses_intervalo || null, data_proxima: data_proxima || null,
-      ativo: ativo !== undefined ? (ativo ? 1 : 0) : 1,
+      meses_intervalo: meses_intervalo || null, data_proxima: dataProximaISO || null,
+      ativo: ativo !== undefined ? parseBool(ativo) : true,
     });
     res.status(201).json({ ok: true, id: created.id });
   } catch (error) { handleError(res, error, 'manutencao-preventiva.config'); }
@@ -39,6 +52,12 @@ async function updateConfig(req, res) {
     const existing = await ConfigManutencaoPreventiva.findByPk(id);
     if (!existing) return res.status(404).json({ error: 'Configuração não encontrada' });
     const body = req.body;
+
+    if (body.data_proxima) {
+      body.data_proxima = parseDateToISO(body.data_proxima);
+      if (!body.data_proxima) return res.status(400).json({ error: 'Formato de data_proxima inválido. Use DD/MM/AAAA ou AAAA-MM-DD.' });
+    }
+
     await ConfigManutencaoPreventiva.update({
       veiculo_id: body.veiculo_id ?? existing.veiculo_id,
       tipo_manutencao_id: body.tipo_manutencao_id !== undefined ? body.tipo_manutencao_id : existing.tipo_manutencao_id,
@@ -47,7 +66,7 @@ async function updateConfig(req, res) {
       km_proxima: body.km_proxima !== undefined ? body.km_proxima : existing.km_proxima,
       meses_intervalo: body.meses_intervalo !== undefined ? body.meses_intervalo : existing.meses_intervalo,
       data_proxima: body.data_proxima !== undefined ? body.data_proxima : existing.data_proxima,
-      ativo: body.ativo !== undefined ? (body.ativo ? 1 : 0) : existing.ativo,
+      ativo: body.ativo !== undefined ? parseBool(body.ativo) : existing.ativo,
     }, { where: { id } });
     res.json({ ok: true });
   } catch (error) { handleError(res, error, 'manutencao-preventiva.config'); }
@@ -55,7 +74,9 @@ async function updateConfig(req, res) {
 
 async function deleteConfig(req, res) {
   try {
-    await ConfigManutencaoPreventiva.destroy({ where: { id: req.params.id } });
+    const existing = await ConfigManutencaoPreventiva.findByPk(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Configuração não encontrada' });
+    await existing.destroy();
     res.json({ ok: true });
   } catch (error) { handleError(res, error, 'manutencao-preventiva.config'); }
 }
@@ -70,16 +91,16 @@ async function alertas(req, res) {
         SELECT c.*, v.placa, v.fipe_modelo, v.km as km_atual, t.descricao as tipo_descricao
         FROM config_manutencao_preventiva c JOIN veiculos v ON c.veiculo_id = v.placa
         LEFT JOIN tipo_manutencao t ON c.tipo_manutencao_id = t.id
-        WHERE c.ativo = 1 AND ((c.km_proxima IS NOT NULL AND v.km >= c.km_proxima) OR (c.data_proxima IS NOT NULL AND c.data_proxima <= ?))
+        WHERE c.ativo = true AND ((c.km_proxima IS NOT NULL AND v.km >= c.km_proxima) OR (c.data_proxima IS NOT NULL AND c.data_proxima <= $1))
         ORDER BY c.km_proxima ASC
-      `, { replacements: [hoje], type: sequelize.QueryTypes.SELECT }),
+      `, { bind: [hoje], type: sequelize.QueryTypes.SELECT }),
       sequelize.query(`
         SELECT c.*, v.placa, v.fipe_modelo, v.km as km_atual, t.descricao as tipo_descricao
         FROM config_manutencao_preventiva c JOIN veiculos v ON c.veiculo_id = v.placa
         LEFT JOIN tipo_manutencao t ON c.tipo_manutencao_id = t.id
-        WHERE c.ativo = 1 AND ((c.km_proxima IS NOT NULL AND v.km >= (c.km_proxima - c.km_intervalo * 0.1) AND v.km < c.km_proxima) OR (c.data_proxima IS NOT NULL AND c.data_proxima > ? AND c.data_proxima <= ?))
+        WHERE c.ativo = true AND ((c.km_proxima IS NOT NULL AND v.km >= (c.km_proxima - c.km_intervalo * 0.1) AND v.km < c.km_proxima) OR (c.data_proxima IS NOT NULL AND c.data_proxima > $1 AND c.data_proxima <= $2))
         ORDER BY c.km_proxima ASC
-      `, { replacements: [hoje, dataLimite], type: sequelize.QueryTypes.SELECT }),
+      `, { bind: [hoje, dataLimite], type: sequelize.QueryTypes.SELECT }),
     ]);
     res.json({ alertas: alertasResult, proximos: proximosResult });
   } catch (error) { handleError(res, error, 'manutencao-preventiva.alertas'); }
@@ -91,8 +112,8 @@ async function checkin(req, res) {
     const alertasResult = await sequelize.query(`
       SELECT c.*, v.placa, v.km
       FROM config_manutencao_preventiva c JOIN veiculos v ON c.veiculo_id = v.placa
-      WHERE c.ativo = 1 AND ((c.km_proxima IS NOT NULL AND v.km >= c.km_proxima) OR (c.data_proxima IS NOT NULL AND c.data_proxima <= ?))
-    `, { replacements: [hoje], type: sequelize.QueryTypes.SELECT });
+      WHERE c.ativo = true AND ((c.km_proxima IS NOT NULL AND v.km >= c.km_proxima) OR (c.data_proxima IS NOT NULL AND c.data_proxima <= $1))
+    `, { bind: [hoje], type: sequelize.QueryTypes.SELECT });
     let updated = 0;
     for (const cfg of alertasResult) {
       const nextKm = cfg.km_intervalo ? (cfg.km + cfg.km_intervalo) : null;

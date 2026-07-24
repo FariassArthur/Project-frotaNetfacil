@@ -10,52 +10,51 @@ const OrdemServico = sequelize.define('OrdemServico', {
   veiculo_id: {
     type: DataTypes.STRING,
     allowNull: false,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'CASCADE',
   },
   numero_os: DataTypes.STRING,
   data_abertura: {
-    type: DataTypes.STRING,
+    type: DataTypes.DATEONLY,
     allowNull: false,
   },
-  data_conclusao: DataTypes.STRING,
+  data_conclusao: DataTypes.DATEONLY,
   km_atual: DataTypes.INTEGER,
-  descricao: DataTypes.STRING,
+  descricao: DataTypes.TEXT,
   tipo: {
     type: DataTypes.STRING,
     defaultValue: 'corretiva',
+    validate: { isIn: [['corretiva', 'preventiva', 'preditiva']] },
   },
   status: {
     type: DataTypes.STRING,
     defaultValue: 'aberta',
+    validate: { isIn: [['aberta', 'em_andamento', 'concluida', 'cancelada']] },
   },
   prioridade: {
     type: DataTypes.STRING,
     defaultValue: 'normal',
+    validate: { isIn: [['baixa', 'normal', 'alta', 'urgente']] },
   },
   mecanica_id: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'mecanicas',
-      key: 'id',
-    },
+    references: { model: 'mecanicas', key: 'id' },
+    onDelete: 'SET NULL',
   },
   valor_mao_obra: DataTypes.REAL,
   valor_pecas: DataTypes.REAL,
-  observacoes: DataTypes.STRING,
+  observacoes: DataTypes.TEXT,
   criado_por: {
     type: DataTypes.STRING,
-    references: {
-      model: 'usuarios',
-      key: 'username',
-    },
+    references: { model: 'usuarios', key: 'username' },
+    onDelete: 'SET NULL',
   },
 }, {
   modelName: 'OrdemServico',
   tableName: 'ordens_servico',
-  timestamps: false,
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
 });
 
 module.exports = OrdemServico;

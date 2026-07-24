@@ -7,45 +7,31 @@ const Abastecimento = sequelize.define('Abastecimento', {
     primaryKey: true,
     autoIncrement: true,
   },
-  quantidade: {
-    type: DataTypes.REAL,
-  },
+  quantidade: DataTypes.REAL,
   combustivel_id: {
     type: DataTypes.INTEGER,
-    references: {
-      model: 'combustiveis',
-      key: 'id',
-    },
+    references: { model: 'combustiveis', key: 'id' },
+    onDelete: 'SET NULL',
   },
-  valor: {
-    type: DataTypes.REAL,
-  },
-  km: {
-    type: DataTypes.INTEGER,
-  },
+  valor: DataTypes.REAL,
+  km: DataTypes.INTEGER,
   tanque_cheio: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
-  path_comprovante_pdf: {
-    type: DataTypes.STRING,
-  },
-  data: {
-    type: DataTypes.STRING,
-  },
-  data_s: {
-    type: DataTypes.STRING,
-  },
+  path_comprovante_pdf: DataTypes.STRING,
+  data: DataTypes.DATEONLY,
+  data_s: DataTypes.STRING,
   veiculo_id: {
     type: DataTypes.STRING,
-    references: {
-      model: 'veiculos',
-      key: 'placa',
-    },
+    allowNull: false,
+    references: { model: 'veiculos', key: 'placa' },
+    onDelete: 'CASCADE',
   },
 }, {
   modelName: 'Abastecimento',
   tableName: 'abastecimentos',
   timestamps: false,
 });
+
 module.exports = Abastecimento;

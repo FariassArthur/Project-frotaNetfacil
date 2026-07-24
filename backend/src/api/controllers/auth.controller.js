@@ -5,6 +5,7 @@ const { Usuario } = require('../../database/models');
 const { logAudit } = require('../../services/auditLog');
 const { handleError } = require('../../services/errorHandler');
 const { add: blacklistToken } = require('../../services/tokenBlacklist');
+const { parseBool } = require('../utils/helpers');
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000;
@@ -32,6 +33,10 @@ function clearAttempts(username) {
   loginAttempts.delete(username);
 }
 
+function buildUserResponse(user) {
+  return { id: user.id, username: user.username, role: user.role, permissoes: user.permissoes };
+}
+
 async function login(req, res) {
   const { username, password } = req.body || {};
   try {
@@ -39,7 +44,7 @@ async function login(req, res) {
     if (isLockedOut(username)) return res.status(429).json({ error: 'Conta temporariamente bloqueada. Tente novamente em 15 minutos.' });
     const user = await Usuario.findOne({ where: { username } });
     if (!user) { recordFailedAttempt(username); return res.status(401).json({ error: 'Usuário ou senha inválidos' }); }
-    if (!user.ativo) return res.status(403).json({ error: 'Usuário inativo' });
+    if (!parseBool(user.ativo)) return res.status(403).json({ error: 'Usuário inativo' });
     const match = await bcrypt.compare(password, user.password);
     if (!match) { recordFailedAttempt(username); return res.status(401).json({ error: 'Usuário ou senha inválidos' }); }
     clearAttempts(username);
@@ -60,10 +65,7 @@ async function login(req, res) {
       path: '/',
     });
 
-    res.json({
-      ok: true,
-      user: { id: user.id, username: user.username, role: user.role, permissoes: user.permissoes },
-    });
+    res.json({ ok: true, user: buildUserResponse(user) });
 
     logAudit({
       user_id: user.id, username: user.username, acao: 'login', entidade: 'Sistema',
@@ -74,7 +76,13 @@ async function login(req, res) {
 
 async function me(req, res) {
   if (!req.user) return res.status(401).json({ error: 'Não autenticado' });
-  res.json({ id: req.user.id, username: req.user.username, role: req.user.role });
+  try {
+    const user = await Usuario.findByPk(req.user.id, {
+      attributes: ['id', 'username', 'role', 'permissoes', 'ativo'],
+    });
+    if (!user || !parseBool(user.ativo)) return res.status(401).json({ error: 'Usuário não encontrado ou inativo' });
+    res.json({ ok: true, user: buildUserResponse(user) });
+  } catch (error) { handleError(res, error, 'auth'); }
 }
 
 async function logout(req, res) {

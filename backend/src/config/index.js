@@ -18,7 +18,6 @@ const JWT_SECRET = requireEnv('JWT_SECRET', NODE_ENV === 'production' ? undefine
 if (!process.env.JWT_SECRET && NODE_ENV === 'production') {
   throw new Error('FATAL: Environment variable JWT_SECRET is required in production.');
 }
-const DB_PATH = path.resolve(process.env.DB_PATH || path.join(ROOT_DIR, 'data', 'gestaofrota.sqlite'));
 
 function buildDatabaseUrl() {
   const host = process.env.PGHOST || process.env.DB_HOST;
@@ -35,16 +34,17 @@ function buildDatabaseUrl() {
 }
 
 const DATABASE_URL = NODE_ENV === 'test'
-  ? ''
+  ? (process.env.DATABASE_URL || buildDatabaseUrl())
   : (process.env.DATABASE_URL || buildDatabaseUrl());
+
+if (!DATABASE_URL) {
+  throw new Error('FATAL: PostgreSQL connection URL is required. Set DATABASE_URL or PGHOST/PGDATABASE/PGUSER.');
+}
+
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 const UPLOADS_BASE = path.resolve(process.env.UPLOADS_BASE || path.join(PUBLIC_DIR, 'uploads'));
-const CORS_ORIGIN = NODE_ENV === 'production'
-  ? (process.env.CORS_ORIGIN || '')
-  : (process.env.CORS_ORIGIN || 'http://localhost:4173');
 
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 fs.mkdirSync(PUBLIC_DIR, { recursive: true });
 fs.mkdirSync(UPLOADS_BASE, { recursive: true });
 
-module.exports = { PORT, JWT_SECRET, ROOT_DIR, DB_PATH, DATABASE_URL, PUBLIC_DIR, UPLOADS_BASE, CORS_ORIGIN, NODE_ENV };
+module.exports = { PORT, JWT_SECRET, ROOT_DIR, DATABASE_URL, PUBLIC_DIR, UPLOADS_BASE, CORS_ORIGIN: process.env.CORS_ORIGIN || '', NODE_ENV };
